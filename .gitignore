@@ -1,0 +1,33 @@
+# Sistema operativo y editores
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Variables locales y secretos
+.env
+.env.*
+!.env.example
+
+# Frontend
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Datos generados por el worker
+data/*
+!data/.gitkeep
+
+# Salidas temporales
+tmp/
+*.log

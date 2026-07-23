@@ -1,0 +1,13 @@
+# Dependencias exactas para el entorno de calidad de la Fase 0.
+# Generado y validado con Python 3.13.
+iniconfig==2.3.0
+librt==0.13.0; python_version >= "3.13"
+mypy==1.20.2
+mypy_extensions==1.1.0
+packaging==26.2
+pathspec==1.1.1
+pluggy==1.6.0
+Pygments==2.20.0
+pytest==9.1.1
+ruff==0.15.22
+typing_extensions==4.16.0

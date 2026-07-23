@@ -1,0 +1,17 @@
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+pythonpath = ["apps/worker/src"]
+testpaths = ["apps/worker/tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["apps/worker/src", "apps/worker/tests"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
