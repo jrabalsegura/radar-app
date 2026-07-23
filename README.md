@@ -5,8 +5,9 @@ repositorio sigue el desarrollo incremental definido en
 [`docs/ROADMAP.md`](docs/ROADMAP.md); la fuente principal de verdad es
 [`docs/SPEC.md`](docs/SPEC.md).
 
-La Fase 0 solo proporciona el esqueleto React/TypeScript y el paquete Python del
-worker. Todavía no consulta AEMET, no representa mapas y no procesa imágenes.
+La Fase 1 incorpora un spike de ingesta puntual que descarga y archiva los
+originales de Murcia y de la composición nacional. Todavía no representa mapas,
+no procesa reflectividad y no genera historiales.
 
 ## Requisitos
 
@@ -32,16 +33,35 @@ python3 -m venv .venv
 .venv/bin/python -m pip install --requirement apps/worker/requirements-dev.lock
 ```
 
-No hace falta crear un `.env` para trabajar en la Fase 0. Cuando sea necesario,
-debe copiarse `.env.example` a `.env` y sustituir los valores localmente. `.env`
-está excluido de Git.
+Para ejecutar una consulta real, crea un archivo local con permisos restringidos:
+
+```bash
+cp .env.example .env
+chmod 600 .env
+```
+
+Edita `.env` y sustituye únicamente `AEMET_API_KEY`. No pegues la clave en
+comandos, incidencias, commits ni conversaciones. `.env` está excluido de Git y
+la CLI no sobrescribe una variable ya exportada.
 
 ## Desarrollo y validación
 
 ```bash
 make dev-web       # servidor Vite local
+make fetch-once    # una consulta de Murcia y nacional; carga .env
+make check-inventory # comprueba códigos sin descargar sus GIF
 make check         # lint, formato, tipado, tests y build
 make format        # aplica los formateadores
+```
+
+Para usar directamente `pytest`, `ruff` o la CLI en una terminal nueva:
+
+```bash
+source .venv/bin/activate
+pytest
+ruff check .
+aemet-radar fetch-once --product regional-mu
+deactivate
 ```
 
 Los criterios de aceptación también se pueden comprobar por separado:
@@ -65,6 +85,12 @@ docs/              especificación, decisiones y roadmap
 samples/           muestras mínimas y documentadas
 scripts/           utilidades reproducibles futuras
 ```
+
+Los originales se guardan en
+`data/raw/<producto>/<AAAA>/<MM>/<DD>/<sha256>.gif`; cada GIF tiene un informe
+JSON adyacente. Las URLs efímeras de AEMET y la API key no se almacenan. Si el
+hash ya existe para el producto, la ejecución informa `duplicate` y no crea otra
+copia.
 
 ## Estrategia Git
 
