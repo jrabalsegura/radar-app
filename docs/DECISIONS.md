@@ -175,3 +175,30 @@ ciclo periódico vuelve a consultar normalmente.
 **Motivo:** repetir errores permanentes aumenta carga sin mejorar la
 recuperación; conservar la última publicación mantiene el servicio útil durante
 una incidencia temporal de AEMET.
+
+---
+
+## ADR-014 — Clasificación exacta y máscara temporal para Murcia
+
+**Estado:** aceptada para `regional-v1`.
+
+La extracción de Murcia usa el recorte `480×480`, una cobertura circular en
+píxeles con centro `(240, 240)` y radio `250`, los once índices exactos
+observados en la leyenda y una máscara binaria versionada. La máscara estática
+excluye solo posiciones que mantienen el mismo índice clasificado en todas las
+muestras de referencia; no excluye posiciones invariantes de fondo.
+
+El amarillo puro se conserva fuera de la máscara y se descarta dentro de ella.
+Así se eliminan los límites administrativos sin eliminar globalmente la clase
+rotulada como 48 dBZ. Un cambio de dimensiones, modo o RGB esperado produce un
+error explícito.
+
+La máscara inicial se generó con 20 originales distintos de los días 23 y 24 de
+julio de 2026. Excluyó 3.611 píxeles amarillos fijos y ninguna clase inequívoca.
+El informe versionado conserva hashes, algoritmo y limitación conocida: un eco
+idéntico en todas las referencias podría confundirse con un elemento fijo.
+
+**Motivo:** las muestras comparten geometría y paleta, pero el amarillo también
+dibuja fronteras. La separación espacial reproducible conserva más información
+meteorológica que descartar el color completo y es auditable sin edición manual
+opaca.

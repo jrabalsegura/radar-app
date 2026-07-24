@@ -24,11 +24,18 @@ from aemet_radar.products import (
     SPIKE_PRODUCTS,
     RadarProduct,
 )
+from aemet_radar.reflectivity import (
+    build_static_mask,
+    process_reflectivity_sample,
+)
 from aemet_radar.retry import RetryPolicy
 from aemet_radar.runner import HistoryWorker, run_periodically
 from aemet_radar.service import IngestionService
 from aemet_radar.settings import OperationalSettings, Settings
 from aemet_radar.storage import ArchiveStore
+
+DEFAULT_REFLECTIVITY_CONFIG = Path("config/palettes/regional-mu-v1.json")
+DEFAULT_REFLECTIVITY_MASK = Path("config/masks/regional-mu-v1.png")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -137,14 +144,68 @@ def build_parser() -> argparse.ArgumentParser:
         default=8000,
         help="Puerto HTTP local (por defecto: 8000).",
     )
+
+    analyze = subcommands.add_parser(
+        "analyze-reflectivity",
+        help="Regenera las salidas de extracción de una muestra GIF de Murcia.",
+    )
+    analyze.add_argument("input", type=Path, help="Original GIF regional de Murcia.")
+    analyze.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("data/debug/phase-3/regional-mu"),
+        help="Directorio para PNG e informe JSON de depuración.",
+    )
+    analyze.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_REFLECTIVITY_CONFIG,
+        help="Configuración versionada de paleta y recorte.",
+    )
+    analyze.add_argument(
+        "--mask",
+        type=Path,
+        default=DEFAULT_REFLECTIVITY_MASK,
+        help="Máscara estática versionada.",
+    )
+
+    build_mask = subcommands.add_parser(
+        "build-reflectivity-mask",
+        help="Genera la máscara estática de Murcia desde varias muestras distintas.",
+    )
+    build_mask.add_argument(
+        "samples",
+        type=Path,
+        nargs="+",
+        help="Tres o más originales GIF regionales de Murcia.",
+    )
+    build_mask.add_argument(
+        "--output",
+        type=Path,
+        default=DEFAULT_REFLECTIVITY_MASK,
+        help="PNG binario de máscara que se debe generar.",
+    )
+    build_mask.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+        help="Informe JSON; por defecto usa el nombre de la máscara.",
+    )
+    build_mask.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_REFLECTIVITY_CONFIG,
+        help="Configuración versionada de paleta y recorte.",
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     arguments = parser.parse_args(argv)
-    env_file = _as_path(arguments.env_file)
-    load_dotenv(dotenv_path=env_file, override=False)
+    env_file = getattr(arguments, "env_file", None)
+    if isinstance(env_file, Path):
+        load_dotenv(dotenv_path=env_file, override=False)
 
     try:
         if arguments.command == "fetch-once":
@@ -157,6 +218,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_rebuild(arguments)
         if arguments.command == "serve-files":
             return _run_file_server(arguments)
+        if arguments.command == "analyze-reflectivity":
+            return _run_reflectivity_analysis(arguments)
+        if arguments.command == "build-reflectivity-mask":
+            return _run_reflectivity_mask_build(arguments)
     except AemetRadarError as exc:
         _print_json({"status": "error", "error": _safe_error(exc)}, stream=sys.stderr)
         return 2
@@ -373,6 +438,53 @@ def _run_file_server(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def _run_reflectivity_analysis(arguments: argparse.Namespace) -> int:
+    result = process_reflectivity_sample(
+        _as_path(arguments.input).resolve(),
+        config_path=_as_path(arguments.config).resolve(),
+        static_mask_path=_as_path(arguments.mask).resolve(),
+        output_dir=_as_path(arguments.output_dir).resolve(),
+    )
+    statistics = result.report.get("statistics")
+    reflectivity_pixels = (
+        statistics.get("reflectivityPixels") if isinstance(statistics, dict) else None
+    )
+    _print_json(
+        {
+            "status": "ok",
+            "processor": result.report["processor"],
+            "report": result.report_path.as_posix(),
+            "reflectivityPixels": reflectivity_pixels,
+        }
+    )
+    return 0
+
+
+def _run_reflectivity_mask_build(arguments: argparse.Namespace) -> int:
+    samples = arguments.samples
+    if not isinstance(samples, list) or not all(isinstance(item, Path) for item in samples):
+        raise TypeError("samples debe ser una lista de rutas")
+    report_value = arguments.report
+    report_path = report_value.resolve() if isinstance(report_value, Path) else None
+    result = build_static_mask(
+        tuple(item.resolve() for item in samples),
+        config_path=_as_path(arguments.config).resolve(),
+        mask_path=_as_path(arguments.output).resolve(),
+        report_path=report_path,
+    )
+    _print_json(
+        {
+            "status": "ok",
+            "processor": result.report["processor"],
+            "mask": result.mask_path.as_posix(),
+            "report": result.report_path.as_posix(),
+            "distinctSamples": result.report["distinctSamples"],
+            "excludedPixels": result.report["excludedPixels"],
+        }
+    )
+    return 0
+
+
 def _add_product_argument(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--product",
@@ -467,6 +579,7 @@ def _port(value: str) -> int:
     return parsed
 
 
-def _print_json(payload: object, *, stream: TextIO = sys.stdout) -> None:
+def _print_json(payload: object, *, stream: TextIO | None = None) -> None:
     serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True)
-    stream.write(serialized + "\n")
+    destination = sys.stdout if stream is None else stream
+    destination.write(serialized + "\n")

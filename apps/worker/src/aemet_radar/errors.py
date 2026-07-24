@@ -79,3 +79,16 @@ class DownloadValidationError(AemetRadarError):
             "sha256": f"sha256:{self.sha256}" if self.sha256 is not None else None,
             "declaredContentType": self.declared_content_type,
         }
+
+
+class ReflectivityProcessingError(AemetRadarError):
+    """La muestra o configuración no permite extraer reflectividad con seguridad."""
+
+    code = "reflectivity_processing_error"
+
+    def __init__(self, message: str, *, details: dict[str, object] | None = None) -> None:
+        self.details = details or {}
+        super().__init__(message)
+
+    def safe_details(self) -> dict[str, object]:
+        return self.details
