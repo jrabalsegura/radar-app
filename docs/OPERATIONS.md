@@ -15,6 +15,23 @@ Por producto, `status` refleja el último ciclo (`current`, `delayed`,
 `no-data` o `error`) y `dataStatus` refleja solo la edad del último fotograma.
 El umbral de retraso es dos veces la cadencia declarada del producto.
 
+Los fallos de validación de descarga dejan informes seguros bajo:
+
+```text
+data/reports/phase-2/failures/
+```
+
+Se pueden revisar con:
+
+```bash
+for report in data/reports/phase-2/failures/*.json; do
+  jq . "$report"
+done
+```
+
+Estos informes contienen tamaño, MIME declarado y SHA-256, pero nunca el cuerpo
+inválido, la API key o la URL efímera.
+
 ## Forzar un ciclo completo
 
 ```bash

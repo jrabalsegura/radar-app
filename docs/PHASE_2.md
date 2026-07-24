@@ -84,7 +84,9 @@ extremos. Para nacional, con su cadencia de catálogo actual, contiene 5.
 ## Representación de huecos
 
 `frames` contiene solo observaciones reales. Si dos observaciones consecutivas
-están separadas al menos 1,5 veces su cadencia, `gaps` describe la ausencia:
+están separadas aproximadamente 1,5 veces su cadencia, `gaps` describe la
+ausencia. Se admite un segundo de tolerancia para absorber el jitter subsegundo
+observado en el polling:
 
 ```json
 {
@@ -108,6 +110,8 @@ El árbol servido es:
 data/
 ├── raw/
 │   └── <producto>/<AAAA>/<MM>/<DD>/<sha256>.{gif,json}
+├── reports/
+│   └── phase-2/failures/<timestamp>-<producto>-download-validation.json
 ├── radar/
 │   ├── index.json
 │   ├── regional-mu/manifest.json
@@ -132,6 +136,25 @@ fase, no overlays finales.
 - error seguro, cuando exista.
 
 Un dato se marca retrasado al superar dos veces la cadencia de su producto.
+
+Si Pillow rechaza una descarga, el cuerpo no se archiva y el manifiesto
+anterior permanece intacto. El ciclo registra únicamente propiedades seguras:
+
+```json
+{
+  "code": "download_validation_error",
+  "details": {
+    "sizeBytes": 1234,
+    "sha256": "sha256:...",
+    "declaredContentType": "text/html"
+  },
+  "diagnosticReport": "reports/phase-2/failures/..."
+}
+```
+
+No se hace un reintento inmediato de contenido inválido. La siguiente ejecución
+programada vuelve a consultar AEMET, evitando una ráfaga de peticiones durante
+una transición defectuosa del origen.
 
 ## Retención
 
@@ -177,6 +200,7 @@ Las pruebas usan GIF e informes sintéticos y cubren:
 - ventana pública de dos horas con originales adicionales conservados;
 - secuencia incompleta y detección del hueco;
 - llegada tardía que rellena el hueco;
+- jitter subsegundo alrededor del umbral real de 15 minutos;
 - fallback explícito a `retrievedAt`;
 - informes inválidos;
 - retención de 24 horas y conservación del último válido;
@@ -184,6 +208,7 @@ Las pruebas usan GIF e informes sintéticos y cubren:
 - intervalo periódico sin deriva acumulada;
 - publicación atómica ante fallo de reemplazo;
 - fallo AEMET 503 que mantiene byte a byte el manifiesto anterior;
+- diagnóstico persistente de contenido inválido sin cuerpo ni secretos;
 - ciclo completo simulado que genera manifiesto, índice y health;
 - reconstrucción sin API key.
 
@@ -206,6 +231,16 @@ como no reintentable, por lo que no se generó carga repetida.
 API key ni las URLs efímeras aparecían en informes, manifiestos o health. El
 directorio temporal se eliminó después de la comprobación.
 
+Una segunda validación manual de casi tres horas archivó 18 originales y publicó
+13 en una ventana exacta de dos horas. Los fotogramas quedaron ordenados, con
+hashes únicos y cada SHA-256 coincidió con el GIF referenciado.
+
+La prueba observó varias respuestas que Pillow no pudo identificar como GIF. El
+manifiesto sobrevivió a todos esos ciclos. También mostró una separación real
+de `14:59.962813` entre dos originales: era 37 milisegundos inferior al umbral
+de 15 minutos y la primera implementación no la marcaba. Esa observación motivó
+la tolerancia de un segundo y una prueba de regresión con los timestamps reales.
+
 ## Limitaciones conocidas
 
 - La hora real del producto de Murcia sigue sin resolverse cuando AEMET no
@@ -213,6 +248,9 @@ directorio temporal se eliminó después de la comprobación.
 - La composición nacional seguía temporalmente no disponible en la validación
   real de esta fase. El scheduler conserva su estado como error o sin datos sin
   inventar contenido.
+- Las respuestas inválidas de la prueba prolongada ocurrieron antes de añadir
+  los informes seguros, por lo que su MIME y tamaño concretos no pueden
+  recuperarse retrospectivamente. Los ciclos futuros sí dejarán ese diagnóstico.
 - El servidor HTTP incluido es solo una ayuda local. HTTPS, Nginx, unidades de
   servicio y reinicio automático pertenecen a la Fase 9.
 - Los manifiestos apuntan al GIF original. Los derivados transparentes se

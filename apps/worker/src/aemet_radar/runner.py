@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from aemet_radar.errors import AemetRadarError
+from aemet_radar.diagnostics import FailureRecorder
+from aemet_radar.errors import AemetRadarError, DownloadValidationError
 from aemet_radar.health import HealthPublisher, PollObservation
 from aemet_radar.history import isoformat_utc
 from aemet_radar.manifests import ManifestPublisher
@@ -28,19 +29,24 @@ class ProductCycleResult:
     published_frames: int | None
     error_code: str | None = None
     error_message: str | None = None
+    error_details: dict[str, object] | None = None
+    diagnostic_report: str | None = None
 
     def to_dict(self) -> dict[str, object]:
+        error: dict[str, object] | None = None
+        if self.error_code is not None:
+            error = {"code": self.error_code, "message": self.error_message}
+            if self.error_details is not None:
+                error["details"] = self.error_details
+            if self.diagnostic_report is not None:
+                error["diagnosticReport"] = self.diagnostic_report
         return {
             "productId": self.product_id,
             "status": self.status,
             "attempts": self.attempts,
             "removedFrames": self.removed_frames,
             "publishedFrames": self.published_frames,
-            "error": (
-                {"code": self.error_code, "message": self.error_message}
-                if self.error_code is not None
-                else None
-            ),
+            "error": error,
         }
 
 
@@ -77,9 +83,11 @@ class HistoryWorker:
         self.products = products
         self.retry_policy = retry_policy
         self.sleeper = sleeper
+        self.data_dir = data_dir.resolve()
         self.manifests = ManifestPublisher(data_dir, history_hours=history_hours)
         self.retention = RetentionManager(data_dir, retention_hours=retention_hours)
         self.health = HealthPublisher(data_dir, self.manifests)
+        self.failures = FailureRecorder(data_dir)
 
     def run_cycle(self, *, generated_at: datetime | None = None) -> CycleResult:
         cycle_time = generated_at or datetime.now(UTC)
@@ -105,12 +113,28 @@ class HistoryWorker:
                     sleeper=self.sleeper,
                 )
             except AemetRadarError as exc:
+                error_details = exc.safe_details() or None
+                diagnostic_report: str | None = None
+                if isinstance(exc, DownloadValidationError):
+                    try:
+                        diagnostic_path = self.failures.record_download_validation(
+                            product=product,
+                            checked_at=cycle_time,
+                            attempts=attempt_count,
+                            error=exc,
+                        )
+                    except OSError:
+                        diagnostic_path = None
+                    if diagnostic_path is not None:
+                        diagnostic_report = diagnostic_path.relative_to(self.data_dir).as_posix()
                 observations[product.id] = PollObservation(
                     status="error",
                     checked_at=cycle_time,
                     attempts=attempt_count,
                     error_code=exc.code,
                     error_message=str(exc),
+                    error_details=error_details,
+                    diagnostic_report=diagnostic_report,
                 )
                 results.append(
                     ProductCycleResult(
@@ -121,6 +145,8 @@ class HistoryWorker:
                         published_frames=None,
                         error_code=exc.code,
                         error_message=str(exc),
+                        error_details=error_details,
+                        diagnostic_report=diagnostic_report,
                     )
                 )
                 continue

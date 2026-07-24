@@ -128,7 +128,9 @@ como hora de obtención y publica `timeSource: "retrievedAt"` y
 
 Los manifiestos se anclan en el último fotograma disponible y publican como
 máximo las dos horas anteriores a ese instante. Los huecos describen intervalos
-esperados sin crear entradas de fotograma ni duplicar observaciones.
+esperados sin crear entradas de fotograma ni duplicar observaciones. La
+detección admite un segundo de tolerancia alrededor del umbral para que el
+jitter subsegundo del polling no oculte una ausencia.
 
 **Motivo:** `SPEC.md` permite presentar la hora de obtención cuando no se puede
 determinar la hora del producto. Mantener ambas semánticas separadas evita
@@ -164,6 +166,11 @@ Si la ingesta de un producto falla, su manifiesto no se reconstruye ni se
 vacía. `health.json` registra el error y diferencia ese fallo del estado
 temporal de los datos existentes. La retención por defecto es de 24 horas y
 nunca elimina el último fotograma válido de un producto.
+
+Una descarga que no supera la validación de GIF no se reintenta inmediatamente
+ni se archiva como original. Se genera un diagnóstico seguro con tamaño, MIME
+declarado y SHA-256, pero sin cuerpo, credenciales o URL efímera. El siguiente
+ciclo periódico vuelve a consultar normalmente.
 
 **Motivo:** repetir errores permanentes aumenta carga sin mejorar la
 recuperación; conservar la última publicación mantiene el servicio útil durante

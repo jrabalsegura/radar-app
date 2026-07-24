@@ -22,6 +22,8 @@ class PollObservation:
     outcome_status: str | None = None
     error_code: str | None = None
     error_message: str | None = None
+    error_details: dict[str, object] | None = None
+    diagnostic_report: str | None = None
 
 
 class HealthPublisher:
@@ -128,10 +130,15 @@ class HealthPublisher:
             last_error = None
         elif observation is not None:
             last_success_at = previous_last_success
-            last_error = {
+            error_payload: dict[str, object] = {
                 "code": observation.error_code,
                 "message": observation.error_message,
             }
+            if observation.error_details is not None:
+                error_payload["details"] = observation.error_details
+            if observation.diagnostic_report is not None:
+                error_payload["diagnosticReport"] = observation.diagnostic_report
+            last_error = error_payload
         else:
             last_success_at = previous_last_success
             last_error = previous_error

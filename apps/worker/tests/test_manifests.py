@@ -150,6 +150,39 @@ def test_manifest_marks_retrieval_time_fallback_and_invalid_reports(
     assert statistics["invalidReports"] == 1
 
 
+def test_gap_detection_tolerates_real_polling_jitter(tmp_path: Path) -> None:
+    before = datetime(2026, 7, 24, 18, 27, 31, 850929, tzinfo=UTC)
+    after = datetime(2026, 7, 24, 18, 42, 31, 813742, tzinfo=UTC)
+    _archive_report(
+        tmp_path,
+        index=1,
+        product_time=None,
+        retrieved_at=before,
+    )
+    _archive_report(
+        tmp_path,
+        index=2,
+        product_time=None,
+        retrieved_at=after,
+    )
+
+    result = ManifestPublisher(tmp_path).rebuild_product(
+        MURCIA,
+        generated_at=after + timedelta(minutes=1),
+    )
+
+    assert result.payload["gaps"] == [
+        {
+            "after": "2026-07-24T18:27:31.850929Z",
+            "before": "2026-07-24T18:42:31.813742Z",
+            "expectedCadenceMinutes": 10,
+            "missingCount": 1,
+            "expectedTimes": ["2026-07-24T18:37:31.850929Z"],
+            "timeBasis": "retrievedAt",
+        }
+    ]
+
+
 def test_national_manifest_uses_its_own_thirty_minute_cadence(
     tmp_path: Path,
 ) -> None:

@@ -18,6 +18,8 @@ from aemet_radar.history import (
 from aemet_radar.products import RadarProduct
 from aemet_radar.storage import atomic_write_json
 
+_GAP_JITTER_TOLERANCE_SECONDS = 1.0
+
 
 @dataclass(frozen=True, slots=True)
 class ManifestResult:
@@ -186,7 +188,7 @@ def _detect_gaps(
     gaps: list[dict[str, object]] = []
     for previous, current in zip(frames, frames[1:]):
         elapsed = (current.timeline_time - previous.timeline_time).total_seconds()
-        if elapsed < cadence_seconds * 1.5:
+        if elapsed + _GAP_JITTER_TOLERANCE_SECONDS < cadence_seconds * 1.5:
             continue
         missing_count = max(1, round(elapsed / cadence_seconds) - 1)
         expected_times = [

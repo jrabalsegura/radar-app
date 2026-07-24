@@ -33,3 +33,7 @@ por defecto se pueden ajustar con `AEMET_POLL_INTERVAL_SECONDS`,
 
 `rebuild-manifests` y `serve-files` no necesitan API key. El servidor escucha
 solo en `127.0.0.1` por defecto y no permite listar directorios.
+
+Las descargas que no superan la validación no se archivan como GIF. El worker
+publica tamaño, MIME declarado y SHA-256 en la salida estructurada y en
+`data/reports/phase-2/failures/`, sin conservar el cuerpo o la URL efímera.

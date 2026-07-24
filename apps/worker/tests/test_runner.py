@@ -1,3 +1,4 @@
+import hashlib
 import json
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -144,6 +145,82 @@ def test_first_failed_cycle_still_publishes_empty_manifest(tmp_path: Path) -> No
     health = json.loads((tmp_path / "status" / "health.json").read_text())
     assert health["products"][0]["status"] == "error"
     assert health["products"][0]["dataStatus"] == "no-data"
+
+
+def test_invalid_download_writes_only_safe_diagnostics(tmp_path: Path) -> None:
+    cycle_time = datetime(2026, 7, 24, 18, 37, 31, 624193, tzinfo=UTC)
+    invalid_content = b"<html>temporary upstream response</html>"
+    request_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal request_count
+        request_count += 1
+        if request.url.path.endswith(MURCIA.endpoint):
+            return httpx.Response(
+                200,
+                json={
+                    "estado": 200,
+                    "datos": DATA_URL,
+                    "metadatos": METADATA_URL,
+                },
+                request=request,
+            )
+        if request.url == httpx.URL(DATA_URL):
+            return httpx.Response(
+                200,
+                content=invalid_content,
+                headers={"Content-Type": "text/html; charset=utf-8"},
+                request=request,
+            )
+        return httpx.Response(
+            200,
+            json={"formato": "image/gif"},
+            request=request,
+        )
+
+    client = _client(handler)
+    worker = HistoryWorker(
+        IngestionService(client, ArchiveStore(tmp_path)),
+        data_dir=tmp_path,
+        products=(MURCIA,),
+        retry_policy=RetryPolicy(max_attempts=3, initial_backoff_seconds=0),
+        sleeper=lambda delay: None,
+    )
+    try:
+        result = worker.run_cycle(generated_at=cycle_time)
+    finally:
+        client.close()
+
+    product_result = result.products[0]
+    assert product_result.attempts == 1
+    assert product_result.error_code == "download_validation_error"
+    assert product_result.error_details == {
+        "sizeBytes": len(invalid_content),
+        "sha256": f"sha256:{hashlib.sha256(invalid_content).hexdigest()}",
+        "declaredContentType": "text/html",
+    }
+    assert product_result.diagnostic_report is not None
+    report_path = tmp_path / product_result.diagnostic_report
+    report_text = report_path.read_text()
+    report = json.loads(report_text)
+    assert report["error"]["details"] == product_result.error_details
+    assert invalid_content.decode() not in report_text
+    assert DATA_URL not in report_text
+    assert METADATA_URL not in report_text
+    assert FAKE_SECRET not in report_text
+    assert request_count == 3
+
+    serialized_result = json.dumps(result.to_dict())
+    assert product_result.diagnostic_report in serialized_result
+    assert invalid_content.decode() not in serialized_result
+    assert DATA_URL not in serialized_result
+    assert FAKE_SECRET not in serialized_result
+
+    health = json.loads((tmp_path / "status" / "health.json").read_text())
+    assert health["products"][0]["lastError"]["details"] == product_result.error_details
+    assert (
+        health["products"][0]["lastError"]["diagnosticReport"] == product_result.diagnostic_report
+    )
 
 
 def _client(handler: Callable[[httpx.Request], httpx.Response]) -> AemetClient:

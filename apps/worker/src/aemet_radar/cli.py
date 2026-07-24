@@ -431,8 +431,12 @@ def _list_length(payload: dict[str, object], key: str) -> int:
     return len(value) if isinstance(value, list) else 0
 
 
-def _safe_error(error: AemetRadarError) -> dict[str, str]:
-    return {"code": error.code, "message": str(error)}
+def _safe_error(error: AemetRadarError) -> dict[str, object]:
+    payload: dict[str, object] = {"code": error.code, "message": str(error)}
+    details = error.safe_details()
+    if details:
+        payload["details"] = details
+    return payload
 
 
 def _positive_float(value: str) -> float:
