@@ -1,3 +1,4 @@
+import hashlib
 from collections.abc import Callable
 from datetime import UTC, datetime
 
@@ -25,8 +26,14 @@ def test_inspects_palette_and_internal_metadata(
 
 @pytest.mark.parametrize("content", [b"", b"not-a-gif", b"<html>error</html>"])
 def test_rejects_invalid_content(content: bytes) -> None:
-    with pytest.raises(DownloadValidationError):
+    with pytest.raises(DownloadValidationError) as captured:
         inspect_gif(content, "text/html")
+
+    assert captured.value.safe_details() == {
+        "sizeBytes": len(content),
+        "sha256": f"sha256:{hashlib.sha256(content).hexdigest()}",
+        "declaredContentType": "text/html",
+    }
 
 
 def test_last_modified_has_priority_as_product_time_candidate() -> None:

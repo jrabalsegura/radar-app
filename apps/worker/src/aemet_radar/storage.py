@@ -45,7 +45,7 @@ class ArchiveStore:
                 data_dir=self.data_dir,
                 raw_path=existing,
             )
-            _atomic_write_json(existing_report, refreshed)
+            atomic_write_json(existing_report, refreshed)
             return ArchiveResult(
                 status="duplicate",
                 raw_path=existing,
@@ -63,8 +63,8 @@ class ArchiveStore:
         target_dir.mkdir(parents=True, exist_ok=True)
 
         complete_report = _report_with_paths(report, self.data_dir, raw_path, report_path)
-        _atomic_write_bytes(raw_path, content)
-        _atomic_write_json(report_path, complete_report)
+        atomic_write_bytes(raw_path, content)
+        atomic_write_json(report_path, complete_report)
         return ArchiveResult(status="stored", raw_path=raw_path, report_path=report_path)
 
     def write_comparison(
@@ -76,7 +76,7 @@ class ArchiveStore:
         target_dir = self.data_dir / "reports" / "phase-1"
         filename = generated_at.strftime("%Y%m%dT%H%M%S%fZ") + ".json"
         path = target_dir / filename
-        _atomic_write_json(
+        atomic_write_json(
             path,
             {
                 "schemaVersion": 1,
@@ -95,7 +95,7 @@ class ArchiveStore:
         target_dir = self.data_dir / "reports" / "phase-1"
         filename = "inventory-" + generated_at.strftime("%Y%m%dT%H%M%S%fZ") + ".json"
         path = target_dir / filename
-        _atomic_write_json(
+        atomic_write_json(
             path,
             {
                 "schemaVersion": 1,
@@ -151,7 +151,9 @@ def _merge_duplicate_report(
     }
 
 
-def _atomic_write_bytes(path: Path, content: bytes) -> None:
+def atomic_write_bytes(path: Path, content: bytes) -> None:
+    """Publica bytes mediante escritura temporal y reemplazo en el mismo directorio."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     file_descriptor, temporary_name = tempfile.mkstemp(
         dir=path.parent,
@@ -170,6 +172,8 @@ def _atomic_write_bytes(path: Path, content: bytes) -> None:
         raise
 
 
-def _atomic_write_json(path: Path, payload: dict[str, object]) -> None:
+def atomic_write_json(path: Path, payload: dict[str, object]) -> None:
+    """Serializa y publica un objeto JSON de forma atómica."""
+
     serialized = (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode()
-    _atomic_write_bytes(path, serialized)
+    atomic_write_bytes(path, serialized)

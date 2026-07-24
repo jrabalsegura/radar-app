@@ -1,7 +1,7 @@
 import pytest
 
 from aemet_radar.errors import ConfigurationError
-from aemet_radar.settings import Settings
+from aemet_radar.settings import OperationalSettings, Settings
 
 
 def test_settings_require_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -19,3 +19,19 @@ def test_settings_repr_redacts_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert settings.api_key == secret
     assert secret not in repr(settings)
+
+
+def test_operational_settings_read_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AEMET_POLL_INTERVAL_SECONDS", "120")
+    monkeypatch.setenv("AEMET_RETRY_ATTEMPTS", "4")
+    monkeypatch.setenv("AEMET_RETRY_BACKOFF_SECONDS", "0.25")
+    monkeypatch.setenv("AEMET_RETENTION_HOURS", "36")
+    monkeypatch.setenv("AEMET_HISTORY_HOURS", "2.5")
+
+    settings = OperationalSettings.from_environment()
+
+    assert settings.poll_interval_seconds == 120
+    assert settings.retry_attempts == 4
+    assert settings.retry_backoff_seconds == 0.25
+    assert settings.retention_hours == 36
+    assert settings.history_hours == 2.5

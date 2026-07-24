@@ -29,11 +29,15 @@ _TIMESTAMP_PATTERNS = (
 def inspect_gif(content: bytes, declared_content_type: str | None) -> ImageInspection:
     """Valida un GIF y devuelve sus propiedades sin modificarlo."""
 
-    if not content:
-        raise DownloadValidationError("El recurso descargado está vacío.")
-
     digest = hashlib.sha256(content).hexdigest()
     normalized_content_type = _normalize_content_type(declared_content_type)
+    if not content:
+        raise _validation_error(
+            "El recurso descargado está vacío.",
+            content=content,
+            digest=digest,
+            declared_content_type=normalized_content_type,
+        )
 
     try:
         with Image.open(BytesIO(content)) as candidate:
@@ -42,10 +46,20 @@ def inspect_gif(content: bytes, declared_content_type: str | None) -> ImageInspe
         with Image.open(BytesIO(content)) as image:
             image.load()
             if detected_format != "GIF" or image.format != "GIF":
-                raise DownloadValidationError("El recurso descargado no es un GIF.")
+                raise _validation_error(
+                    "El recurso descargado no es un GIF.",
+                    content=content,
+                    digest=digest,
+                    declared_content_type=normalized_content_type,
+                )
             width, height = image.size
             if width <= 0 or height <= 0 or width > _MAX_DIMENSION or height > _MAX_DIMENSION:
-                raise DownloadValidationError("Las dimensiones del GIF no son aceptables.")
+                raise _validation_error(
+                    "Las dimensiones del GIF no son aceptables.",
+                    content=content,
+                    digest=digest,
+                    declared_content_type=normalized_content_type,
+                )
 
             palette_entries = _palette_entries(image)
             used_indexes = _used_palette_indexes(image)
@@ -70,7 +84,27 @@ def inspect_gif(content: bytes, declared_content_type: str | None) -> ImageInspe
     except DownloadValidationError:
         raise
     except (Image.DecompressionBombError, UnidentifiedImageError, OSError, SyntaxError) as exc:
-        raise DownloadValidationError("El recurso descargado no es un GIF válido.") from exc
+        raise _validation_error(
+            "El recurso descargado no es un GIF válido.",
+            content=content,
+            digest=digest,
+            declared_content_type=normalized_content_type,
+        ) from exc
+
+
+def _validation_error(
+    message: str,
+    *,
+    content: bytes,
+    digest: str,
+    declared_content_type: str | None,
+) -> DownloadValidationError:
+    return DownloadValidationError(
+        message,
+        size_bytes=len(content),
+        sha256=digest,
+        declared_content_type=declared_content_type,
+    )
 
 
 def resolve_product_time(

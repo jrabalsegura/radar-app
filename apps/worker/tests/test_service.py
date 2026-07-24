@@ -1,4 +1,5 @@
 import json
+import os
 from collections.abc import Callable
 from pathlib import Path
 
@@ -82,6 +83,27 @@ def test_comparison_report_contains_only_safe_summaries(
     assert outcome.sha256 in text
     assert FAKE_SECRET not in text
     assert DATA_URL not in text
+
+
+def test_atomic_publication_preserves_previous_file_on_replace_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from aemet_radar.storage import atomic_write_json
+
+    path = tmp_path / "manifest.json"
+    path.write_text('{"status":"previous"}\n', encoding="utf-8")
+
+    def fail_replace(source: Path | str, destination: Path | str) -> None:
+        raise OSError("simulated atomic replace failure")
+
+    monkeypatch.setattr(os, "replace", fail_replace)
+
+    with pytest.raises(OSError):
+        atomic_write_json(path, {"status": "new"})
+
+    assert json.loads(path.read_text()) == {"status": "previous"}
+    assert list(tmp_path.glob("*.tmp")) == []
 
 
 def _service(

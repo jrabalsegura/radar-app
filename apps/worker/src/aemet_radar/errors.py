@@ -8,6 +8,9 @@ class AemetRadarError(Exception):
 
     code = "aemet_radar_error"
 
+    def safe_details(self) -> dict[str, object]:
+        return {}
+
 
 class ConfigurationError(AemetRadarError):
     """La configuración local no permite ejecutar el comando."""
@@ -56,3 +59,23 @@ class DownloadValidationError(AemetRadarError):
     """El recurso descargado no es un GIF aceptable."""
 
     code = "download_validation_error"
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        size_bytes: int | None = None,
+        sha256: str | None = None,
+        declared_content_type: str | None = None,
+    ) -> None:
+        self.size_bytes = size_bytes
+        self.sha256 = sha256
+        self.declared_content_type = declared_content_type
+        super().__init__(message)
+
+    def safe_details(self) -> dict[str, object]:
+        return {
+            "sizeBytes": self.size_bytes,
+            "sha256": f"sha256:{self.sha256}" if self.sha256 is not None else None,
+            "declaredContentType": self.declared_content_type,
+        }
