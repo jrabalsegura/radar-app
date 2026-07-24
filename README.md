@@ -5,9 +5,9 @@ repositorio sigue el desarrollo incremental definido en
 [`docs/ROADMAP.md`](docs/ROADMAP.md); la fuente principal de verdad es
 [`docs/SPEC.md`](docs/SPEC.md).
 
-La Fase 1 incorpora un spike de ingesta puntual que descarga y archiva los
-originales de Murcia y de la composición nacional. Todavía no representa mapas,
-no procesa reflectividad y no genera historiales.
+La Fase 2 incorpora ingesta periódica, retención, historial de dos horas,
+manifiestos y estado operativo para Murcia y la composición nacional. Todavía
+no representa mapas ni procesa reflectividad.
 
 ## Requisitos
 
@@ -22,8 +22,8 @@ make install
 ```
 
 El frontend se instala con `npm ci` y su `package-lock.json`. El entorno de
-desarrollo Python se crea en `.venv` y usa las versiones exactas de
-`apps/worker/requirements-dev.lock`.
+desarrollo Python se crea en `.venv`, usa las versiones exactas de
+`apps/worker/requirements-dev.lock` e instala el worker como paquete local.
 
 Sin Make, los comandos equivalentes son:
 
@@ -31,6 +31,7 @@ Sin Make, los comandos equivalentes son:
 npm --prefix apps/web ci
 python3 -m venv .venv
 .venv/bin/python -m pip install --requirement apps/worker/requirements-dev.lock
+.venv/bin/python -m pip install --force-reinstall --no-deps --no-build-isolation apps/worker
 ```
 
 Para ejecutar una consulta real, crea un archivo local con permisos restringidos:
@@ -50,6 +51,10 @@ la CLI no sobrescribe una variable ya exportada.
 make dev-web       # servidor Vite local
 make fetch-once    # una consulta de Murcia y nacional; carga .env
 make check-inventory # comprueba códigos sin descargar sus GIF
+make poll-once     # ciclo completo: ingesta, retención y publicación
+make run-worker    # scheduler continuo
+make rebuild-manifests # reconstruye la publicación solo desde disco
+make serve-files   # inspección local en http://127.0.0.1:8000
 make check         # lint, formato, tipado, tests y build
 make format        # aplica los formateadores
 ```
@@ -61,6 +66,8 @@ source .venv/bin/activate
 pytest
 ruff check .
 aemet-radar fetch-once --product regional-mu
+aemet-radar run --cycles 1
+aemet-radar rebuild-manifests
 deactivate
 ```
 
@@ -91,6 +98,20 @@ Los originales se guardan en
 JSON adyacente. Las URLs efímeras de AEMET y la API key no se almacenan. Si el
 hash ya existe para el producto, la ejecución informa `duplicate` y no crea otra
 copia.
+
+La publicación estática se genera en:
+
+```text
+data/radar/index.json
+data/radar/<producto>/manifest.json
+data/status/health.json
+```
+
+El manifiesto conserva solo la ventana pública de dos horas anclada en el
+último fotograma disponible, mientras el archivo mantiene inicialmente 24
+horas. `productTime` se usa únicamente si existe evidencia; en caso contrario
+se usa `retrievedAt` y se declara como `timeSource: "retrievedAt"`. Los huecos
+se enumeran sin crear fotogramas artificiales.
 
 ## Estrategia Git
 

@@ -114,3 +114,57 @@ AEMET 404 en dos consultas, pese a seguir publicada en OpenAPI.
 **Motivo:** el catálogo describe recursos admitidos, pero la disponibilidad es
 estado temporal. No se eliminarán códigos por una observación puntual ni se
 habilitarán en el producto sin la validación específica de fases posteriores.
+
+---
+
+## ADR-011 — Base temporal explícita por fotograma
+
+**Estado:** aceptada.
+
+El historial usa `productTime` cuando el informe contiene una candidata con
+valor temporal. Cuando esa evidencia no existe, usa `retrievedAt` únicamente
+como hora de obtención y publica `timeSource: "retrievedAt"` y
+`productTime: null`.
+
+Los manifiestos se anclan en el último fotograma disponible y publican como
+máximo las dos horas anteriores a ese instante. Los huecos describen intervalos
+esperados sin crear entradas de fotograma ni duplicar observaciones.
+
+**Motivo:** `SPEC.md` permite presentar la hora de obtención cuando no se puede
+determinar la hora del producto. Mantener ambas semánticas separadas evita
+afirmar una precisión que la Fase 1 no pudo demostrar.
+
+---
+
+## ADR-012 — Publicación estática y atómica bajo el directorio de datos
+
+**Estado:** aceptada.
+
+Los manifiestos se publican en `data/radar/`, y el estado en
+`data/status/health.json`. Cada JSON se serializa en un temporal del mismo
+directorio, se sincroniza y se reemplaza con `os.replace`.
+
+El servidor de inspección local sirve `data/` en `127.0.0.1` y deniega el
+listado de directorios. No es el servidor de producción de la Fase 9.
+
+**Motivo:** conserva la arquitectura sin base de datos de ADR-001 y garantiza
+que un lector nunca observe un JSON escrito parcialmente.
+
+---
+
+## ADR-013 — Reintentos selectivos y conservación ante fallos
+
+**Estado:** aceptada.
+
+El ciclo periódico reintenta transportes fallidos, HTTP 408/425/429 y estados
+5xx, con máximo configurable y backoff exponencial. No reintenta errores de
+autenticación, contrato, validación de imagen ni estados funcionales como 404.
+
+Si la ingesta de un producto falla, su manifiesto no se reconstruye ni se
+vacía. `health.json` registra el error y diferencia ese fallo del estado
+temporal de los datos existentes. La retención por defecto es de 24 horas y
+nunca elimina el último fotograma válido de un producto.
+
+**Motivo:** repetir errores permanentes aumenta carga sin mejorar la
+recuperación; conservar la última publicación mantiene el servicio útil durante
+una incidencia temporal de AEMET.
