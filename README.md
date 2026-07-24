@@ -5,9 +5,9 @@ repositorio sigue el desarrollo incremental definido en
 [`docs/ROADMAP.md`](docs/ROADMAP.md); la fuente principal de verdad es
 [`docs/SPEC.md`](docs/SPEC.md).
 
-La Fase 2 incorpora ingesta periódica, retención, historial de dos horas,
-manifiestos y estado operativo para Murcia y la composición nacional. Todavía
-no representa mapas ni procesa reflectividad.
+La Fase 3 incorpora el procesador versionado `regional-v1`, que extrae una capa
+RGBA transparente del radar de Murcia mediante paleta exacta y máscara estática
+reproducible. Todavía no georreferencia la capa ni la representa en un mapa.
 
 ## Requisitos
 
@@ -55,6 +55,7 @@ make poll-once     # ciclo completo: ingesta, retención y publicación
 make run-worker    # scheduler continuo
 make rebuild-manifests # reconstruye la publicación solo desde disco
 make serve-files   # inspección local en http://127.0.0.1:8000
+make analyze-reflectivity SAMPLE=ruta/original.gif # depuración completa de Murcia
 make check         # lint, formato, tipado, tests y build
 make format        # aplica los formateadores
 ```
@@ -68,6 +69,7 @@ ruff check .
 aemet-radar fetch-once --product regional-mu
 aemet-radar run --cycles 1
 aemet-radar rebuild-manifests
+aemet-radar analyze-reflectivity ruta/al/original.gif
 deactivate
 ```
 
@@ -112,6 +114,15 @@ El manifiesto conserva solo la ventana pública de dos horas anclada en el
 horas. `productTime` se usa únicamente si existe evidencia; en caso contrario
 se usa `retrievedAt` y se declara como `timeSource: "retrievedAt"`. Los huecos
 se enumeran sin crear fotogramas artificiales.
+
+Para Murcia, `analyze-reflectivity` valida la plantilla `480×530`, recorta la
+zona `480×480`, clasifica las once clases de la leyenda y aplica
+`config/masks/regional-mu-v1.png`. Genera `normalized.png`, `crop.png`,
+`palette.png`, `classified.png`, máscaras estática, de cobertura y alfa,
+`overlay.png`, `preview.png` y `report.json` bajo `data/debug/`. El amarillo
+compartido con las fronteras solo se conserva fuera de la máscara estática. La
+metodología y la validación real se documentan en
+[`docs/PHASE_3.md`](docs/PHASE_3.md).
 
 ## Estrategia Git
 

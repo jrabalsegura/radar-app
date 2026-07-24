@@ -1,8 +1,8 @@
 # Operación local
 
 La operación de producción con Podman, systemd y Nginx sigue pendiente de la
-Fase 9. Esta guía cubre únicamente el worker y la publicación local de la Fase
-2.
+Fase 9. Esta guía cubre el worker, la publicación local de la Fase 2 y la
+extracción reproducible de Murcia de la Fase 3.
 
 ## Comprobar el estado
 
@@ -90,6 +90,37 @@ curl http://127.0.0.1:8000/status/health.json
 El servidor es solo local, no permite listar directorios y no sustituye a
 Nginx.
 
+## Regenerar la reflectividad de Murcia
+
+No consulta AEMET ni requiere API key:
+
+```bash
+.venv/bin/aemet-radar analyze-reflectivity \
+  data/raw/regional-mu/AAAA/MM/DD/<sha256>.gif \
+  --output-dir data/debug/phase-3/regional-mu/<sha256-corto>
+```
+
+Revisar especialmente:
+
+```text
+classified.png     coincidencias antes de eliminar elementos fijos
+coverage-mask.png  cobertura circular parametrizada
+overlay.png        capa RGBA final
+preview.png        transparencia visible sobre damero
+report.json        píxeles conservados y descartados por clase
+```
+
+La máscara estática está versionada. Su regeneración deliberada requiere al
+menos tres originales distintos:
+
+```bash
+.venv/bin/aemet-radar build-reflectivity-mask \
+  muestra-seca.gif muestra-lluviosa.gif otra-muestra.gif
+```
+
+Después se deben revisar el PNG, su informe JSON, varias previsualizaciones y
+los golden tests. El procedimiento detallado está en `docs/PHASE_3.md`.
+
 ## Rotar la API key
 
 1. Sustituir `AEMET_API_KEY` en `.env` o en el entorno del proceso.
@@ -109,5 +140,5 @@ originales:
 make rebuild-manifests
 ```
 
-La regeneración de derivados, habilitación de otros radares y rollback de
-contenedores pertenecen a fases posteriores.
+La publicación de derivados georreferenciados, habilitación de otros radares y
+rollback de contenedores pertenecen a fases posteriores.

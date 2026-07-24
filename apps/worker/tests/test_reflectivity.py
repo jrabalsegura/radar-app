@@ -1,0 +1,197 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+from typing import cast
+
+import pytest
+from PIL import Image, ImageChops
+
+from aemet_radar.errors import ReflectivityProcessingError
+from aemet_radar.reflectivity import (
+    build_static_mask,
+    load_reflectivity_config,
+    process_reflectivity_sample,
+)
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+FIXTURES = Path(__file__).parent / "fixtures" / "reflectivity"
+PRODUCTION_CONFIG = REPOSITORY_ROOT / "config" / "palettes" / "regional-mu-v1.json"
+PRODUCTION_MASK = REPOSITORY_ROOT / "config" / "masks" / "regional-mu-v1.png"
+PRODUCTION_MASK_REPORT = REPOSITORY_ROOT / "config" / "masks" / "regional-mu-v1.json"
+
+
+def test_small_golden_overlay_and_mask_are_deterministic(tmp_path: Path) -> None:
+    first = process_reflectivity_sample(
+        FIXTURES / "source.gif",
+        config_path=FIXTURES / "config.json",
+        static_mask_path=FIXTURES / "static-mask.png",
+        output_dir=tmp_path / "first",
+    )
+    second = process_reflectivity_sample(
+        FIXTURES / "source.gif",
+        config_path=FIXTURES / "config.json",
+        static_mask_path=FIXTURES / "static-mask.png",
+        output_dir=tmp_path / "second",
+    )
+
+    _assert_same_image(first.output_dir / "overlay.png", FIXTURES / "expected-overlay.png")
+    _assert_same_image(first.output_dir / "mask.png", FIXTURES / "expected-mask.png")
+    assert (first.output_dir / "overlay.png").read_bytes() == (
+        second.output_dir / "overlay.png"
+    ).read_bytes()
+    assert first.report_path.read_bytes() == second.report_path.read_bytes()
+    statistics = dict(cast(dict[str, object], first.report["statistics"]))
+    classes = statistics.pop("classes")
+    assert statistics == {
+        "sourcePixels": 30,
+        "croppedPixels": 24,
+        "classifiedPixelsBeforeStaticMask": 19,
+        "reflectivityPixels": 15,
+        "discardedByStaticMask": 3,
+        "discardedOutsideCoverage": 1,
+        "unclassifiedPixels": 5,
+        "transparentPixels": 9,
+    }
+    assert isinstance(classes, list)
+    ambiguities = cast(dict[str, object], first.report["ambiguities"])
+    yellow_payload = cast(dict[str, object], ambiguities["yellow"])
+    yellow = cast(dict[str, object], yellow_payload["result"])
+    assert yellow["classifiedPixels"] == 4
+    assert yellow["keptPixels"] == 2
+    assert yellow["discardedByStaticMask"] == 2
+    outputs = cast(dict[str, object], first.report["outputs"])
+    assert set(outputs) == {
+        "normalized",
+        "crop",
+        "palette",
+        "classified",
+        "staticMask",
+        "coverageMask",
+        "mask",
+        "overlay",
+        "preview",
+    }
+
+
+def test_static_mask_generation_is_order_independent(tmp_path: Path) -> None:
+    sample_paths = [
+        _write_mask_sample(tmp_path / "one.gif", (10, 10, 8, 0, 0, 0)),
+        _write_mask_sample(tmp_path / "two.gif", (10, 16, 8, 0, 0, 0)),
+        _write_mask_sample(tmp_path / "three.gif", (10, 23, 8, 0, 0, 0)),
+    ]
+
+    first = build_static_mask(
+        sample_paths,
+        config_path=FIXTURES / "config.json",
+        mask_path=tmp_path / "first.png",
+    )
+    second = build_static_mask(
+        tuple(reversed(sample_paths)),
+        config_path=FIXTURES / "config.json",
+        mask_path=tmp_path / "second.png",
+    )
+
+    assert (tmp_path / "first.png").read_bytes() == (tmp_path / "second.png").read_bytes()
+    assert first.report["sourceHashes"] == second.report["sourceHashes"]
+    with Image.open(first.mask_path) as mask:
+        data = mask.tobytes()
+    assert data[0] == 0
+    assert data[1] == 255
+    assert data[2] == 0
+    assert data.count(0) == 2
+    assert first.report["excludedPixels"] == 2
+    excluded_by_class = cast(list[dict[str, object]], first.report["excludedByClass"])
+    assert [item["paletteIndex"] for item in excluded_by_class] == [8, 10]
+
+
+def test_static_mask_requires_three_distinct_samples(tmp_path: Path) -> None:
+    first = _write_mask_sample(tmp_path / "one.gif", (10, 10, 8, 0, 0, 0))
+    second = _write_mask_sample(tmp_path / "two.gif", (10, 16, 8, 0, 0, 0))
+
+    with pytest.raises(ReflectivityProcessingError) as captured:
+        build_static_mask(
+            [first, second, first],
+            config_path=FIXTURES / "config.json",
+            mask_path=tmp_path / "mask.png",
+        )
+
+    assert captured.value.safe_details() == {"distinctSamples": 2}
+
+
+def test_palette_mismatch_fails_instead_of_silent_classification(tmp_path: Path) -> None:
+    with Image.open(FIXTURES / "source.gif") as template:
+        source = template.copy()
+        palette = source.getpalette()
+        assert palette is not None
+        palette[16 * 3 : 16 * 3 + 3] = [1, 2, 3]
+        source.putpalette(palette)
+    bad_path = tmp_path / "bad.gif"
+    source.save(bad_path, format="GIF", optimize=False)
+
+    with pytest.raises(ReflectivityProcessingError) as captured:
+        process_reflectivity_sample(
+            bad_path,
+            config_path=FIXTURES / "config.json",
+            static_mask_path=FIXTURES / "static-mask.png",
+            output_dir=tmp_path / "output",
+        )
+
+    assert captured.value.safe_details() == {
+        "paletteIndex": 16,
+        "expectedRgb": [0, 0, 252],
+        "actualRgb": [1, 2, 3],
+    }
+
+
+def test_versioned_murcia_mask_matches_its_reproducibility_report() -> None:
+    config = load_reflectivity_config(PRODUCTION_CONFIG)
+    report = json.loads(PRODUCTION_MASK_REPORT.read_text(encoding="utf-8"))
+
+    with Image.open(PRODUCTION_MASK) as mask:
+        mask.load()
+        assert mask.mode == "L"
+        assert mask.size == (config.crop.width, config.crop.height)
+        assert mask.tobytes().count(0) == 3_611
+
+    digest = hashlib.sha256(PRODUCTION_MASK.read_bytes()).hexdigest()
+    config_digest = hashlib.sha256(PRODUCTION_CONFIG.read_bytes()).hexdigest()
+    assert report["maskSha256"] == f"sha256:{digest}"
+    assert report["configurationSha256"] == f"sha256:{config_digest}"
+    assert report["coverage"] == {
+        "shape": "circle",
+        "centerX": 240,
+        "centerY": 240,
+        "radius": 250,
+    }
+    assert report["distinctSamples"] == 20
+    assert report["excludedPixels"] == 3_611
+    assert len(report["sourceHashes"]) == 20
+    assert report["excludedByClass"] == [
+        {
+            "ambiguous": True,
+            "legendDbz": 48,
+            "name": "dbz-48-yellow",
+            "paletteIndex": 10,
+            "pixels": 3_611,
+            "rgb": [255, 255, 0],
+        }
+    ]
+
+
+def _write_mask_sample(path: Path, first_row: tuple[int, ...]) -> Path:
+    with Image.open(FIXTURES / "source.gif") as template:
+        image = template.copy()
+    image.putdata((*first_row, *([0] * 24)))
+    image.save(path, format="GIF", optimize=False)
+    return path
+
+
+def _assert_same_image(actual_path: Path, expected_path: Path) -> None:
+    with Image.open(actual_path) as actual, Image.open(expected_path) as expected:
+        actual.load()
+        expected.load()
+        assert actual.mode == expected.mode
+        assert actual.size == expected.size
+        assert ImageChops.difference(actual, expected).getbbox() is None

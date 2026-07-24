@@ -1,0 +1,145 @@
+{
+  "classes": [
+    {
+      "ambiguous": false,
+      "legendDbz": 12,
+      "name": "dbz-12",
+      "paletteIndex": 16,
+      "rgb": [
+        0,
+        0,
+        252
+      ]
+    },
+    {
+      "ambiguous": false,
+      "legendDbz": 18,
+      "name": "dbz-18",
+      "paletteIndex": 23,
+      "rgb": [
+        0,
+        148,
+        252
+      ]
+    },
+    {
+      "ambiguous": false,
+      "legendDbz": 24,
+      "name": "dbz-24",
+      "paletteIndex": 26,
+      "rgb": [
+        0,
+        252,
+        252
+      ]
+    },
+    {
+      "ambiguous": false,
+      "legendDbz": 30,
+      "name": "dbz-30",
+      "paletteIndex": 6,
+      "rgb": [
+        67,
+        131,
+        35
+      ]
+    },
+    {
+      "ambiguous": false,
+      "legendDbz": 36,
+      "name": "dbz-36",
+      "paletteIndex": 7,
+      "rgb": [
+        0,
+        192,
+        0
+      ]
+    },
+    {
+      "ambiguous": false,
+      "legendDbz": 42,
+      "name": "dbz-42",
+      "paletteIndex": 8,
+      "rgb": [
+        0,
+        255,
+        0
+      ]
+    },
+    {
+      "ambiguous": true,
+      "legendDbz": 48,
+      "name": "dbz-48-yellow",
+      "paletteIndex": 10,
+      "rgb": [
+        255,
+        255,
+        0
+      ]
+    },
+    {
+      "ambiguous": false,
+      "legendDbz": 54,
+      "name": "dbz-54",
+      "paletteIndex": 9,
+      "rgb": [
+        255,
+        187,
+        0
+      ]
+    },
+    {
+      "ambiguous": false,
+      "legendDbz": 60,
+      "name": "dbz-60",
+      "paletteIndex": 4,
+      "rgb": [
+        255,
+        127,
+        0
+      ]
+    },
+    {
+      "ambiguous": false,
+      "legendDbz": 66,
+      "name": "dbz-66",
+      "paletteIndex": 3,
+      "rgb": [
+        255,
+        0,
+        0
+      ]
+    },
+    {
+      "ambiguous": false,
+      "legendDbz": 72,
+      "name": "dbz-72",
+      "paletteIndex": 5,
+      "rgb": [
+        200,
+        0,
+        90
+      ]
+    }
+  ],
+  "coverage": {
+    "centerX": 3,
+    "centerY": 2,
+    "radius": 3,
+    "shape": "circle"
+  },
+  "crop": {
+    "height": 4,
+    "left": 0,
+    "top": 0,
+    "width": 6
+  },
+  "expectedImage": {
+    "height": 5,
+    "mode": "P",
+    "width": 6
+  },
+  "processor": "regional-v1",
+  "productId": "regional-mu",
+  "schemaVersion": 1
+}

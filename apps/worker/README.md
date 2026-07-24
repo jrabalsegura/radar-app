@@ -2,8 +2,9 @@
 
 Paquete Python del worker de Radar AEMET.
 
-La Fase 2 añade el historial de originales de Murcia y composición nacional,
-publicación atómica, retención y ejecución periódica. No procesa reflectividad.
+La Fase 3 añade la extracción reproducible de reflectividad para Murcia mediante
+el procesador `regional-v1`. La georreferenciación y el resto de radares siguen
+fuera de alcance.
 
 La API key solo se lee de `AEMET_API_KEY`. La CLI también puede cargar un `.env`
 local ignorado por Git; una variable ya exportada tiene prioridad.
@@ -16,6 +17,8 @@ local ignorado por Git; una variable ya exportada tiene prioridad.
 .venv/bin/aemet-radar run
 .venv/bin/aemet-radar rebuild-manifests
 .venv/bin/aemet-radar serve-files
+.venv/bin/aemet-radar analyze-reflectivity ruta/al/original.gif
+.venv/bin/aemet-radar build-reflectivity-mask muestra1.gif muestra2.gif muestra3.gif
 ```
 
 La salida estándar contiene únicamente un resumen JSON sin URLs efímeras ni
@@ -37,3 +40,17 @@ solo en `127.0.0.1` por defecto y no permite listar directorios.
 Las descargas que no superan la validación no se archivan como GIF. El worker
 publica tamaño, MIME declarado y SHA-256 en la salida estructurada y en
 `data/reports/phase-2/failures/`, sin conservar el cuerpo o la URL efímera.
+
+`analyze-reflectivity` tampoco necesita API key. Valida el GIF contra la
+geometría y paleta versionadas, genera todas las imágenes de depuración y escribe
+una capa `overlay.png` RGBA. Por defecto usa:
+
+```text
+config/palettes/regional-mu-v1.json
+config/masks/regional-mu-v1.png
+data/debug/phase-3/regional-mu/
+```
+
+`build-reflectivity-mask` exige al menos tres hashes distintos. Solo debe
+utilizarse con una selección revisada de muestras secas y lluviosas; el informe
+adyacente registra exactamente las referencias y píxeles excluidos.
