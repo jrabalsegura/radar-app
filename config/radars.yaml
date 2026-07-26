@@ -27,6 +27,8 @@ radars:
     longitude: -2.08209663
     latitude: 36.83242654
     sampleValidation: verified
+    staticMask: masks/regional-am-v1.png
+    ambiguousClassPolicy: static-mask
   - id: regional-sa
     label: Asturias
     apiCode: sa
@@ -35,6 +37,8 @@ radars:
     longitude: -6.3020955
     latitude: 43.4625218305556
     sampleValidation: verified
+    staticMask: masks/regional-sa-v1.png
+    ambiguousClassPolicy: static-mask
   - id: regional-pm
     label: Illes Balears
     apiCode: pm
@@ -43,6 +47,8 @@ radars:
     longitude: 2.78509531
     latitude: 39.37978959
     sampleValidation: verified
+    staticMask: masks/regional-pm-v1.png
+    ambiguousClassPolicy: static-mask
   - id: regional-ba
     label: Barcelona
     apiCode: ba
@@ -51,6 +57,8 @@ radars:
     longitude: 1.88489475
     latitude: 41.40818492
     sampleValidation: verified
+    staticMask: masks/regional-ba-v1.png
+    ambiguousClassPolicy: static-mask
   - id: regional-cc
     label: Cáceres
     apiCode: cc
@@ -59,6 +67,8 @@ radars:
     longitude: -6.28527748055556
     latitude: 39.4288340666667
     sampleValidation: verified
+    staticMask: masks/regional-cc-v1.png
+    ambiguousClassPolicy: static-mask
   - id: regional-co
     label: A Coruña
     apiCode: co
@@ -75,6 +85,8 @@ radars:
     longitude: -3.71368328333333
     latitude: 40.1759238222222
     sampleValidation: verified
+    staticMask: masks/regional-ma-v1.png
+    ambiguousClassPolicy: static-mask
   - id: regional-ml
     label: Málaga
     apiCode: ml
@@ -103,6 +115,8 @@ radars:
     longitude: -4.602303426729533
     latitude: 41.97747381500432
     sampleValidation: verified
+    staticMask: masks/regional-vd-v1.png
+    ambiguousClassPolicy: static-mask
   - id: regional-ca
     label: Las Palmas
     apiCode: ca
@@ -112,6 +126,8 @@ radars:
     latitude: 28.149181
     mapZoom: 5.7
     sampleValidation: verified
+    staticMask: masks/regional-ca-v1.png
+    ambiguousClassPolicy: static-mask
   - id: regional-se
     label: Sevilla
     apiCode: se
@@ -120,6 +136,8 @@ radars:
     longitude: -6.33308
     latitude: 37.68868
     sampleValidation: verified
+    staticMask: masks/regional-se-v1.png
+    ambiguousClassPolicy: static-mask
   - id: regional-va
     label: Valencia
     apiCode: va
@@ -144,3 +162,5 @@ radars:
     longitude: -0.54594373
     latitude: 41.7339941
     sampleValidation: verified
+    staticMask: masks/regional-za-v1.png
+    ambiguousClassPolicy: static-mask

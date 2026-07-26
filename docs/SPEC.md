@@ -484,21 +484,21 @@ En producción solo serán públicos los derivados necesarios.
 
 ### 11.2 Máscara estática
 
-Cada radar podrá tener una máscara versionada:
+Cada radar regional deberá usar una máscara propia cuando exista evidencia
+temporal suficiente:
 
 ```text
-config/masks/regional-mu-v1.png
+config/masks/regional-<código>-v1.png
 ```
 
-La máscara eliminará:
+La generación deberá deduplicar por contenido, usar varias muestras separadas
+en el tiempo y limitar las exclusiones a clases declaradas ambiguas. Un eco de
+una clase inequívoca no podrá enmascararse por invariancia temporal. El
+resultado será reproducible y revisable visualmente; no se aceptará una edición
+manual opaca sin documentación ni una máscara compartida entre radares.
 
-- límites administrativos;
-- logotipo;
-- textos;
-- leyenda;
-- elementos que permanecen fijos.
-
-La generación de una máscara deberá ser reproducible desde varias muestras y revisable visualmente. No se aceptará una edición manual opaca sin documentación.
+Mientras un producto no tenga evidencia suficiente, conservará una política
+explícita y conservadora que descarte la clase ambigua completa.
 
 ### 11.3 Paleta
 

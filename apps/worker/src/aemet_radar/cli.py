@@ -20,6 +20,7 @@ from aemet_radar.georeferencing import georeference_overlay
 from aemet_radar.health import HealthPublisher
 from aemet_radar.history import scan_product_history
 from aemet_radar.manifests import ManifestPublisher, select_history_frames
+from aemet_radar.mask_calibration import discover_mask_samples
 from aemet_radar.models import FetchOutcome
 from aemet_radar.products import (
     PRODUCTS,
@@ -210,13 +211,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     build_mask = subcommands.add_parser(
         "build-reflectivity-mask",
-        help="Genera la máscara estática de Murcia desde varias muestras distintas.",
+        help="Genera una máscara estática regional desde varias muestras distintas.",
     )
     build_mask.add_argument(
         "samples",
         type=Path,
         nargs="+",
-        help="Tres o más originales GIF regionales de Murcia.",
+        help="Tres o más originales GIF distintos del mismo radar.",
     )
     build_mask.add_argument(
         "--output",
@@ -236,6 +237,44 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_REFLECTIVITY_CONFIG,
         help="Configuración versionada de paleta y recorte.",
     )
+
+    build_radar_masks = subcommands.add_parser(
+        "build-radar-masks",
+        help="Genera máscaras específicas desde archivos de muestras regionales.",
+    )
+    build_radar_masks.add_argument(
+        "--sample-root",
+        type=Path,
+        action="append",
+        required=True,
+        dest="sample_roots",
+        help="Raíz data/ con raw/<producto>; se puede repetir.",
+    )
+    build_radar_masks.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("config/masks"),
+        help="Directorio de máscaras e informes versionables.",
+    )
+    build_radar_masks.add_argument(
+        "--minimum-samples",
+        type=_positive_int,
+        default=3,
+        help="Mínimo de GIF distintos por radar (por defecto: 3).",
+    )
+    build_radar_masks.add_argument(
+        "--minimum-span-hours",
+        type=_positive_float,
+        default=2.0,
+        help="Separación mínima entre primera y última muestra (por defecto: 2 h).",
+    )
+    build_radar_masks.add_argument(
+        "--radar-config",
+        type=Path,
+        default=DEFAULT_CATALOG_PATH,
+        help="Catálogo regional versionado.",
+    )
+    _add_product_argument(build_radar_masks)
 
     validate_radar = subcommands.add_parser(
         "validate-radar",
@@ -291,6 +330,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_georeferencing(arguments)
         if arguments.command == "build-reflectivity-mask":
             return _run_reflectivity_mask_build(arguments)
+        if arguments.command == "build-radar-masks":
+            return _run_radar_masks_build(arguments)
         if arguments.command == "validate-radar":
             return _run_radar_validation(arguments)
     except AemetRadarError as exc:
@@ -612,6 +653,87 @@ def _run_reflectivity_mask_build(arguments: argparse.Namespace) -> int:
             "report": result.report_path.as_posix(),
             "distinctSamples": result.report["distinctSamples"],
             "excludedPixels": result.report["excludedPixels"],
+        }
+    )
+    return 0
+
+
+def _run_radar_masks_build(arguments: argparse.Namespace) -> int:
+    roots = arguments.sample_roots
+    if not isinstance(roots, list) or not all(isinstance(item, Path) for item in roots):
+        raise TypeError("sample_roots debe ser una lista de rutas")
+    catalog = load_radar_catalog(_as_path(arguments.radar_config))
+    selected_ids = (
+        set(arguments.products)
+        if isinstance(arguments.products, list)
+        else {item.product.id for item in catalog.definitions}
+    )
+    output_dir = _as_path(arguments.output_dir).resolve()
+    minimum_samples = int(arguments.minimum_samples)
+    minimum_span_hours = float(arguments.minimum_span_hours)
+    results: list[dict[str, object]] = []
+
+    for definition in catalog.definitions:
+        product_id = definition.product.id
+        if product_id not in selected_ids:
+            continue
+        inventory = discover_mask_samples(
+            product_id,
+            tuple(item.resolve() for item in roots),
+        )
+        span_hours = inventory.span_hours
+        reported_span_hours = round(span_hours, 6) if span_hours is not None else None
+        if len(inventory.samples) < minimum_samples:
+            results.append(
+                {
+                    "productId": product_id,
+                    "status": "awaiting-samples",
+                    "distinctSamples": len(inventory.samples),
+                    "requiredSamples": minimum_samples,
+                    "observationWindowHours": reported_span_hours,
+                }
+            )
+            continue
+        if span_hours is None or span_hours < minimum_span_hours:
+            results.append(
+                {
+                    "productId": product_id,
+                    "status": "awaiting-span",
+                    "distinctSamples": len(inventory.samples),
+                    "observationWindowHours": reported_span_hours,
+                    "requiredWindowHours": minimum_span_hours,
+                }
+            )
+            continue
+
+        result = build_static_mask(
+            tuple(sample.path for sample in inventory.samples),
+            config_path=definition.reflectivity_config_path,
+            mask_path=output_dir / f"{product_id}-v1.png",
+            report_path=output_dir / f"{product_id}-v1.json",
+            product_id=product_id,
+            source_evidence=inventory.source_evidence,
+            observation_span_hours=reported_span_hours,
+        )
+        results.append(
+            {
+                "productId": product_id,
+                "status": "built",
+                "distinctSamples": result.report["distinctSamples"],
+                "observationWindowHours": reported_span_hours,
+                "excludedPixels": result.report["excludedPixels"],
+                "mask": result.mask_path.as_posix(),
+                "report": result.report_path.as_posix(),
+            }
+        )
+
+    built = sum(item["status"] == "built" for item in results)
+    _print_json(
+        {
+            "status": "ok",
+            "built": built,
+            "awaitingEvidence": len(results) - built,
+            "results": results,
         }
     )
     return 0

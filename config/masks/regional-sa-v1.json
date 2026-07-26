@@ -1,0 +1,62 @@
+{
+  "algorithm": "ambiguous-temporal-invariance-v2",
+  "configurationSha256": "sha256:72fe8a60c92e39625217e98e0145422a0ed755334775a6c361bfb84772afe337",
+  "coverage": {
+    "centerX": 240,
+    "centerY": 240,
+    "radius": 240,
+    "shape": "circle"
+  },
+  "crop": {
+    "height": 480,
+    "left": 0,
+    "top": 0,
+    "width": 480
+  },
+  "distinctSamples": 3,
+  "excludedByClass": [
+    {
+      "ambiguous": true,
+      "legendDbz": 48,
+      "name": "dbz-48-yellow",
+      "paletteIndex": 10,
+      "pixels": 4431,
+      "rgb": [
+        255,
+        255,
+        0
+      ]
+    }
+  ],
+  "excludedPixels": 4431,
+  "knownRisk": "Un eco de la clase ambigua idéntico en posición a través de todas las muestras podría quedar excluido; se mitiga usando muestras secas y lluviosas separadas.",
+  "maskSha256": "sha256:36ef24a544f3441a02132864ca2607dc29355415c2536fb2d078d4048fdb73f9",
+  "method": "Se excluye un píxel solo si todas las muestras distintas contienen en esa posición el mismo índice de una clase marcada como ambigua. Las clases no ambiguas y los fondos negro y gris nunca se convierten en exclusiones fijas.",
+  "observationWindowHours": 2.484589,
+  "processor": "regional-v1",
+  "productId": "regional-sa",
+  "schemaVersion": 1,
+  "semantics": {
+    "0": "fixed-classified-pixel-excluded",
+    "255": "eligible-for-reflectivity-classification"
+  },
+  "sourceEvidence": [
+    {
+      "retrievedAt": "2026-07-26T18:06:11.041250Z",
+      "sha256": "sha256:13efb56bc4e8ffe47126a7b3e742a87bb807596999b832789970cb0c341f020f"
+    },
+    {
+      "retrievedAt": "2026-07-26T20:35:15.562173Z",
+      "sha256": "sha256:47b442288570d2be7aba07a18c0a545b8c90eb4c8161bde47a5d0b129aa4efe0"
+    },
+    {
+      "retrievedAt": "2026-07-26T20:26:33.327368Z",
+      "sha256": "sha256:ff025ec2ef2cf94a621feb6acb1144e5512f5376d44d9f44e04ab3bdeb121094"
+    }
+  ],
+  "sourceHashes": [
+    "sha256:13efb56bc4e8ffe47126a7b3e742a87bb807596999b832789970cb0c341f020f",
+    "sha256:47b442288570d2be7aba07a18c0a545b8c90eb4c8161bde47a5d0b129aa4efe0",
+    "sha256:ff025ec2ef2cf94a621feb6acb1144e5512f5376d44d9f44e04ab3bdeb121094"
+  ]
+}

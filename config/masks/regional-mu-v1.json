@@ -1,5 +1,5 @@
 {
-  "algorithm": "temporal-invariance-v1",
+  "algorithm": "ambiguous-temporal-invariance-v2",
   "configurationSha256": "sha256:90a8637a84490cc759298a7881f6a366b4c274b1a99e34e20d40545682b0a783",
   "coverage": {
     "centerX": 240,
@@ -29,9 +29,10 @@
     }
   ],
   "excludedPixels": 3611,
-  "knownRisk": "Un eco idéntico en posición y clase a través de todas las muestras de referencia podría quedar excluido; se mitiga usando muestras secas y lluviosas separadas.",
+  "knownRisk": "Un eco de la clase ambigua idéntico en posición a través de todas las muestras podría quedar excluido; se mitiga usando muestras secas y lluviosas separadas.",
   "maskSha256": "sha256:48f3be5047787c0c95e620c5c71c19ef198d01f301e5f602997010b512892e8a",
-  "method": "Se excluye un píxel solo si todas las muestras distintas contienen en esa posición el mismo índice de una clase de reflectividad. Los fondos negro y gris no se convierten en exclusiones fijas.",
+  "method": "Se excluye un píxel solo si todas las muestras distintas contienen en esa posición el mismo índice de una clase marcada como ambigua. Las clases no ambiguas y los fondos negro y gris nunca se convierten en exclusiones fijas.",
+  "observationWindowHours": 51.986412,
   "processor": "regional-v1",
   "productId": "regional-mu",
   "schemaVersion": 1,
@@ -39,6 +40,88 @@
     "0": "fixed-classified-pixel-excluded",
     "255": "eligible-for-reflectivity-classification"
   },
+  "sourceEvidence": [
+    {
+      "retrievedAt": "2026-07-24T18:47:31.856911Z",
+      "sha256": "sha256:024bf0427075a448c036d1c79c56759d151e4512d3545177cf1bdfc5a8821d5e"
+    },
+    {
+      "retrievedAt": "2026-07-24T18:27:31.850929Z",
+      "sha256": "sha256:0fb05d96dce5ecc4905cffa4b96b74ae46af4b896639959caa712e3b6346463b"
+    },
+    {
+      "retrievedAt": "2026-07-24T17:47:31.899166Z",
+      "sha256": "sha256:147ac3d184430db29b84c8920d2c32c800ba5491c79465e2a4d1e3a721374334"
+    },
+    {
+      "retrievedAt": "2026-07-24T17:37:31.850696Z",
+      "sha256": "sha256:201d6984118a11586bcda1fdd41edd6b7f598412f33977b410b9920860cbd7e7"
+    },
+    {
+      "retrievedAt": "2026-07-24T17:57:31.840186Z",
+      "sha256": "sha256:2481ae4febe7a073fc3538e716ed0dca383d6984ea3922d7679f099af5358cb2"
+    },
+    {
+      "retrievedAt": "2026-07-24T18:17:31.836293Z",
+      "sha256": "sha256:273f2e9f9e28bbf4ea104db3e1191c84564896e98c180b2a2dc2a9d09c09237a"
+    },
+    {
+      "retrievedAt": "2026-07-24T17:12:31.847583Z",
+      "sha256": "sha256:3423c20acbce36aafb836d6719f26d51702a09171dd24840688248c81af870da"
+    },
+    {
+      "retrievedAt": "2026-07-24T16:52:31.860495Z",
+      "sha256": "sha256:36a4a9757a24129c71a1db6b34525cc99d6aabc8ebb442750eb31884d2f37c19"
+    },
+    {
+      "retrievedAt": "2026-07-26T20:26:42.927057Z",
+      "sha256": "sha256:3e4d4151077c8721e290547297c8aa0727b87b547c4541707c193785ffc942fa"
+    },
+    {
+      "retrievedAt": "2026-07-24T18:57:31.822300Z",
+      "sha256": "sha256:512f6602b88c581f6f83e09fdb2e561bf4939c6409cece443910e985884907e3"
+    },
+    {
+      "retrievedAt": "2026-07-24T19:07:31.847374Z",
+      "sha256": "sha256:5f23ae16cb537cdc4b6f18af850f105e7bc317388c6b4dbf51c63a465e47f161"
+    },
+    {
+      "retrievedAt": "2026-07-24T17:27:31.865693Z",
+      "sha256": "sha256:91c584476ce94924b774c4e3fd4b63d8b9f495de362bacd4a6ae185f1bc68e7b"
+    },
+    {
+      "retrievedAt": "2026-07-24T18:07:31.859721Z",
+      "sha256": "sha256:952cc7875ab4288a33b7f471ea0f6ca72b58f1dd852a620b983e53faf25737ea"
+    },
+    {
+      "retrievedAt": "2026-07-24T19:17:31.844511Z",
+      "sha256": "sha256:a352a755ad0a16ad61b8175876e5be5405fb779998889789b447fec57aff012d"
+    },
+    {
+      "retrievedAt": "2026-07-24T16:57:31.857217Z",
+      "sha256": "sha256:a493ae8f11461494835aa6ced1d4bf4654f46e27ebde7eadabf89d16ee75d761"
+    },
+    {
+      "retrievedAt": "2026-07-24T17:17:31.883581Z",
+      "sha256": "sha256:b0f4a07bf8e60d2be24614c1442a17c003539598b82f94a535db9004542cdd9d"
+    },
+    {
+      "retrievedAt": "2026-07-24T16:27:31.842486Z",
+      "sha256": "sha256:b336aa27a7b6b665caad65bf3edf754d3d4785aeb5b023fb078878184132ad2b"
+    },
+    {
+      "retrievedAt": "2026-07-24T16:42:31.864610Z",
+      "sha256": "sha256:bf29b55e32f38a4252631955eedb1480c6b4aa398d4d477ee61745b67fa92896"
+    },
+    {
+      "retrievedAt": "2026-07-26T18:06:50.871020Z",
+      "sha256": "sha256:f2ca38bedeb888db8e7800ccde1969c5f1a197853c9759b611fc25610afd4739"
+    },
+    {
+      "retrievedAt": "2026-07-24T18:42:31.813742Z",
+      "sha256": "sha256:f776527f824c4916435218b6cca10da2382b7abc25f4d9840ef2fb8e538b4e2b"
+    }
+  ],
   "sourceHashes": [
     "sha256:024bf0427075a448c036d1c79c56759d151e4512d3545177cf1bdfc5a8821d5e",
     "sha256:0fb05d96dce5ecc4905cffa4b96b74ae46af4b896639959caa712e3b6346463b",
@@ -48,6 +131,7 @@
     "sha256:273f2e9f9e28bbf4ea104db3e1191c84564896e98c180b2a2dc2a9d09c09237a",
     "sha256:3423c20acbce36aafb836d6719f26d51702a09171dd24840688248c81af870da",
     "sha256:36a4a9757a24129c71a1db6b34525cc99d6aabc8ebb442750eb31884d2f37c19",
+    "sha256:3e4d4151077c8721e290547297c8aa0727b87b547c4541707c193785ffc942fa",
     "sha256:512f6602b88c581f6f83e09fdb2e561bf4939c6409cece443910e985884907e3",
     "sha256:5f23ae16cb537cdc4b6f18af850f105e7bc317388c6b4dbf51c63a465e47f161",
     "sha256:91c584476ce94924b774c4e3fd4b63d8b9f495de362bacd4a6ae185f1bc68e7b",
@@ -57,8 +141,7 @@
     "sha256:b0f4a07bf8e60d2be24614c1442a17c003539598b82f94a535db9004542cdd9d",
     "sha256:b336aa27a7b6b665caad65bf3edf754d3d4785aeb5b023fb078878184132ad2b",
     "sha256:bf29b55e32f38a4252631955eedb1480c6b4aa398d4d477ee61745b67fa92896",
-    "sha256:bfa5d550869625df7c99dd21c74a9b15a31908a6720055921549698119ba3038",
-    "sha256:dbd0cf6e1a25cb0a59b7b0202df97e3519f9e350d671252b950a4faadc5083ad",
+    "sha256:f2ca38bedeb888db8e7800ccde1969c5f1a197853c9759b611fc25610afd4739",
     "sha256:f776527f824c4916435218b6cca10da2382b7abc25f4d9840ef2fb8e538b4e2b"
   ]
 }

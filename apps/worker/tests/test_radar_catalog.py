@@ -41,3 +41,34 @@ def test_unavailable_radars_remain_configured() -> None:
     }
     assert awaiting == {"regional-co", "regional-va", "regional-ss"}
     assert all(item.reflectivity_config_path.is_file() for item in catalog.definitions)
+
+
+def test_each_calibrated_radar_uses_its_own_mask() -> None:
+    catalog = load_radar_catalog(CATALOG_PATH)
+    calibrated = {
+        item.product.id: item.static_mask_path.name
+        for item in catalog.definitions
+        if item.static_mask_path is not None
+    }
+
+    assert calibrated == {
+        product_id: f"{product_id}-v1.png"
+        for product_id in {
+            "regional-am",
+            "regional-sa",
+            "regional-pm",
+            "regional-ba",
+            "regional-cc",
+            "regional-ma",
+            "regional-mu",
+            "regional-vd",
+            "regional-ca",
+            "regional-se",
+            "regional-za",
+        }
+    }
+    assert all(
+        item.ambiguous_class_policy == "static-mask"
+        for item in catalog.definitions
+        if item.product.id in calibrated
+    )

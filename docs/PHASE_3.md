@@ -81,20 +81,22 @@ El amarillo puro representa tanto la clase rotulada como 48 dBZ como los
 límites administrativos. No se descarta globalmente: hacerlo perdería ecos
 intensos.
 
-`temporal-invariance-v1` genera una máscara binaria con esta regla:
+`ambiguous-temporal-invariance-v2` genera una máscara binaria con esta regla:
 
 1. usa al menos tres GIF distintos;
 2. recorta cada muestra con la configuración;
-3. examina solo índices configurados como reflectividad;
-4. excluye una posición si todas las muestras contienen allí el mismo índice;
-5. no convierte fondos negros o grises invariantes en exclusiones.
+3. examina solo clases de reflectividad marcadas como ambiguas;
+4. excluye una posición si todas las muestras contienen allí el mismo índice
+   ambiguo;
+5. nunca convierte clases inequívocas, fondos negros o grises invariantes en
+   exclusiones.
 
 Con las 20 referencias se excluyeron exactamente 3.611 píxeles, todos amarillos
 y pertenecientes a fronteras fijas. No se excluyó ninguna clase inequívoca. La
 máscara se versiona como `config/masks/regional-mu-v1.png`; blanco significa
 elegible y negro significa elemento fijo descartado. Su informe adyacente
-incluye algoritmo, semántica, hashes de fuentes, hash de configuración y hash
-de la propia máscara.
+incluye algoritmo, semántica, hashes y horas de las fuentes, ventana de
+observación, hash de configuración y hash de la propia máscara.
 
 La máscara no contiene coordenadas geográficas y no intenta resolver la
 proyección.
@@ -141,11 +143,14 @@ Equivalente abreviado:
 make analyze-reflectivity SAMPLE=data/raw/regional-mu/AAAA/MM/DD/<sha256>.gif
 ```
 
-Regenerar deliberadamente la máscara con tres o más muestras:
+Regenerar deliberadamente las máscaras regionales con tres o más muestras
+separadas al menos dos horas:
 
 ```bash
-.venv/bin/aemet-radar build-reflectivity-mask \
-  muestra-seca.gif muestra-lluviosa.gif otra-muestra.gif
+.venv/bin/aemet-radar build-radar-masks \
+  --sample-root data/phase6-samples \
+  --sample-root data/mask-samples \
+  --sample-root data/manual-phase2
 ```
 
 La máscara versionada no debe sustituirse usando únicamente imágenes

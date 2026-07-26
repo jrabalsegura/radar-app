@@ -69,12 +69,34 @@ Los 12 GIF disponibles compartieron en la muestra controlada dimensiones
 `regional-safe-v1` comprueba esos datos para cada descarga: un cambio de
 plantilla o paleta falla de forma explícita y no se publica por semejanza.
 
-Murcia mantiene su máscara temporal derivada de 20 muestras, que permite
-conservar la clase amarilla de 48 dBZ fuera de los límites estáticos. Los demás
-radares descartan de forma conservadora el amarillo puro, compartido por esa
-clase y los límites administrativos. Evita publicar fronteras como lluvia, a
-costa de no mostrar temporalmente esa clase hasta disponer de máscaras
-multimuestra por emplazamiento.
+Cada radar usa su propia máscara binaria en su cuadrícula original. La
+calibración `ambiguous-temporal-invariance-v2` solo excluye píxeles de una clase
+marcada como ambigua que permanezcan idénticos en todas las muestras; nunca
+convierte en máscara un eco no ambiguo aunque permanezca inmóvil. Cada informe
+conserva hashes, horas y ventana de observación.
+
+La generación en lote deduplica por contenido y exige al menos tres originales
+distintos separados dos horas. Murcia conserva veinte muestras y más de dos
+días de observación. Un radar que devuelva 404 o una imagen congelada mantiene
+temporalmente la política conservadora `discard`: no hereda la máscara de otro
+emplazamiento ni activa una calibración basada en evidencia insuficiente.
+
+```bash
+.venv/bin/aemet-radar build-radar-masks \
+  --sample-root data/phase6-samples \
+  --sample-root data/mask-samples \
+  --sample-root data/manual-phase2
+```
+
+La ejecución controlada del 26 de julio dejó 11 máscaras específicas activas:
+Almería, Asturias, Illes Balears, Barcelona, Cáceres, Madrid, Murcia, Palencia,
+Las Palmas, Sevilla y Zaragoza. Cada una usa tres muestras y más de dos horas
+de ventana, salvo Murcia, que conserva 20 muestras y 51,99 horas.
+
+Permanecen en modo conservador Málaga, cuyo endpoint sigue entregando un único
+hash congelado, y A Coruña, Valencia y Vizcaya, que responden 404. La herramienta
+los informa como `awaiting-samples` y no crea PNG ficticios. Cuando acumulen
+tres originales distintos, el mismo comando generará sus archivos propios.
 
 ## Georreferenciación y validación
 

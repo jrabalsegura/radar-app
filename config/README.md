@@ -5,10 +5,12 @@ Este directorio contiene configuración versionada y verificable.
 - `radars.yaml`: catálogo de los 15 endpoints regionales, emplazamientos,
   centros, estrategia y estado de validación.
 - `palettes/regional-safe-v1.json`: contrato estricto compartido por las
-  muestras regionales verificadas; descarta el amarillo ambiguo.
+  muestras regionales verificadas.
 - `palettes/regional-mu-v1.json`: geometría y once clases exactas de Murcia.
-- `masks/regional-mu-v1.png`: máscara binaria estática de Murcia.
-- `masks/regional-mu-v1.json`: algoritmo, hashes y estadísticas de la máscara.
+- `masks/regional-<código>-v1.png`: máscara binaria propia de cada radar
+  calibrado.
+- `masks/regional-<código>-v1.json`: algoritmo, hashes, horas y estadísticas de
+  cada máscara.
 - `georeferencing/regional-mu-v1.json`: centro, proyección, resolución, salida y
   ocho puntos de control geográfico de Murcia.
 
@@ -27,9 +29,17 @@ El alta de un código nuevo requiere una fuente oficial, una muestra real y la
 revisión descrita en `docs/PHASE_6.md`; no exige modificar el procesador,
 publicador o frontend.
 
-La máscara se regenera mediante `aemet-radar build-reflectivity-mask` usando al
-menos tres originales distintos. No debe editarse manualmente ni sustituirse
-sin revisar el informe y las salidas visuales descritas en `docs/PHASE_3.md`.
+Las máscaras se regeneran en lote con `aemet-radar build-radar-masks`. La
+herramienta deduplica por contenido y exige por defecto tres originales
+distintos separados al menos dos horas. Solo convierte en exclusión fija una
+clase marcada como ambigua que permanezca idéntica en todas las muestras; una
+intensidad no ambigua nunca se enmascara por permanecer inmóvil. Ninguna
+máscara debe editarse manualmente ni activarse sin revisar su informe y las
+salidas visuales descritas en `docs/PHASE_3.md`.
+
+Los radares sin evidencia suficiente mantienen la política conservadora
+`discard`: siguen operativos, pero no publican el amarillo ambiguo hasta que
+pueda generarse su máscara específica.
 
 La calibración se valida cada vez que se ejecuta
 `aemet-radar georeference-murcia`. Un control que supere un píxel de error

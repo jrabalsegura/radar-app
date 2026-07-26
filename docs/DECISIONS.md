@@ -325,3 +325,27 @@ reintentos y estado independientes; un error no interrumpe el resto del ciclo.
 
 **Motivo:** evita ráfagas innecesarias contra AEMET OpenData y conserva un
 comportamiento determinista y observable.
+
+---
+
+## ADR-021 — Máscara temporal específica por radar
+
+**Estado:** aceptada; sustituye la limitación amarilla de ADR-019 cuando existe
+evidencia suficiente.
+
+Cada radar calibrado referencia un PNG binario propio en su cuadrícula
+`480×480`. `ambiguous-temporal-invariance-v2` deduplica los originales por
+SHA-256 y exige al menos tres imágenes distintas con dos horas entre la primera
+y la última. Solo una clase marcada como ambigua puede convertirse en
+exclusión fija; una clase inequívoca nunca se enmascara aunque permanezca
+inmóvil.
+
+El informe adyacente registra radar, algoritmo, hashes, horas, ventana,
+configuración y número de píxeles por clase. Un producto 404, congelado o con
+menos de tres hashes mantiene `discard` y no hereda la máscara de otro radar.
+El catálogo propaga explícitamente `static-mask` al clasificador y un cambio de
+política invalida los derivados anteriores.
+
+**Motivo:** los límites dibujados difieren entre emplazamientos. Compartir una
+máscara produciría falsos huecos o fronteras meteorológicas; forzar una
+calibración sin diversidad temporal podría borrar un eco amarillo real.

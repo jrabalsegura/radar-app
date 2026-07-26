@@ -20,6 +20,19 @@ FIXTURES = Path(__file__).parent / "fixtures" / "reflectivity"
 PRODUCTION_CONFIG = REPOSITORY_ROOT / "config" / "palettes" / "regional-mu-v1.json"
 PRODUCTION_MASK = REPOSITORY_ROOT / "config" / "masks" / "regional-mu-v1.png"
 PRODUCTION_MASK_REPORT = REPOSITORY_ROOT / "config" / "masks" / "regional-mu-v1.json"
+REGIONAL_MASK_COUNTS = {
+    "regional-am": 2_436,
+    "regional-sa": 4_431,
+    "regional-pm": 1_740,
+    "regional-ba": 3_677,
+    "regional-cc": 3_996,
+    "regional-ma": 6_112,
+    "regional-mu": 3_611,
+    "regional-vd": 6_715,
+    "regional-ca": 1_083,
+    "regional-se": 3_400,
+    "regional-za": 5_705,
+}
 
 
 def test_small_golden_overlay_and_mask_are_deterministic(tmp_path: Path) -> None:
@@ -100,11 +113,29 @@ def test_static_mask_generation_is_order_independent(tmp_path: Path) -> None:
         data = mask.tobytes()
     assert data[0] == 0
     assert data[1] == 255
-    assert data[2] == 0
-    assert data.count(0) == 2
-    assert first.report["excludedPixels"] == 2
+    assert data[2] == 255
+    assert data.count(0) == 1
+    assert first.report["excludedPixels"] == 1
     excluded_by_class = cast(list[dict[str, object]], first.report["excludedByClass"])
-    assert [item["paletteIndex"] for item in excluded_by_class] == [8, 10]
+    assert [item["paletteIndex"] for item in excluded_by_class] == [10]
+
+
+def test_static_mask_never_excludes_invariant_unambiguous_echoes(tmp_path: Path) -> None:
+    samples = [
+        _write_mask_sample(tmp_path / "one.gif", (8, 10, 0, 0, 0, 0)),
+        _write_mask_sample(tmp_path / "two.gif", (8, 16, 0, 0, 0, 0)),
+        _write_mask_sample(tmp_path / "three.gif", (8, 23, 0, 0, 0, 0)),
+    ]
+
+    result = build_static_mask(
+        samples,
+        config_path=FIXTURES / "config.json",
+        mask_path=tmp_path / "mask.png",
+    )
+
+    with Image.open(result.mask_path) as mask:
+        assert mask.tobytes().count(0) == 0
+    assert result.report["excludedByClass"] == []
 
 
 def test_static_mask_requires_three_distinct_samples(tmp_path: Path) -> None:
@@ -179,6 +210,33 @@ def test_versioned_murcia_mask_matches_its_reproducibility_report() -> None:
             "rgb": [255, 255, 0],
         }
     ]
+
+
+@pytest.mark.parametrize(("product_id", "excluded_pixels"), REGIONAL_MASK_COUNTS.items())
+def test_versioned_regional_mask_matches_its_v2_report(
+    product_id: str,
+    excluded_pixels: int,
+) -> None:
+    mask_path = REPOSITORY_ROOT / "config" / "masks" / f"{product_id}-v1.png"
+    report_path = mask_path.with_suffix(".json")
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    with Image.open(mask_path) as mask:
+        mask.load()
+        assert mask.mode == "L"
+        assert mask.size == (480, 480)
+        assert set(mask.tobytes()) == {0, 255}
+        assert mask.tobytes().count(0) == excluded_pixels
+
+    digest = hashlib.sha256(mask_path.read_bytes()).hexdigest()
+    assert report["productId"] == product_id
+    assert report["algorithm"] == "ambiguous-temporal-invariance-v2"
+    assert report["maskSha256"] == f"sha256:{digest}"
+    assert report["distinctSamples"] >= 3
+    assert report["observationWindowHours"] >= 2
+    assert len(report["sourceEvidence"]) == report["distinctSamples"]
+    assert report["excludedPixels"] == excluded_pixels
+    assert [item["paletteIndex"] for item in report["excludedByClass"]] == [10]
 
 
 def _write_mask_sample(path: Path, first_row: tuple[int, ...]) -> Path:

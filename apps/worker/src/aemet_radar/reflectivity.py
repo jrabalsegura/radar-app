@@ -6,7 +6,7 @@ import hashlib
 import json
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from io import BytesIO
 from pathlib import Path
 from typing import cast
@@ -17,7 +17,7 @@ from aemet_radar.errors import ReflectivityProcessingError
 from aemet_radar.storage import atomic_write_bytes, atomic_write_json
 
 PROCESSOR_ID = "regional-v1"
-MASK_ALGORITHM = "temporal-invariance-v1"
+MASK_ALGORITHM = "ambiguous-temporal-invariance-v2"
 MINIMUM_MASK_SAMPLES = 3
 AMBIGUOUS_POLICIES = {"discard", "static-mask"}
 
@@ -201,10 +201,15 @@ def process_reflectivity_sample(
     static_mask_path: Path | None,
     output_dir: Path,
     product_id: str | None = None,
+    ambiguous_class_policy: str | None = None,
 ) -> ProcessingResult:
     """Regenera las salidas de análisis y la capa RGBA de una muestra."""
 
     config = load_reflectivity_config(config_path, product_id=product_id)
+    if ambiguous_class_policy is not None:
+        if ambiguous_class_policy not in AMBIGUOUS_POLICIES:
+            raise ReflectivityProcessingError("La política de la clase ambigua no está soportada.")
+        config = replace(config, ambiguous_class_policy=ambiguous_class_policy)
     resolved_product_id = product_id or config.product_id
     if resolved_product_id == "regional-*":
         raise ReflectivityProcessingError(
@@ -317,8 +322,8 @@ def process_reflectivity_sample(
                 "result": yellow,
                 "note": (
                     "El amarillo puro también dibuja límites administrativos. "
-                    "Murcia usa su máscara temporal validada; el perfil regional "
-                    "conservador lo descarta hasta disponer de una máscara propia."
+                    "Cada radar calibrado usa su máscara temporal; el perfil regional "
+                    "conservador lo descarta mientras no dispone de una máscara propia."
                 ),
             }
         },
@@ -347,10 +352,13 @@ def build_static_mask(
     config_path: Path,
     mask_path: Path,
     report_path: Path | None = None,
+    product_id: str | None = None,
+    source_evidence: Mapping[str, str] | None = None,
+    observation_span_hours: float | None = None,
 ) -> MaskBuildResult:
-    """Genera una máscara fija a partir de píxeles clasificados temporalmente invariantes."""
+    """Genera una máscara fija a partir de píxeles ambiguos temporalmente invariantes."""
 
-    config = load_reflectivity_config(config_path)
+    config = load_reflectivity_config(config_path, product_id=product_id)
     unique_samples: dict[str, LoadedGif] = {}
     for path in sample_paths:
         loaded = _load_indexed_gif(path, config)
@@ -369,7 +377,8 @@ def build_static_mask(
     mask_data = bytearray([255]) * len(first)
     excluded = Counter[int]()
     for position, palette_index in enumerate(first):
-        if palette_index not in class_indexes:
+        reflectivity_class = class_indexes.get(palette_index)
+        if reflectivity_class is None or not reflectivity_class.ambiguous:
             continue
         if all(candidate[position] == palette_index for candidate in crop_bytes[1:]):
             mask_data[position] = 0
@@ -380,12 +389,21 @@ def build_static_mask(
     resolved_report_path = report_path or mask_path.with_suffix(".json")
     report: dict[str, object] = {
         "schemaVersion": 1,
-        "productId": config.product_id,
+        "productId": product_id or config.product_id,
         "processor": config.processor,
         "algorithm": MASK_ALGORITHM,
         "configurationSha256": f"sha256:{_sha256_file(config_path)}",
         "maskSha256": f"sha256:{_sha256_file(mask_path)}",
         "sourceHashes": [f"sha256:{digest}" for digest in sorted(unique_samples)],
+        "sourceEvidence": [
+            {
+                "sha256": f"sha256:{digest}",
+                "retrievedAt": source_evidence[digest],
+            }
+            for digest in sorted(unique_samples)
+            if source_evidence is not None and digest in source_evidence
+        ],
+        "observationWindowHours": observation_span_hours,
         "distinctSamples": len(unique_samples),
         "crop": config.crop.to_dict(),
         "coverage": config.coverage.to_dict(),
@@ -403,11 +421,11 @@ def build_static_mask(
         ],
         "method": (
             "Se excluye un píxel solo si todas las muestras distintas contienen en esa "
-            "posición el mismo índice de una clase de reflectividad. Los fondos negro y gris "
-            "no se convierten en exclusiones fijas."
+            "posición el mismo índice de una clase marcada como ambigua. Las clases no "
+            "ambiguas y los fondos negro y gris nunca se convierten en exclusiones fijas."
         ),
         "knownRisk": (
-            "Un eco idéntico en posición y clase a través de todas las muestras de referencia "
+            "Un eco de la clase ambigua idéntico en posición a través de todas las muestras "
             "podría quedar excluido; se mitiga usando muestras secas y lluviosas separadas."
         ),
     }

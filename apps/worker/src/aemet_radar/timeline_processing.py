@@ -64,6 +64,7 @@ class RegionalTimelineProcessor:
                 static_mask_path=definition.static_mask_path,
                 output_dir=reflectivity_dir,
                 product_id=product.id,
+                ambiguous_class_policy=definition.ambiguous_class_policy,
             )
             outputs = cast(dict[str, str], reflectivity.report["outputs"])
             self._georeference(
@@ -138,6 +139,7 @@ class RegionalTimelineProcessor:
             static_mask_path=definition.static_mask_path,
             output_dir=reflectivity_dir,
             product_id=product.id,
+            ambiguous_class_policy=definition.ambiguous_class_policy,
         )
         outputs = cast(dict[str, str], reflectivity.report["outputs"])
         georeferenced = self._georeference(
@@ -231,6 +233,7 @@ class RegionalTimelineProcessor:
             and reflectivity_config.get("paletteConfigSha256")
             == _prefixed_sha256(definition.reflectivity_config_path)
             and reflectivity_config.get("staticMaskSha256") == expected_mask_sha256
+            and reflectivity_config.get("ambiguousClassPolicy") == definition.ambiguous_class_policy
             and georeferencing_config.get("sha256") == self._georeferencing_sha256(definition)
         )
 

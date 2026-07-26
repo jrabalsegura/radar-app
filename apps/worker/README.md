@@ -21,7 +21,10 @@ local ignorado por Git; una variable ya exportada tiene prioridad.
 .venv/bin/aemet-radar serve-files
 .venv/bin/aemet-radar analyze-reflectivity ruta/al/original.gif
 .venv/bin/aemet-radar georeference-murcia ruta/al/overlay.png
-.venv/bin/aemet-radar build-reflectivity-mask muestra1.gif muestra2.gif muestra3.gif
+.venv/bin/aemet-radar build-radar-masks \
+  --sample-root data/phase6-samples \
+  --sample-root data/mask-samples \
+  --sample-root data/manual-phase2
 ```
 
 La salida estándar contiene únicamente un resumen JSON sin URLs efímeras ni
@@ -58,7 +61,9 @@ config/masks/regional-mu-v1.png
 data/debug/phase-3/regional-mu/
 ```
 
-`build-reflectivity-mask` exige al menos tres hashes distintos. Solo debe
+`build-radar-masks` exige al menos tres hashes distintos y dos horas de
+separación por radar. `build-reflectivity-mask` permite regenerar una máscara
+individual. Solo debe
 utilizarse con una selección revisada de muestras secas y lluviosas; el informe
 adyacente registra exactamente las referencias y píxeles excluidos.
 

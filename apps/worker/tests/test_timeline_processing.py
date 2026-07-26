@@ -63,9 +63,9 @@ def test_generic_profile_validates_a_different_radar_geometry(
     tmp_path: Path,
 ) -> None:
     catalog = load_radar_catalog(RADAR_CATALOG)
-    definition = catalog.definition_for("regional-am")
+    definition = catalog.definition_for("regional-ml")
     source = _write_production_shaped_gif(
-        tmp_path / "almeria.gif",
+        tmp_path / "malaga.gif",
         config_path=SAFE_REFLECTIVITY_CONFIG,
         include_yellow=True,
     )
@@ -84,9 +84,34 @@ def test_generic_profile_validates_a_different_radar_geometry(
     reflectivity = json.loads(
         (tmp_path / "validation" / "reflectivity" / "report.json").read_text()
     )
-    assert reflectivity["productId"] == "regional-am"
+    assert reflectivity["productId"] == "regional-ml"
     assert reflectivity["statistics"]["discardedByAmbiguousPolicy"] == 1
     assert (tmp_path / "validation" / "calibration" / "overlay-3857.png").is_file()
+
+
+def test_calibrated_generic_profile_uses_its_catalog_mask_policy(tmp_path: Path) -> None:
+    catalog = load_radar_catalog(RADAR_CATALOG)
+    definition = catalog.definition_for("regional-ba")
+    source = _write_production_shaped_gif(
+        tmp_path / "barcelona.gif",
+        config_path=SAFE_REFLECTIVITY_CONFIG,
+        include_yellow=True,
+    )
+    processor = RegionalTimelineProcessor(tmp_path, catalog=catalog)
+
+    processor.validate_sample(
+        definition.product,
+        source,
+        output_dir=tmp_path / "validation",
+    )
+
+    reflectivity = json.loads(
+        (tmp_path / "validation" / "reflectivity" / "report.json").read_text()
+    )
+    yellow = reflectivity["ambiguities"]["yellow"]
+    assert yellow["policy"] == "static-mask"
+    assert yellow["result"]["discardedByAmbiguousPolicy"] == 0
+    assert yellow["result"]["keptPixels"] + yellow["result"]["discardedByStaticMask"] == 1
 
 
 def _write_production_shaped_gif(
