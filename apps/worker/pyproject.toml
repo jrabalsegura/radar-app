@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aemet-radar-worker"
-version = "0.4.0"
+version = "0.5.0"
 description = "Worker de la aplicación personal Radar AEMET"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.28,<1",
     "Pillow>=11,<13",
+    "pyproj>=3.7,<4",
     "python-dotenv>=1.1,<2",
 ]
 

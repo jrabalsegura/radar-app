@@ -92,3 +92,16 @@ class ReflectivityProcessingError(AemetRadarError):
 
     def safe_details(self) -> dict[str, object]:
         return self.details
+
+
+class GeoreferencingError(AemetRadarError):
+    """La capa o calibración no permite una georreferenciación segura."""
+
+    code = "georeferencing_error"
+
+    def __init__(self, message: str, *, details: dict[str, object] | None = None) -> None:
+        self.details = details or {}
+        super().__init__(message)
+
+    def safe_details(self) -> dict[str, object]:
+        return self.details

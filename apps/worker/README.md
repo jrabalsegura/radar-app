@@ -2,9 +2,9 @@
 
 Paquete Python del worker de Radar AEMET.
 
-La Fase 3 añade la extracción reproducible de reflectividad para Murcia mediante
-el procesador `regional-v1`. La georreferenciación y el resto de radares siguen
-fuera de alcance.
+La Fase 4 conserva la extracción `regional-v1` y añade
+`regional-georeference-v1` para reproyectar exclusivamente Murcia a Web
+Mercator. El resto de radares sigue fuera de alcance.
 
 La API key solo se lee de `AEMET_API_KEY`. La CLI también puede cargar un `.env`
 local ignorado por Git; una variable ya exportada tiene prioridad.
@@ -18,6 +18,7 @@ local ignorado por Git; una variable ya exportada tiene prioridad.
 .venv/bin/aemet-radar rebuild-manifests
 .venv/bin/aemet-radar serve-files
 .venv/bin/aemet-radar analyze-reflectivity ruta/al/original.gif
+.venv/bin/aemet-radar georeference-murcia ruta/al/overlay.png
 .venv/bin/aemet-radar build-reflectivity-mask muestra1.gif muestra2.gif muestra3.gif
 ```
 
@@ -54,3 +55,17 @@ data/debug/phase-3/regional-mu/
 `build-reflectivity-mask` exige al menos tres hashes distintos. Solo debe
 utilizarse con una selección revisada de muestras secas y lluviosas; el informe
 adyacente registra exactamente las referencias y píxeles excluidos.
+
+`georeference-murcia` tampoco necesita API key. Exige el PNG RGBA `480×480`
+producido por `analyze-reflectivity`, aplica la calibración versionada y escribe
+por defecto:
+
+```text
+config/georeferencing/regional-mu-v1.json
+data/debug/phase-4/regional-mu/overlay-3857.png
+data/debug/phase-4/regional-mu/georeferencing.json
+```
+
+La salida usa EPSG:3857, píxeles de 1.000 m y vecino más próximo. El informe
+incluye esquinas para una fuente `image` de MapLibre, hashes, círculo de
+cobertura y el error de los ocho puntos de control.

@@ -1,0 +1,134 @@
+{
+  "calibration": {
+    "controlPoints": [
+      {
+        "id": "albacete-ciudad-real-jaen",
+        "label": "Límite Albacete–Ciudad Real–Jaén",
+        "longitude": -2.76208463,
+        "latitude": 38.53274571,
+        "observedPixel": {
+          "x": 103,
+          "y": 209
+        }
+      },
+      {
+        "id": "albacete-ciudad-real-cuenca",
+        "label": "Límite Albacete–Ciudad Real–Cuenca",
+        "longitude": -2.74224984,
+        "latitude": 39.31814698,
+        "observedPixel": {
+          "x": 106,
+          "y": 122
+        }
+      },
+      {
+        "id": "cuenca-teruel-valencia-north",
+        "label": "Límite Cuenca–Teruel–Valencia (norte)",
+        "longitude": -1.16518448,
+        "latitude": 40.01009796,
+        "observedPixel": {
+          "x": 242,
+          "y": 46
+        }
+      },
+      {
+        "id": "albacete-granada-murcia",
+        "label": "Límite Albacete–Granada–Murcia",
+        "longitude": -2.34163074,
+        "latitude": 38.02599852,
+        "observedPixel": {
+          "x": 139,
+          "y": 266
+        }
+      },
+      {
+        "id": "alicante-albacete-valencia",
+        "label": "Límite Alicante–Albacete–Valencia",
+        "longitude": -0.92894709,
+        "latitude": 38.78383584,
+        "observedPixel": {
+          "x": 263,
+          "y": 182
+        }
+      },
+      {
+        "id": "almeria-granada-murcia",
+        "label": "Límite Almería–Granada–Murcia",
+        "longitude": -2.20767327,
+        "latitude": 37.91657305,
+        "observedPixel": {
+          "x": 150,
+          "y": 278
+        }
+      },
+      {
+        "id": "alicante-albacete-murcia",
+        "label": "Límite Alicante–Albacete–Murcia",
+        "longitude": -1.02694038,
+        "latitude": 38.65551091,
+        "observedPixel": {
+          "x": 254,
+          "y": 196
+        }
+      },
+      {
+        "id": "castellon-teruel-valencia",
+        "label": "Límite Castellón–Teruel–Valencia",
+        "longitude": -0.79769602,
+        "latitude": 39.88106904,
+        "observedPixel": {
+          "x": 273,
+          "y": 60
+        }
+      }
+    ],
+    "maximumAcceptedErrorPixels": 1.0,
+    "method": "Los cruces administrativos del GIF se comparan con la topología provincial que sirve AEMET, creada a partir de datos del IGN. El error es la distancia entre el centro del píxel amarillo observado y la posición calculada.",
+    "reference": "https://www.aemet.es/es/api-eltiempo/lineas_limite/8/PB"
+  },
+  "output": {
+    "crs": "EPSG:3857",
+    "pixelSizeMetres": 1000,
+    "resampling": "nearest"
+  },
+  "processor": "regional-georeference-v1",
+  "productId": "regional-mu",
+  "radar": {
+    "aemetCode": "FTN",
+    "latitude": 38.26438295,
+    "longitude": -1.18970006,
+    "name": "Murcia - Fortuna",
+    "rangeKilometres": 240
+  },
+  "schemaVersion": 1,
+  "sourceRaster": {
+    "centerPixel": {
+      "x": 240,
+      "y": 240
+    },
+    "crs": {
+      "datum": "WGS84",
+      "method": "Azimuthal Equidistant",
+      "proj": "+proj=aeqd +lat_0=38.26438295 +lon_0=-1.18970006 +datum=WGS84 +units=m +no_defs"
+    },
+    "height": 480,
+    "metresPerPixel": 1000,
+    "orientation": "north-up",
+    "pixelCoordinateConvention": "integer coordinates address pixel centres",
+    "width": 480
+  },
+  "sources": [
+    {
+      "description": "Centro oficial y código FTN publicados en la configuración del visor radar.",
+      "url": "https://www.aemet.es/es/eltiempo/observacion/radar?p=FTN"
+    },
+    {
+      "description": "Alcance regional de 240 km, productos GeoTIFF y reproyección EPSG:4326.",
+      "url": "https://www.aemet.es/es/eltiempo/observacion/radar/ayuda"
+    },
+    {
+      "description": "Resolución regional de 1 km y fundamento de la proyección azimutal equidistante centrada en un radar.",
+      "url": "https://www.aemet.es/documentos/es/conocermas/recursos_en_linea/publicaciones_y_estudios/publicaciones/Fisica_del_caos_en_la_predicc_meteo/08_Radar_meteorologico_y_red_de_rayos.pdf"
+    }
+  ]
+}
