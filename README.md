@@ -8,7 +8,8 @@ repositorio sigue el desarrollo incremental definido en
 La Fase 5 conecta el archivo real de Murcia con sus derivados transparentes y
 ofrece tres horas de reproducción sobre MapLibre. Incluye huecos explícitos,
 slider, botones temporales, play/pause, tres velocidades, teclado, precarga
-deduplicada y movimiento reducido.
+deduplicada y movimiento reducido. Durante un hueco conserva en el mapa la
+última reflectividad real, indicando siempre que no existe una observación nueva.
 
 ## Requisitos
 
@@ -119,7 +120,9 @@ Murcia, cada observación publicable incorpora un `imageUrl` generado una sola
 vez por hash. `productTime` se usa únicamente si existe evidencia; en caso
 contrario se usa `retrievedAt` y se declara como
 `timeSource: "retrievedAt"`. Los huecos se enumeran sin crear fotogramas
-artificiales. Con cadencia exacta de 10 minutos caben hasta 19 observaciones
+artificiales. La interfaz puede mantener visible el último fotograma real para
+dar continuidad, pero conserva su hora original y marca el intervalo como
+`Sin dato`. Con cadencia exacta de 10 minutos caben hasta 19 observaciones
 contando ambos extremos.
 
 Para Murcia, `analyze-reflectivity` valida la plantilla `480×530`, recorta la

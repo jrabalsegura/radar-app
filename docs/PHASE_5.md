@@ -15,6 +15,7 @@ La fase convierte el visor estático de Murcia en un reproductor temporal que:
 - mantiene una pausa mayor en el último fotograma;
 - permite navegar con las flechas izquierda y derecha;
 - usa hora local `Europe/Madrid`;
+- conserva la última reflectividad real durante los huecos;
 - precarga primero la observación más reciente y reutiliza cada URL;
 - alterna dos capas MapLibre con un crossfade corto;
 - desactiva la transición con `prefers-reduced-motion`.
@@ -76,11 +77,12 @@ URLs locales de imagen y estadísticas coherentes. Combina `frames` con
 Cuando se selecciona un hueco:
 
 - el texto anuncia que no existe observación;
-- ambas capas radar quedan transparentes;
-- el mapa base permanece visible;
+- permanece visible la última reflectividad real anterior;
+- se muestra la hora original de la imagen conservada;
 - reproducción y teclado continúan por la posición siguiente.
 
-No se repite el fotograma anterior para ocultar la ausencia y no se calculan
+La continuidad es exclusivamente visual: el hueco sigue marcado como `Sin dato`
+y no obtiene una entrada de `frames`, hash o timestamp nuevo. No se calculan
 valores meteorológicos intermedios.
 
 ## Reproducción y precarga
@@ -161,7 +163,7 @@ Las pruebas cubren:
 - combinación ordenada de observaciones y huecos;
 - prioridad y deduplicación de la precarga;
 - sincronización de botones, slider, texto y mapa;
-- selección explícita de un hueco sin imagen;
+- selección explícita de un hueco conservando la última imagen real;
 - play/pause, velocidad rápida, pausa final y bucle;
 - navegación con flechas;
 - opacidad, controles de calibración y error de carga.

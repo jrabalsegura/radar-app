@@ -15,6 +15,7 @@ import {
   isRadarManifest,
   MANIFEST_URL,
   type RadarManifest,
+  type RadarTimelineFrame,
   type TimelineSlot,
 } from './radarManifest';
 
@@ -168,6 +169,7 @@ export function App() {
 
   const selectedFrame =
     selectedSlot.kind === 'frame' ? selectedSlot.frame : null;
+  const mapFrame = mostRecentFrame(slots, selectedIndex);
   const isLatest =
     selectedSlot.kind === 'frame' &&
     selectedSlot.time === data.manifest.latestFrameTime;
@@ -175,8 +177,8 @@ export function App() {
   const firstSlot = slots[0]!;
   const lastSlot = slots.at(-1)!;
   const playbackAnnouncement = playing
-    ? `Reproduciendo a velocidad ${SPEEDS[speed].label.toLowerCase()}. ${slotAnnouncement(selectedSlot)}`
-    : `En pausa. ${slotAnnouncement(selectedSlot)}`;
+    ? `Reproduciendo a velocidad ${SPEEDS[speed].label.toLowerCase()}. ${slotAnnouncement(selectedSlot, mapFrame)}`
+    : `En pausa. ${slotAnnouncement(selectedSlot, mapFrame)}`;
 
   return (
     <main className="radar-app">
@@ -204,13 +206,15 @@ export function App() {
       >
         <RadarMap
           calibration={data.calibration}
-          selectedFrame={selectedFrame}
+          selectedFrame={mapFrame}
           opacity={opacity}
           showDebug={showDebug}
           reducedMotion={reducedMotion}
         />
 
-        <div className={`frame-card${selectedFrame ? '' : ' frame-card--gap'}`}>
+        <div
+          className={`frame-card${selectedSlot.kind === 'gap' ? ' frame-card--gap' : ''}`}
+        >
           <p className="frame-card__label">
             {selectedFrame
               ? selectedFrame.timeSource === 'productTime'
@@ -229,7 +233,18 @@ export function App() {
               : ''}
           </p>
           {!selectedFrame && (
-            <strong>No existe una observación para este intervalo.</strong>
+            <>
+              <strong>No existe una observación para este intervalo.</strong>
+              {mapFrame && (
+                <p className="frame-card__continuity">
+                  Se mantiene la última reflectividad disponible, de las{' '}
+                  <time dateTime={mapFrame.time}>
+                    {formatMadridTime(mapFrame.time)}
+                  </time>
+                  .
+                </p>
+              )}
+            </>
           )}
         </div>
 
@@ -276,7 +291,7 @@ export function App() {
               <span className="visually-hidden">Instante del radar</span>
               <input
                 aria-label="Instante del radar"
-                aria-valuetext={slotAnnouncement(selectedSlot)}
+                aria-valuetext={slotAnnouncement(selectedSlot, mapFrame)}
                 type="range"
                 min="0"
                 max={slots.length - 1}
@@ -347,7 +362,7 @@ export function App() {
               <span className="legend-dot" aria-hidden="true" />
               Observación real
               <span className="legend-gap" aria-hidden="true" />
-              Hueco sin interpolar
+              Hueco · conserva la última imagen
             </p>
             <p>← → para recorrer · pausa al cerrar el bucle</p>
           </footer>
@@ -361,11 +376,31 @@ export function App() {
   );
 }
 
-function slotAnnouncement(slot: TimelineSlot): string {
+function slotAnnouncement(
+  slot: TimelineSlot,
+  mapFrame: RadarTimelineFrame | null = null,
+): string {
   const time = formatMadridTime(slot.time);
-  return slot.kind === 'frame'
-    ? `Observación de las ${time}`
-    : `Sin observación a las ${time}`;
+  if (slot.kind === 'frame') {
+    return `Observación de las ${time}`;
+  }
+  const continuity = mapFrame
+    ? ` Se mantiene la reflectividad de las ${formatMadridTime(mapFrame.time)}.`
+    : '';
+  return `Sin observación a las ${time}.${continuity}`;
+}
+
+function mostRecentFrame(
+  slots: TimelineSlot[],
+  selectedIndex: number,
+): RadarTimelineFrame | null {
+  for (let index = selectedIndex; index >= 0; index -= 1) {
+    const slot = slots[index];
+    if (slot?.kind === 'frame') {
+      return slot.frame;
+    }
+  }
+  return null;
 }
 
 function useReducedMotion(): boolean {

@@ -150,7 +150,7 @@ describe('App', () => {
     ).toHaveValue('3');
   });
 
-  it('mantiene botones, slider, texto y mapa sincronizados y muestra el hueco', async () => {
+  it('mantiene controles y texto sincronizados y conserva la última imagen en un hueco', async () => {
     mockRadarFetches();
 
     render(<App />);
@@ -177,11 +177,20 @@ describe('App', () => {
     );
     expect(screen.getByTestId('radar-map')).toHaveAttribute(
       'data-frame',
-      'gap',
+      'two',
     );
     expect(
       screen.getByText('No existe una observación para este intervalo.'),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Se mantiene la última reflectividad disponible/),
+    ).toHaveTextContent('19:10');
+    expect(
+      screen.getByRole('slider', { name: 'Instante del radar' }),
+    ).toHaveAttribute(
+      'aria-valuetext',
+      'Sin observación a las 19:20. Se mantiene la reflectividad de las 19:10.',
+    );
     expect(screen.getAllByText('19:20')).toHaveLength(2);
   });
 

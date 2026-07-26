@@ -264,9 +264,12 @@ que contiene el SHA-256 del original y el manifiesto lo referencia mediante
 
 El navegador precarga primero el último fotograma, deduplica solicitudes por URL
 y alterna dos fuentes `image` de MapLibre para hacer una transición breve de
-opacidad. Un hueco oculta ambas capas: nunca genera una observación intermedia.
-Con `prefers-reduced-motion`, la transición dura cero milisegundos.
+opacidad. Durante un hueco conserva visible la última capa real, pero mantiene
+la hora original de esa imagen y marca el intervalo como `Sin dato`: no genera
+una observación intermedia. Con `prefers-reduced-motion`, la transición dura
+cero milisegundos.
 
 **Motivo:** las URLs inmutables permiten caché y evitan reprocesamiento. Dos
 capas suavizan el cambio visual sin interpolar reflectividad, de acuerdo con
-ADR-005.
+ADR-005. Mantener la última imagen mejora la continuidad al seguir una tormenta
+sin alterar el contrato del manifiesto.

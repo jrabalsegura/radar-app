@@ -137,6 +137,7 @@ Consume el manifiesto real. Añade:
 - bucle con pausa en el último fotograma;
 - navegación con flechas;
 - representación de huecos;
+- continuidad visual en huecos conservando la última imagen real y su hora;
 - precarga priorizada;
 - transición corta de opacidad entre observaciones;
 - soporte para `prefers-reduced-motion`.

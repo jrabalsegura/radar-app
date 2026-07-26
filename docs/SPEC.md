@@ -150,6 +150,8 @@ No se utilizará OCR general como dependencia central. La hora del producto se i
 - Para productos regionales con cadencia de 10 minutos, objetivo de 19 posiciones contando ambos extremos cuando estén disponibles.
 - El backend conservará margen adicional para soportar retrasos y reconstrucción del manifiesto; la interfaz mostrará tres horas.
 - Ausencias de fotogramas representadas como huecos, no como datos inventados.
+- Durante un hueco, la interfaz conservará visible la última reflectividad real
+  para facilitar el seguimiento, mostrando su hora original y el estado `Sin dato`.
 
 #### Controles temporales
 

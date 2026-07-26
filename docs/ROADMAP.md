@@ -234,6 +234,8 @@ Implementar la experiencia principal de uso con Murcia.
 - Se puede seleccionar cualquier fotograma con slider o botón.
 - Ambos controles permanecen sincronizados.
 - La reproducción no salta silenciosamente huecos sin indicarlos.
+- Un hueco conserva la última reflectividad real sin presentarla como una
+  observación nueva.
 - El último fotograma queda destacado.
 - En móvil, los botones son utilizables y desplazables.
 - No se descargan repetidamente recursos ya precargados.
