@@ -5,9 +5,10 @@ repositorio sigue el desarrollo incremental definido en
 [`docs/ROADMAP.md`](docs/ROADMAP.md); la fuente principal de verdad es
 [`docs/SPEC.md`](docs/SPEC.md).
 
-La Fase 3 incorpora el procesador versionado `regional-v1`, que extrae una capa
-RGBA transparente del radar de Murcia mediante paleta exacta y máscara estática
-reproducible. Todavía no georreferencia la capa ni la representa en un mapa.
+La Fase 4 añade `regional-georeference-v1`: calibra la capa de Murcia con ocho
+puntos reales, la reproyecta a Web Mercator por vecino más próximo y la muestra
+en un visor MapLibre mínimo. La validación medida obtuvo 0,369 km de error medio
+y 0,700 km de error máximo.
 
 ## Requisitos
 
@@ -56,6 +57,7 @@ make run-worker    # scheduler continuo
 make rebuild-manifests # reconstruye la publicación solo desde disco
 make serve-files   # inspección local en http://127.0.0.1:8000
 make analyze-reflectivity SAMPLE=ruta/original.gif # depuración completa de Murcia
+make georeference-murcia OVERLAY=ruta/overlay.png # salida Web Mercator
 make check         # lint, formato, tipado, tests y build
 make format        # aplica los formateadores
 ```
@@ -70,6 +72,7 @@ aemet-radar fetch-once --product regional-mu
 aemet-radar run --cycles 1
 aemet-radar rebuild-manifests
 aemet-radar analyze-reflectivity ruta/al/original.gif
+aemet-radar georeference-murcia ruta/al/overlay.png
 deactivate
 ```
 
@@ -121,8 +124,17 @@ zona `480×480`, clasifica las once clases de la leyenda y aplica
 `palette.png`, `classified.png`, máscaras estática, de cobertura y alfa,
 `overlay.png`, `preview.png` y `report.json` bajo `data/debug/`. El amarillo
 compartido con las fronteras solo se conserva fuera de la máscara estática. La
-metodología y la validación real se documentan en
+metodología de extracción se documenta en
 [`docs/PHASE_3.md`](docs/PHASE_3.md).
+
+`georeference-murcia` valida
+`config/georeferencing/regional-mu-v1.json`, transforma la rejilla azimutal
+equidistante de 1 km a EPSG:3857, recorta el alcance nominal de 240 km y genera
+`overlay-3857.png` más `georeferencing.json`. El remuestreo por vecino más
+próximo no crea colores intermedios. La muestra versionada del frontend está en
+`apps/web/public/radar/regional-mu/`; puede verse con `make dev-web` y dispone de
+opacidad, círculo de cobertura y puntos de control. La investigación, métricas y
+límites se describen en [`docs/PHASE_4.md`](docs/PHASE_4.md).
 
 ## Estrategia Git
 

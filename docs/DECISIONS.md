@@ -202,3 +202,31 @@ idéntico en todas las referencias podría confundirse con un elemento fijo.
 dibuja fronteras. La separación espacial reproducible conserva más información
 meteorológica que descartar el color completo y es auditable sin edición manual
 opaca.
+
+---
+
+## ADR-015 — Calibración azimutal y salida Web Mercator para Murcia
+
+**Estado:** aceptada para `regional-georeference-v1`.
+
+El GIF regional de Murcia se interpreta como una rejilla azimutal equidistante
+WGS84, norte arriba, de `480×480` píxeles y 1.000 metros por píxel. El radar
+Murcia–Fortuna (`FTN`) ocupa el píxel `(240, 240)` y las coordenadas oficiales
+`38.26438295, -1.18970006`. El alcance meteorológico publicado por AEMET se
+limita a 240 km.
+
+La decisión se validó contra ocho cruces provinciales de la topología que sirve
+el visor AEMET, creada a partir de datos del IGN. La distancia entre el píxel
+amarillo observado y la posición calculada fue 0,369 píxeles de media y 0,700
+píxeles como máximo. La configuración falla si cualquier control supera un
+píxel.
+
+El worker reproyecta la capa a una rejilla rectangular EPSG:3857 de 1.000 metros
+por píxel, recorta fuera del alcance nominal y usa exclusivamente vecino más
+próximo. MapLibre recibe el PNG resultante como fuente `image` y cuatro esquinas
+WGS84; no interpreta ni adivina la proyección original.
+
+**Motivo:** una imagen azimutal colocada solo por sus cuatro esquinas deformaría
+el interior. Reproyectar antes de servirla mantiene el ajuste durante zoom y
+pan. El vecino más próximo conserva las clases RGBA exactas y evita inventar
+valores meteorológicos intermedios.

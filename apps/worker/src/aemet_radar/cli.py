@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from aemet_radar.client import DEFAULT_MAX_DOWNLOAD_BYTES, AemetClient
 from aemet_radar.errors import AemetRadarError
 from aemet_radar.file_server import serve_files
+from aemet_radar.georeferencing import georeference_overlay
 from aemet_radar.health import HealthPublisher
 from aemet_radar.manifests import ManifestPublisher
 from aemet_radar.models import FetchOutcome
@@ -36,6 +37,7 @@ from aemet_radar.storage import ArchiveStore
 
 DEFAULT_REFLECTIVITY_CONFIG = Path("config/palettes/regional-mu-v1.json")
 DEFAULT_REFLECTIVITY_MASK = Path("config/masks/regional-mu-v1.png")
+DEFAULT_GEOREFERENCING_CONFIG = Path("config/georeferencing/regional-mu-v1.json")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -169,6 +171,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Máscara estática versionada.",
     )
 
+    georeference = subcommands.add_parser(
+        "georeference-murcia",
+        help="Reproyecta una capa RGBA de Murcia para mostrarla en MapLibre.",
+    )
+    georeference.add_argument(
+        "input",
+        type=Path,
+        help="PNG RGBA 480×480 producido por analyze-reflectivity.",
+    )
+    georeference.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("data/debug/phase-4/regional-mu"),
+        help="Directorio para el PNG Web Mercator y su informe.",
+    )
+    georeference.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_GEOREFERENCING_CONFIG,
+        help="Calibración geográfica versionada de Murcia.",
+    )
+
     build_mask = subcommands.add_parser(
         "build-reflectivity-mask",
         help="Genera la máscara estática de Murcia desde varias muestras distintas.",
@@ -220,6 +244,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_file_server(arguments)
         if arguments.command == "analyze-reflectivity":
             return _run_reflectivity_analysis(arguments)
+        if arguments.command == "georeference-murcia":
+            return _run_georeferencing(arguments)
         if arguments.command == "build-reflectivity-mask":
             return _run_reflectivity_mask_build(arguments)
     except AemetRadarError as exc:
@@ -455,6 +481,39 @@ def _run_reflectivity_analysis(arguments: argparse.Namespace) -> int:
             "processor": result.report["processor"],
             "report": result.report_path.as_posix(),
             "reflectivityPixels": reflectivity_pixels,
+        }
+    )
+    return 0
+
+
+def _run_georeferencing(arguments: argparse.Namespace) -> int:
+    result = georeference_overlay(
+        _as_path(arguments.input).resolve(),
+        config_path=_as_path(arguments.config).resolve(),
+        output_dir=_as_path(arguments.output_dir).resolve(),
+    )
+    output = result.report.get("output")
+    calibration = result.report.get("calibration")
+    _print_json(
+        {
+            "status": "ok",
+            "processor": result.report["processor"],
+            "image": result.image_path.as_posix(),
+            "report": result.report_path.as_posix(),
+            "dimensions": (
+                {
+                    "width": output.get("width"),
+                    "height": output.get("height"),
+                }
+                if isinstance(output, dict)
+                else None
+            ),
+            "meanErrorKilometres": (
+                calibration.get("meanErrorKilometres") if isinstance(calibration, dict) else None
+            ),
+            "maximumErrorKilometres": (
+                calibration.get("maximumErrorKilometres") if isinstance(calibration, dict) else None
+            ),
         }
     )
     return 0
