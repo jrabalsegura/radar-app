@@ -18,7 +18,8 @@ from aemet_radar.errors import AemetRadarError
 from aemet_radar.file_server import serve_files
 from aemet_radar.georeferencing import georeference_overlay
 from aemet_radar.health import HealthPublisher
-from aemet_radar.manifests import ManifestPublisher
+from aemet_radar.history import scan_product_history
+from aemet_radar.manifests import ManifestPublisher, select_history_frames
 from aemet_radar.models import FetchOutcome
 from aemet_radar.products import (
     PROVISIONAL_REGIONAL_PRODUCTS,
@@ -34,6 +35,7 @@ from aemet_radar.runner import HistoryWorker, run_periodically
 from aemet_radar.service import IngestionService
 from aemet_radar.settings import OperationalSettings, Settings
 from aemet_radar.storage import ArchiveStore
+from aemet_radar.timeline_processing import MurciaTimelineProcessor
 
 DEFAULT_REFLECTIVITY_CONFIG = Path("config/palettes/regional-mu-v1.json")
 DEFAULT_REFLECTIVITY_MASK = Path("config/masks/regional-mu-v1.png")
@@ -386,6 +388,7 @@ def _run_history(arguments: argparse.Namespace, settings: Settings) -> int:
                 arguments.history_hours,
                 operational.history_hours,
             ),
+            timeline_processor=_timeline_processor(data_dir),
         )
 
         def execute_cycle() -> None:
@@ -414,13 +417,21 @@ def _run_rebuild(arguments: argparse.Namespace) -> int:
     data_dir = _as_path(arguments.data_dir).resolve()
     selected = _selected_products(arguments.products)
     generated_at = datetime.now(UTC)
+    history_hours = _value_or(arguments.history_hours, operational.history_hours)
+    timeline_processor = _timeline_processor(data_dir)
     publisher = ManifestPublisher(
         data_dir,
-        history_hours=_value_or(arguments.history_hours, operational.history_hours),
+        history_hours=history_hours,
+        image_url_resolver=timeline_processor.image_url,
     )
-    results = [
-        publisher.rebuild_product(product, generated_at=generated_at) for product in selected
-    ]
+    results = []
+    for product in selected:
+        scan = scan_product_history(data_dir, product)
+        timeline_processor.ensure_frames(
+            product,
+            select_history_frames(scan.frames, history_hours),
+        )
+        results.append(publisher.rebuild_product(product, generated_at=generated_at))
     index_path = publisher.rebuild_index(selected, generated_at=generated_at)
     health_path = HealthPublisher(data_dir, publisher).publish(
         selected,
@@ -542,6 +553,15 @@ def _run_reflectivity_mask_build(arguments: argparse.Namespace) -> int:
         }
     )
     return 0
+
+
+def _timeline_processor(data_dir: Path) -> MurciaTimelineProcessor:
+    return MurciaTimelineProcessor(
+        data_dir,
+        reflectivity_config_path=DEFAULT_REFLECTIVITY_CONFIG,
+        static_mask_path=DEFAULT_REFLECTIVITY_MASK,
+        georeferencing_config_path=DEFAULT_GEOREFERENCING_CONFIG,
+    )
 
 
 def _add_product_argument(parser: argparse.ArgumentParser) -> None:

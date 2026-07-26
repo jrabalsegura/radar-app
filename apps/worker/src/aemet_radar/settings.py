@@ -47,7 +47,7 @@ class OperationalSettings:
     retry_attempts: int = 3
     retry_backoff_seconds: float = 1.0
     retention_hours: float = 24.0
-    history_hours: float = 2.0
+    history_hours: float = 3.0
 
     @classmethod
     def from_environment(cls) -> OperationalSettings:
@@ -59,7 +59,7 @@ class OperationalSettings:
                 1.0,
             ),
             retention_hours=_positive_float("AEMET_RETENTION_HOURS", 24.0),
-            history_hours=_positive_float("AEMET_HISTORY_HOURS", 2.0),
+            history_hours=_positive_float("AEMET_HISTORY_HOURS", 3.0),
         )
 
 

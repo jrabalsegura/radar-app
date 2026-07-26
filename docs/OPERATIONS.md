@@ -55,7 +55,7 @@ AEMET_POLL_INTERVAL_SECONDS=300
 AEMET_RETRY_ATTEMPTS=3
 AEMET_RETRY_BACKOFF_SECONDS=1
 AEMET_RETENTION_HOURS=24
-AEMET_HISTORY_HOURS=2
+AEMET_HISTORY_HOURS=3
 ```
 
 Los ciclos se programan respecto a su hora de inicio para no acumular la
@@ -68,8 +68,9 @@ make rebuild-manifests
 ```
 
 No consulta AEMET y no requiere `AEMET_API_KEY`. Relee los informes adyacentes a
-los GIF, descarta informes inválidos, ordena y deduplica el historial y vuelve a
-publicar manifiestos, índice y health.
+los GIF, descarta informes inválidos, ordena y deduplica el historial, genera
+los derivados de Murcia que falten y vuelve a publicar manifiestos, índice y
+health. La ventana predeterminada es de tres horas.
 
 ## Inspeccionar por HTTP
 

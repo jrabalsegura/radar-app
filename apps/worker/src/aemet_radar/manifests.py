@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -32,11 +33,18 @@ class ManifestResult:
 class ManifestPublisher:
     """Publica el historial visible bajo el árbol estático de ``data``."""
 
-    def __init__(self, data_dir: Path, *, history_hours: float = 2.0) -> None:
+    def __init__(
+        self,
+        data_dir: Path,
+        *,
+        history_hours: float = 3.0,
+        image_url_resolver: Callable[[RadarProduct, ArchivedFrame], str | None] | None = None,
+    ) -> None:
         if history_hours <= 0:
             raise ValueError("history_hours debe ser mayor que cero.")
         self.data_dir = data_dir.resolve()
         self.history_hours = history_hours
+        self.image_url_resolver = image_url_resolver
 
     def rebuild_product(
         self,
@@ -50,6 +58,7 @@ class ManifestPublisher:
             scan,
             generated_at=generated_at,
             history_hours=self.history_hours,
+            image_url_resolver=self.image_url_resolver,
         )
         path = self.manifest_path(product)
         atomic_write_json(path, payload)
@@ -105,6 +114,7 @@ def build_product_manifest(
     *,
     generated_at: datetime,
     history_hours: float,
+    image_url_resolver: Callable[[RadarProduct, ArchivedFrame], str | None] | None = None,
 ) -> dict[str, object]:
     frames = scan.frames
     selected: tuple[ArchivedFrame, ...] = ()
@@ -114,9 +124,11 @@ def build_product_manifest(
     if frames:
         window_end = frames[-1].timeline_time
         window_start = window_end - timedelta(hours=history_hours)
-        selected = tuple(frame for frame in frames if frame.timeline_time >= window_start)
+        selected = select_history_frames(frames, history_hours)
 
-    public_frames = [_public_frame(frame, product) for frame in selected]
+    public_frames = [
+        _public_frame(frame, product, image_url_resolver=image_url_resolver) for frame in selected
+    ]
     product_times = [frame.product_time for frame in selected if frame.product_time is not None]
     latest_product_time = max(product_times) if product_times else None
     return {
@@ -150,7 +162,22 @@ def build_product_manifest(
     }
 
 
-def _public_frame(frame: ArchivedFrame, product: RadarProduct) -> dict[str, object]:
+def select_history_frames(
+    frames: tuple[ArchivedFrame, ...],
+    history_hours: float,
+) -> tuple[ArchivedFrame, ...]:
+    if not frames:
+        return ()
+    window_start = frames[-1].timeline_time - timedelta(hours=history_hours)
+    return tuple(frame for frame in frames if frame.timeline_time >= window_start)
+
+
+def _public_frame(
+    frame: ArchivedFrame,
+    product: RadarProduct,
+    *,
+    image_url_resolver: Callable[[RadarProduct, ArchivedFrame], str | None] | None,
+) -> dict[str, object]:
     raw_url = "/" + "/".join(quote(part) for part in frame.raw_relative_path.split("/"))
     return {
         "id": f"{product.id}_{frame.source_hash[:16]}",
@@ -163,6 +190,9 @@ def _public_frame(frame: ArchivedFrame, product: RadarProduct) -> dict[str, obje
         "lastRetrievedAt": isoformat_utc(frame.last_retrieved_at),
         "sourceHash": f"sha256:{frame.source_hash}",
         "rawUrl": raw_url,
+        "imageUrl": (
+            image_url_resolver(product, frame) if image_url_resolver is not None else None
+        ),
         "status": "available",
     }
 

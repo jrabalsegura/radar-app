@@ -2,9 +2,10 @@
 
 Paquete Python del worker de Radar AEMET.
 
-La Fase 4 conserva la extracción `regional-v1` y añade
-`regional-georeference-v1` para reproyectar exclusivamente Murcia a Web
-Mercator. El resto de radares sigue fuera de alcance.
+La Fase 5 encadena `regional-v1` y `regional-georeference-v1` para publicar
+automáticamente cada observación de Murcia como PNG Web Mercator. El manifiesto
+expone tres horas y una URL derivada estable por hash. El resto de radares sigue
+fuera de alcance.
 
 La API key solo se lee de `AEMET_API_KEY`. La CLI también puede cargar un `.env`
 local ignorado por Git; una variable ya exportada tiene prioridad.
@@ -35,8 +36,10 @@ por defecto se pueden ajustar con `AEMET_POLL_INTERVAL_SECONDS`,
 `AEMET_RETRY_ATTEMPTS`, `AEMET_RETRY_BACKOFF_SECONDS`,
 `AEMET_RETENTION_HOURS` y `AEMET_HISTORY_HOURS`.
 
-`rebuild-manifests` y `serve-files` no necesitan API key. El servidor escucha
-solo en `127.0.0.1` por defecto y no permite listar directorios.
+`rebuild-manifests` y `serve-files` no necesitan API key. La reconstrucción
+genera también cualquier derivado de Murcia que falte en la ventana pública. El
+servidor escucha solo en `127.0.0.1` por defecto y no permite listar
+directorios.
 
 Las descargas que no superan la validación no se archivan como GIF. El worker
 publica tamaño, MIME declarado y SHA-256 en la salida estructurada y en
@@ -69,3 +72,11 @@ data/debug/phase-4/regional-mu/georeferencing.json
 La salida usa EPSG:3857, píxeles de 1.000 m y vecino más próximo. El informe
 incluye esquinas para una fuente `image` de MapLibre, hashes, círculo de
 cobertura y el error de los ocho puntos de control.
+
+El ciclo periódico reutiliza los derivados si coinciden el hash del original,
+la paleta, la máscara y la calibración. Los publica bajo:
+
+```text
+data/processed/regional-mu/<sha256>/reflectivity/
+data/radar/regional-mu/frames/<sha256>/overlay-3857.png
+```

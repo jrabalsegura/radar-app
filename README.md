@@ -5,10 +5,10 @@ repositorio sigue el desarrollo incremental definido en
 [`docs/ROADMAP.md`](docs/ROADMAP.md); la fuente principal de verdad es
 [`docs/SPEC.md`](docs/SPEC.md).
 
-La Fase 4 añade `regional-georeference-v1`: calibra la capa de Murcia con ocho
-puntos reales, la reproyecta a Web Mercator por vecino más próximo y la muestra
-en un visor MapLibre mínimo. La validación medida obtuvo 0,369 km de error medio
-y 0,700 km de error máximo.
+La Fase 5 conecta el archivo real de Murcia con sus derivados transparentes y
+ofrece tres horas de reproducción sobre MapLibre. Incluye huecos explícitos,
+slider, botones temporales, play/pause, tres velocidades, teclado, precarga
+deduplicada y movimiento reducido.
 
 ## Requisitos
 
@@ -109,14 +109,18 @@ La publicación estática se genera en:
 ```text
 data/radar/index.json
 data/radar/<producto>/manifest.json
+data/radar/regional-mu/frames/<sha256>/overlay-3857.png
 data/status/health.json
 ```
 
-El manifiesto conserva solo la ventana pública de dos horas anclada en el
-último fotograma disponible, mientras el archivo mantiene inicialmente 24
-horas. `productTime` se usa únicamente si existe evidencia; en caso contrario
-se usa `retrievedAt` y se declara como `timeSource: "retrievedAt"`. Los huecos
-se enumeran sin crear fotogramas artificiales.
+El manifiesto conserva una ventana pública de tres horas anclada en el último
+fotograma disponible, mientras el archivo mantiene inicialmente 24 horas. Para
+Murcia, cada observación publicable incorpora un `imageUrl` generado una sola
+vez por hash. `productTime` se usa únicamente si existe evidencia; en caso
+contrario se usa `retrievedAt` y se declara como
+`timeSource: "retrievedAt"`. Los huecos se enumeran sin crear fotogramas
+artificiales. Con cadencia exacta de 10 minutos caben hasta 19 observaciones
+contando ambos extremos.
 
 Para Murcia, `analyze-reflectivity` valida la plantilla `480×530`, recorta la
 zona `480×480`, clasifica las once clases de la leyenda y aplica
@@ -131,10 +135,13 @@ metodología de extracción se documenta en
 `config/georeferencing/regional-mu-v1.json`, transforma la rejilla azimutal
 equidistante de 1 km a EPSG:3857, recorta el alcance nominal de 240 km y genera
 `overlay-3857.png` más `georeferencing.json`. El remuestreo por vecino más
-próximo no crea colores intermedios. La muestra versionada del frontend está en
-`apps/web/public/radar/regional-mu/`; puede verse con `make dev-web` y dispone de
-opacidad, círculo de cobertura y puntos de control. La investigación, métricas y
-límites se describen en [`docs/PHASE_4.md`](docs/PHASE_4.md).
+próximo no crea colores intermedios. El ciclo y `rebuild-manifests` encadenan
+automáticamente ambos procesadores para cada hash nuevo de Murcia.
+
+La muestra real versionada del frontend está en
+`apps/web/public/radar/regional-mu/`; puede verse con `make dev-web`. La
+calibración se documenta en [`docs/PHASE_4.md`](docs/PHASE_4.md) y la
+reproducción en [`docs/PHASE_5.md`](docs/PHASE_5.md).
 
 ## Estrategia Git
 

@@ -73,7 +73,7 @@ No extraigas reflectividad, no georreferencies y no construyas frontend funciona
 
 Implementa únicamente la Fase 2: historial y manifiestos.
 
-Añade ejecución periódica configurable, reintentos limitados, backoff, retención inicial de 24 horas, selección de las últimas dos horas, detección de huecos, publicación atómica de manifiestos y `health.json`.
+Añade ejecución periódica configurable, reintentos limitados, backoff, retención inicial de 24 horas, selección de las últimas tres horas, detección de huecos, publicación atómica de manifiestos y `health.json`.
 
 Trabaja solo con los originales de Murcia y composición nacional. Crea una CLI para reconstruir manifiestos desde disco. Prueba secuencias completas, duplicadas, desordenadas, con huecos y con datos retrasados.
 
@@ -127,7 +127,7 @@ No uses coordenadas aproximadas como definitivas. No implementes timeline, PWA n
 ```text
 [PEGA AQUÍ LA INSTRUCCIÓN COMÚN]
 
-Implementa únicamente la Fase 5: reproducción de las últimas dos horas para Murcia.
+Implementa únicamente la Fase 5: reproducción de las últimas tres horas para Murcia.
 
 Consume el manifiesto real. Añade:
 - slider temporal;
