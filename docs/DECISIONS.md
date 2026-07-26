@@ -349,3 +349,23 @@ política invalida los derivados anteriores.
 **Motivo:** los límites dibujados difieren entre emplazamientos. Compartir una
 máscara produciría falsos huecos o fronteras meteorológicas; forzar una
 calibración sin diversidad temporal podría borrar un eco amarillo real.
+
+---
+
+## ADR-022 — Estado AEMET 404 como ausencia de datos
+
+**Estado:** aceptada.
+
+La pasarela de AEMET responde HTTP 200 y declara `estado: 404` cuando un
+producto válido no tiene datos. El worker lo representa como `no-data`: ejecuta
+un único intento, conserva y reconstruye cualquier manifiesto previo, aplica
+retención, no crea `lastError` y vuelve a consultar en el siguiente ciclo.
+
+Una combinación de productos `current` y `no-data` mantiene el estado global
+`ok`. La presencia de `delayed` o `error` lo deja `degraded`; si todos están sin
+datos, el estado global es `no-data`. Los HTTP 5xx, fallos de transporte,
+contratos inválidos y descargas no válidas continúan siendo errores.
+
+**Motivo:** OpenAPI define 404 como “petición sin datos” y mantiene publicados
+los códigos regionales. Tratar una ausencia funcional como una avería produce
+alarmas falsas sin aportar capacidad de recuperación.

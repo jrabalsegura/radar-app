@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from aemet_radar.diagnostics import FailureRecorder
-from aemet_radar.errors import AemetRadarError, DownloadValidationError
+from aemet_radar.errors import AemetRadarError, DownloadValidationError, is_no_data_error
 from aemet_radar.health import HealthPublisher, PollObservation
 from aemet_radar.history import isoformat_utc, scan_product_history
 from aemet_radar.manifests import ManifestPublisher, select_history_frames
@@ -129,6 +129,50 @@ class HistoryWorker:
                     sleeper=self.sleeper,
                 )
             except AemetRadarError as exc:
+                if is_no_data_error(exc):
+                    try:
+                        removed_frames, published_frames = self._refresh_publication(
+                            product,
+                            cycle_time=cycle_time,
+                        )
+                    except (AemetRadarError, OSError, ValueError):
+                        message = "No se pudo actualizar de forma segura el archivo público."
+                        observations[product.id] = PollObservation(
+                            status="error",
+                            checked_at=cycle_time,
+                            attempts=attempt_count,
+                            error_code="publication_error",
+                            error_message=message,
+                        )
+                        results.append(
+                            ProductCycleResult(
+                                product_id=product.id,
+                                status="error",
+                                attempts=attempt_count,
+                                removed_frames=0,
+                                published_frames=None,
+                                error_code="publication_error",
+                                error_message=message,
+                            )
+                        )
+                    else:
+                        observations[product.id] = PollObservation(
+                            status="no-data",
+                            checked_at=cycle_time,
+                            attempts=attempt_count,
+                            outcome_status="no-data",
+                        )
+                        results.append(
+                            ProductCycleResult(
+                                product_id=product.id,
+                                status="no-data",
+                                attempts=attempt_count,
+                                removed_frames=removed_frames,
+                                published_frames=published_frames,
+                            )
+                        )
+                    self._pause_between_products(product_index)
+                    continue
                 error_details = exc.safe_details() or None
                 diagnostic_report: str | None = None
                 if isinstance(exc, DownloadValidationError):
@@ -169,19 +213,9 @@ class HistoryWorker:
                 continue
 
             try:
-                retention = self.retention.prune_product(
+                removed_frames, published_frames = self._refresh_publication(
                     product,
-                    reference_time=cycle_time,
-                )
-                if self.timeline_processor is not None:
-                    scan = scan_product_history(self.data_dir, product)
-                    self.timeline_processor.ensure_frames(
-                        product,
-                        select_history_frames(scan.frames, self.manifests.history_hours),
-                    )
-                manifest = self.manifests.rebuild_product(
-                    product,
-                    generated_at=cycle_time,
+                    cycle_time=cycle_time,
                 )
             except (AemetRadarError, OSError, ValueError):
                 message = "No se pudo actualizar de forma segura el archivo público."
@@ -206,8 +240,6 @@ class HistoryWorker:
                 self._pause_between_products(product_index)
                 continue
 
-            frames = manifest.payload.get("frames")
-            published_frames = len(frames) if isinstance(frames, list) else 0
             observations[product.id] = PollObservation(
                 status="success",
                 checked_at=cycle_time,
@@ -219,7 +251,7 @@ class HistoryWorker:
                     product_id=product.id,
                     status=outcome.status,
                     attempts=attempt_count,
-                    removed_frames=retention.removed_frames,
+                    removed_frames=removed_frames,
                     published_frames=published_frames,
                 )
             )
@@ -232,6 +264,30 @@ class HistoryWorker:
             polls=observations,
         )
         return CycleResult(generated_at=cycle_time, products=tuple(results))
+
+    def _refresh_publication(
+        self,
+        product: RadarProduct,
+        *,
+        cycle_time: datetime,
+    ) -> tuple[int, int]:
+        retention = self.retention.prune_product(
+            product,
+            reference_time=cycle_time,
+        )
+        if self.timeline_processor is not None:
+            scan = scan_product_history(self.data_dir, product)
+            self.timeline_processor.ensure_frames(
+                product,
+                select_history_frames(scan.frames, self.manifests.history_hours),
+            )
+        manifest = self.manifests.rebuild_product(
+            product,
+            generated_at=cycle_time,
+        )
+        frames = manifest.payload.get("frames")
+        published_frames = len(frames) if isinstance(frames, list) else 0
+        return retention.removed_frames, published_frames
 
     def _pause_between_products(self, product_index: int) -> None:
         if product_index < len(self.products) - 1 and self.product_delay_seconds > 0:

@@ -15,6 +15,13 @@ Por producto, `status` refleja el último ciclo (`current`, `delayed`,
 `no-data` o `error`) y `dataStatus` refleja solo la edad del último fotograma.
 El umbral de retraso es dos veces la cadencia declarada del producto.
 
+Un estado AEMET 404 se interpreta como `no-data`: no se reintenta dentro del
+mismo ciclo, no genera `lastError` y se vuelve a consultar en el ciclo
+siguiente. Una mezcla de productos `current` y `no-data` mantiene el estado
+global `ok`; un producto `delayed` o `error` sí lo degrada. Si el radar conserva
+fotogramas válidos anteriores, el manifiesto se reconstruye normalmente hasta
+que salgan de la ventana, sin fabricar sustitutos.
+
 Los fallos de validación de descarga dejan informes seguros bajo:
 
 ```text
@@ -41,7 +48,7 @@ make poll-once
 Este comando consulta los 15 radares regionales de forma secuencial, aplica
 reintentos limitados, conserva 24 horas y publica los JSON. Devuelve código 1 si
 al menos un producto falla, aunque los productos correctos sí quedan
-actualizados.
+actualizados. Un 404 funcional `no-data` no hace fallar el ciclo.
 
 ## Ejecutar el scheduler
 

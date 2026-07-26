@@ -226,10 +226,13 @@ Murcia siguió sin aportar evidencia de `productTime`; el manifiesto declaró
 `timeSource: "retrievedAt"` y `productTime: null`. El 404 nacional se clasificó
 como no reintentable, por lo que no se generó carga repetida.
 
-`health.json` quedó `degraded`, diferenciando Murcia `current` de nacional
-`error` con `dataStatus: "no-data"`. Una auditoría posterior confirmó que ni la
-API key ni las URLs efímeras aparecían en informes, manifiestos o health. El
-directorio temporal se eliminó después de la comprobación.
+En aquella validación inicial `health.json` quedó `degraded`, diferenciando
+Murcia `current` de nacional `error` con `dataStatus: "no-data"`. ADR-022
+sustituyó después esa semántica: un estado AEMET 404 es ahora `no-data`, sin
+`lastError` ni degradación global cuando los demás productos están actuales.
+Una auditoría confirmó que ni la API key ni las URLs efímeras aparecían en
+informes, manifiestos o health. El directorio temporal se eliminó después de la
+comprobación.
 
 Una segunda validación manual de casi tres horas archivó 18 originales. La
 reconstrucción de la Fase 5 publica los 18 dentro de una ventana exacta de tres

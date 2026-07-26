@@ -14,14 +14,13 @@ from typing import TextIO
 from dotenv import load_dotenv
 
 from aemet_radar.client import DEFAULT_MAX_DOWNLOAD_BYTES, AemetClient
-from aemet_radar.errors import AemetRadarError
+from aemet_radar.errors import AemetRadarError, is_no_data_error
 from aemet_radar.file_server import serve_files
 from aemet_radar.georeferencing import georeference_overlay
 from aemet_radar.health import HealthPublisher
 from aemet_radar.history import scan_product_history
 from aemet_radar.manifests import ManifestPublisher, select_history_frames
 from aemet_radar.mask_calibration import discover_mask_samples
-from aemet_radar.models import FetchOutcome
 from aemet_radar.products import (
     PRODUCTS,
     REGIONAL_PRODUCTS,
@@ -360,7 +359,7 @@ def _run_fetch_once(arguments: argparse.Namespace, settings: Settings) -> int:
         arguments.product_delay,
         operational.product_delay_seconds,
     )
-    outcomes: list[FetchOutcome] = []
+    error_count = 0
     results: list[dict[str, object]] = []
 
     with AemetClient(
@@ -374,15 +373,23 @@ def _run_fetch_once(arguments: argparse.Namespace, settings: Settings) -> int:
             try:
                 outcome = service.fetch_once(product)
             except AemetRadarError as exc:
-                results.append(
-                    {
-                        "productId": product.id,
-                        "status": "error",
-                        "error": _safe_error(exc),
-                    }
-                )
+                if is_no_data_error(exc):
+                    results.append(
+                        {
+                            "productId": product.id,
+                            "status": "no-data",
+                        }
+                    )
+                else:
+                    error_count += 1
+                    results.append(
+                        {
+                            "productId": product.id,
+                            "status": "error",
+                            "error": _safe_error(exc),
+                        }
+                    )
             else:
-                outcomes.append(outcome)
                 results.append(outcome.to_dict(relative_to=data_dir))
             if product_index < len(selected) - 1 and product_delay > 0:
                 time.sleep(product_delay)
@@ -398,12 +405,12 @@ def _run_fetch_once(arguments: argparse.Namespace, settings: Settings) -> int:
 
     _print_json(
         {
-            "status": "ok" if len(outcomes) == len(selected) else "partial-error",
+            "status": "ok" if error_count == 0 else "partial-error",
             "results": results,
             "comparisonReport": comparison_path,
         }
     )
-    return 0 if len(outcomes) == len(selected) else 1
+    return 0 if error_count == 0 else 1
 
 
 def _run_inventory_check(arguments: argparse.Namespace, settings: Settings) -> int:

@@ -49,6 +49,12 @@ class AemetApiStatusError(AemetRadarError):
         super().__init__(f"AEMET devolvió estado {status_code} en la respuesta inicial.")
 
 
+def is_no_data_error(error: AemetRadarError) -> bool:
+    """Indica que AEMET reconoce el producto, pero no tiene datos disponibles."""
+
+    return isinstance(error, AemetApiStatusError) and error.status_code == 404
+
+
 class AemetResponseError(AemetRadarError):
     """La respuesta de la pasarela de AEMET no cumple el contrato."""
 

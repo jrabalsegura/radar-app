@@ -98,6 +98,11 @@ hash congelado, y A Coruña, Valencia y Vizcaya, que responden 404. La herramien
 los informa como `awaiting-samples` y no crea PNG ficticios. Cuando acumulen
 tres originales distintos, el mismo comando generará sus archivos propios.
 
+El worker interpreta el estado AEMET 404 como `no-data`, no como un fallo: hace
+un único intento, mantiene el manifiesto y la retención, limpia `lastError` y
+vuelve a consultar el producto en el siguiente ciclo. Los productos sin datos
+no degradan un ciclo cuyos demás radares estén actuales.
+
 ## Georreferenciación y validación
 
 Cada radar usa una proyección azimutal equidistante propia centrada en las
