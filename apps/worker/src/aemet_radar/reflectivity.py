@@ -1,4 +1,4 @@
-"""Extracción determinista de reflectividad para el producto regional de Murcia."""
+"""Extracción determinista y configurable de reflectividad regional."""
 
 from __future__ import annotations
 
@@ -17,9 +17,9 @@ from aemet_radar.errors import ReflectivityProcessingError
 from aemet_radar.storage import atomic_write_bytes, atomic_write_json
 
 PROCESSOR_ID = "regional-v1"
-PRODUCT_ID = "regional-mu"
 MASK_ALGORITHM = "temporal-invariance-v1"
 MINIMUM_MASK_SAMPLES = 3
+AMBIGUOUS_POLICIES = {"discard", "static-mask"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +91,7 @@ class ReflectivityConfig:
     crop: CropBox
     coverage: CircleCoverage
     classes: tuple[ReflectivityClass, ...]
+    ambiguous_class_policy: str
 
     @property
     def classes_by_index(self) -> dict[int, ReflectivityClass]:
@@ -109,6 +110,7 @@ class ReflectivityConfig:
             "crop": self.crop.to_dict(),
             "coverage": self.coverage.to_dict(),
             "classes": [item.to_dict() for item in self.classes],
+            "ambiguousClassPolicy": self.ambiguous_class_policy,
         }
 
 
@@ -134,8 +136,12 @@ class MaskBuildResult:
     report: dict[str, object]
 
 
-def load_reflectivity_config(path: Path) -> ReflectivityConfig:
-    """Carga y valida la configuración versionada de Murcia."""
+def load_reflectivity_config(
+    path: Path,
+    *,
+    product_id: str | None = None,
+) -> ReflectivityConfig:
+    """Carga y valida un perfil regional versionado."""
 
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -176,10 +182,15 @@ def load_reflectivity_config(path: Path) -> ReflectivityConfig:
             radius=_required_int(coverage_payload, "radius"),
         ),
         classes=classes,
+        ambiguous_class_policy=_optional_string(
+            payload,
+            "ambiguousClassPolicy",
+            "static-mask",
+        ),
     )
     if _required_string(coverage_payload, "shape") != "circle":
         raise ReflectivityProcessingError("regional-v1 requiere cobertura circular.")
-    _validate_config(config)
+    _validate_config(config, product_id=product_id)
     return config
 
 
@@ -187,14 +198,28 @@ def process_reflectivity_sample(
     source_path: Path,
     *,
     config_path: Path,
-    static_mask_path: Path,
+    static_mask_path: Path | None,
     output_dir: Path,
+    product_id: str | None = None,
 ) -> ProcessingResult:
     """Regenera las salidas de análisis y la capa RGBA de una muestra."""
 
-    config = load_reflectivity_config(config_path)
+    config = load_reflectivity_config(config_path, product_id=product_id)
+    resolved_product_id = product_id or config.product_id
+    if resolved_product_id == "regional-*":
+        raise ReflectivityProcessingError(
+            "Un perfil compartido requiere indicar el producto regional."
+        )
+    if config.ambiguous_class_policy == "static-mask" and static_mask_path is None:
+        raise ReflectivityProcessingError(
+            "La política static-mask requiere una máscara versionada."
+        )
     loaded = _load_indexed_gif(source_path, config)
-    static_mask = _load_static_mask(static_mask_path, config.crop)
+    static_mask = (
+        _load_static_mask(static_mask_path, config.crop)
+        if static_mask_path is not None
+        else Image.new("L", (config.crop.width, config.crop.height), 255)
+    )
     coverage_mask = _build_coverage_mask(config)
     cropped = loaded.image.crop(config.crop.pillow_box)
     normalized = loaded.image.convert("RGB")
@@ -225,11 +250,19 @@ def process_reflectivity_sample(
         _atomic_save_png(output_dir / filename, image)
 
     config_sha256 = _sha256_file(config_path)
-    mask_sha256 = _sha256_file(static_mask_path)
+    mask_sha256 = (
+        f"sha256:{_sha256_file(static_mask_path)}" if static_mask_path is not None else None
+    )
     classes_by_index = config.classes_by_index
     class_statistics = []
     for palette_index, item in classes_by_index.items():
-        source_count, kept_count, discarded_count, outside_coverage_count = counts[palette_index]
+        (
+            source_count,
+            kept_count,
+            discarded_count,
+            outside_coverage_count,
+            discarded_ambiguous_count,
+        ) = counts[palette_index]
         class_statistics.append(
             {
                 **item.to_dict(),
@@ -237,6 +270,7 @@ def process_reflectivity_sample(
                 "keptPixels": kept_count,
                 "discardedByStaticMask": discarded_count,
                 "discardedOutsideCoverage": outside_coverage_count,
+                "discardedByAmbiguousPolicy": discarded_ambiguous_count,
             }
         )
 
@@ -245,10 +279,11 @@ def process_reflectivity_sample(
     kept_pixels = sum(item[1] for item in counts.values())
     discarded_pixels = sum(item[2] for item in counts.values())
     outside_coverage_pixels = sum(item[3] for item in counts.values())
+    discarded_ambiguous_pixels = sum(item[4] for item in counts.values())
     yellow = next((item for item in class_statistics if item["ambiguous"]), None)
     report: dict[str, object] = {
         "schemaVersion": 1,
-        "productId": config.product_id,
+        "productId": resolved_product_id,
         "processor": config.processor,
         "source": {
             "fileName": source_path.name,
@@ -262,7 +297,7 @@ def process_reflectivity_sample(
         "configuration": {
             **config.to_report_dict(),
             "paletteConfigSha256": f"sha256:{config_sha256}",
-            "staticMaskSha256": f"sha256:{mask_sha256}",
+            "staticMaskSha256": mask_sha256,
         },
         "statistics": {
             "sourcePixels": loaded.image.width * loaded.image.height,
@@ -271,26 +306,33 @@ def process_reflectivity_sample(
             "reflectivityPixels": kept_pixels,
             "discardedByStaticMask": discarded_pixels,
             "discardedOutsideCoverage": outside_coverage_pixels,
+            "discardedByAmbiguousPolicy": discarded_ambiguous_pixels,
             "unclassifiedPixels": crop_pixels - classified_pixels,
             "transparentPixels": crop_pixels - kept_pixels,
             "classes": class_statistics,
         },
         "ambiguities": {
             "yellow": {
-                "policy": "keep-only-outside-versioned-static-mask",
+                "policy": config.ambiguous_class_policy,
                 "result": yellow,
                 "note": (
                     "El amarillo puro también dibuja límites administrativos. "
-                    "Solo se conserva donde la máscara temporal no lo identifica como fijo."
+                    "Murcia usa su máscara temporal validada; el perfil regional "
+                    "conservador lo descarta hasta disponer de una máscara propia."
                 ),
             }
         },
         "outputs": {key: filename for key, (filename, _image) in output_images.items()},
         "limitations": [
-            "Configuración validada únicamente para regional-mu con plantilla 480x530.",
+            "El perfil regional exige una plantilla GIF indexada 480x530 y paleta exacta.",
             "La separación usa coincidencia exacta de paleta; una plantilla distinta falla.",
-            "La máscara puede descartar un eco que permaneciera idéntico en todas sus muestras "
-            "de generación; los hashes de referencia quedan registrados para revisión.",
+            (
+                "La política conservadora descarta la clase amarilla de 48 dBZ junto con "
+                "los límites administrativos."
+                if config.ambiguous_class_policy == "discard"
+                else "La máscara puede descartar un eco que permaneciera idéntico en todas "
+                "sus muestras de generación."
+            ),
             "La salida no está georreferenciada.",
         ],
     }
@@ -399,12 +441,18 @@ def _parse_class(value: object) -> ReflectivityClass:
     )
 
 
-def _validate_config(config: ReflectivityConfig) -> None:
+def _validate_config(
+    config: ReflectivityConfig,
+    *,
+    product_id: str | None,
+) -> None:
     if config.schema_version != 1:
         raise ReflectivityProcessingError("La versión de configuración no está soportada.")
-    if config.product_id != PRODUCT_ID or config.processor != PROCESSOR_ID:
+    if config.processor != PROCESSOR_ID or not config.product_id.startswith("regional-"):
+        raise ReflectivityProcessingError("La configuración no corresponde al procesador regional.")
+    if product_id is not None and config.product_id not in {product_id, "regional-*"}:
         raise ReflectivityProcessingError(
-            "La configuración no corresponde al procesador regional de Murcia."
+            "El perfil de reflectividad no corresponde al producto solicitado."
         )
     if config.expected_width <= 0 or config.expected_height <= 0:
         raise ReflectivityProcessingError("Las dimensiones esperadas deben ser positivas.")
@@ -443,6 +491,8 @@ def _validate_config(config: ReflectivityConfig) -> None:
         raise ReflectivityProcessingError(
             "regional-v1 debe declarar exactamente el amarillo puro como clase ambigua."
         )
+    if config.ambiguous_class_policy not in AMBIGUOUS_POLICIES:
+        raise ReflectivityProcessingError("La política de la clase ambigua no está soportada.")
 
 
 def _load_indexed_gif(path: Path, config: ReflectivityConfig) -> LoadedGif:
@@ -534,7 +584,7 @@ def _classify(
     Image.Image,
     Image.Image,
     Image.Image,
-    dict[int, tuple[int, int, int, int]],
+    dict[int, tuple[int, int, int, int, int]],
 ]:
     classes = config.classes_by_index
     source = cropped.tobytes()
@@ -547,6 +597,7 @@ def _classify(
     kept_counts = Counter[int]()
     discarded_counts = Counter[int]()
     outside_coverage_counts = Counter[int]()
+    discarded_ambiguous_counts = Counter[int]()
 
     for position, palette_index in enumerate(source):
         item = classes.get(palette_index)
@@ -555,6 +606,9 @@ def _classify(
         source_counts[palette_index] += 1
         rgba_offset = position * 4
         classified_bytes[rgba_offset : rgba_offset + 4] = bytes((*item.rgb, 255))
+        if item.ambiguous and config.ambiguous_class_policy == "discard":
+            discarded_ambiguous_counts[palette_index] += 1
+            continue
         if mask[position] == 0:
             discarded_counts[palette_index] += 1
             continue
@@ -572,6 +626,7 @@ def _classify(
             kept_counts[index],
             discarded_counts[index],
             outside_coverage_counts[index],
+            discarded_ambiguous_counts[index],
         )
         for index in classes
     }
@@ -678,4 +733,15 @@ def _required_int(payload: Mapping[str, object], key: str) -> int:
     value = payload.get(key)
     if not isinstance(value, int) or isinstance(value, bool):
         raise ReflectivityProcessingError(f"El campo {key} debe ser un entero.")
+    return value
+
+
+def _optional_string(
+    payload: Mapping[str, object],
+    key: str,
+    default: str,
+) -> str:
+    value = payload.get(key, default)
+    if not isinstance(value, str) or not value:
+        raise ReflectivityProcessingError(f"El campo {key} debe ser texto no vacío.")
     return value

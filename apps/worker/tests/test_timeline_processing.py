@@ -9,12 +9,15 @@ from PIL import Image
 
 from aemet_radar.history import ArchivedFrame
 from aemet_radar.products import MURCIA
-from aemet_radar.timeline_processing import MurciaTimelineProcessor
+from aemet_radar.radar_catalog import load_radar_catalog
+from aemet_radar.timeline_processing import RegionalTimelineProcessor
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 REFLECTIVITY_CONFIG = REPOSITORY_ROOT / "config" / "palettes" / "regional-mu-v1.json"
+SAFE_REFLECTIVITY_CONFIG = REPOSITORY_ROOT / "config" / "palettes" / "regional-safe-v1.json"
 STATIC_MASK = REPOSITORY_ROOT / "config" / "masks" / "regional-mu-v1.png"
 GEOREFERENCING_CONFIG = REPOSITORY_ROOT / "config" / "georeferencing" / "regional-mu-v1.json"
+RADAR_CATALOG = REPOSITORY_ROOT / "config" / "radars.yaml"
 
 
 def test_murcia_timeline_processor_publishes_and_reuses_derived_frame(
@@ -35,18 +38,17 @@ def test_murcia_timeline_processor_publishes_and_reuses_derived_frame(
         raw_relative_path="raw/regional-mu/source.gif",
         report_path=tmp_path / "source.json",
     )
-    processor = MurciaTimelineProcessor(
+    processor = RegionalTimelineProcessor(
         tmp_path,
-        reflectivity_config_path=REFLECTIVITY_CONFIG,
-        static_mask_path=STATIC_MASK,
-        georeferencing_config_path=GEOREFERENCING_CONFIG,
+        catalog=load_radar_catalog(RADAR_CATALOG),
     )
 
     assert processor.ensure_frames(MURCIA, (frame,)) == 1
     assert processor.ensure_frames(MURCIA, (frame,)) == 0
-    assert processor.image_url(MURCIA, frame) == (
-        f"/radar/regional-mu/frames/{digest}/overlay-3857.png"
-    )
+    image = processor.frame_image(MURCIA, frame)
+    assert image is not None
+    assert image.url == (f"/radar/regional-mu/frames/{digest}/overlay-3857.png")
+    assert len(image.coordinates) == 4
 
     output_dir = tmp_path / "radar" / MURCIA.id / "frames" / digest
     with Image.open(output_dir / "overlay-3857.png") as output:
@@ -57,8 +59,43 @@ def test_murcia_timeline_processor_publishes_and_reuses_derived_frame(
     assert report["output"]["resampling"] == "nearest"
 
 
-def _write_production_shaped_gif(path: Path) -> Path:
-    config = json.loads(REFLECTIVITY_CONFIG.read_text(encoding="utf-8"))
+def test_generic_profile_validates_a_different_radar_geometry(
+    tmp_path: Path,
+) -> None:
+    catalog = load_radar_catalog(RADAR_CATALOG)
+    definition = catalog.definition_for("regional-am")
+    source = _write_production_shaped_gif(
+        tmp_path / "almeria.gif",
+        config_path=SAFE_REFLECTIVITY_CONFIG,
+        include_yellow=True,
+    )
+    processor = RegionalTimelineProcessor(tmp_path, catalog=catalog)
+
+    report = processor.validate_sample(
+        definition.product,
+        source,
+        output_dir=tmp_path / "validation",
+    )
+
+    assert report["status"] == "pass"
+    validation = report["validation"]
+    assert isinstance(validation, dict)
+    assert validation["validationMode"] == "official-geometry"
+    reflectivity = json.loads(
+        (tmp_path / "validation" / "reflectivity" / "report.json").read_text()
+    )
+    assert reflectivity["productId"] == "regional-am"
+    assert reflectivity["statistics"]["discardedByAmbiguousPolicy"] == 1
+    assert (tmp_path / "validation" / "calibration" / "overlay-3857.png").is_file()
+
+
+def _write_production_shaped_gif(
+    path: Path,
+    *,
+    config_path: Path = REFLECTIVITY_CONFIG,
+    include_yellow: bool = False,
+) -> Path:
+    config = json.loads(config_path.read_text(encoding="utf-8"))
     palette = [0] * (256 * 3)
     for item in config["classes"]:
         offset = item["paletteIndex"] * 3
@@ -67,5 +104,7 @@ def _write_production_shaped_gif(path: Path) -> Path:
     image = Image.new("P", (480, 530), 0)
     image.putpalette(palette)
     image.putpixel((250, 240), 16)
+    if include_yellow:
+        image.putpixel((200, 200), 10)
     image.save(path, format="GIF", optimize=False)
     return path

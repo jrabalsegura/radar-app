@@ -1,0 +1,58 @@
+{
+  "frames": [
+    {
+      "id": "regional-am_e6d139ebbb439b30",
+      "imageCoordinates": [
+        [
+          -4.85988569,
+          39.00229279
+        ],
+        [
+          0.68271962,
+          39.00229279
+        ],
+        [
+          0.68271962,
+          34.63951542
+        ],
+        [
+          -4.85988569,
+          34.63951542
+        ]
+      ],
+      "imageUrl": "/radar/regional-am/frames/e6d139ebbb439b3090ef219a673d4a676a03ff6e87f15595e77d07ed63262dbc/overlay-3857.png",
+      "lastRetrievedAt": "2026-07-26T18:06:09.654418Z",
+      "productTime": null,
+      "rawUrl": "/raw/regional-am/2026/07/26/e6d139ebbb439b3090ef219a673d4a676a03ff6e87f15595e77d07ed63262dbc.gif",
+      "retrievedAt": "2026-07-26T18:06:09.654418Z",
+      "sourceHash": "sha256:e6d139ebbb439b3090ef219a673d4a676a03ff6e87f15595e77d07ed63262dbc",
+      "status": "available",
+      "time": "2026-07-26T18:06:09.654418Z",
+      "timeSource": "retrievedAt"
+    }
+  ],
+  "gaps": [],
+  "generatedAt": "2026-07-26T19:21:58.464374Z",
+  "latestFrameTime": "2026-07-26T18:06:09.654418Z",
+  "latestProductTime": null,
+  "radar": {
+    "cadenceMinutes": 10,
+    "id": "regional-am",
+    "kind": "regional",
+    "label": "Almería"
+  },
+  "schemaVersion": 1,
+  "statistics": {
+    "archivedFrames": 1,
+    "discardedDuplicates": 0,
+    "invalidReports": 0,
+    "publishedFrames": 1
+  },
+  "timeBasis": "retrievedAt",
+  "window": {
+    "anchor": "latest-available-frame",
+    "end": "2026-07-26T18:06:09.654418Z",
+    "hours": 3.0,
+    "start": "2026-07-26T15:06:09.654418Z"
+  }
+}

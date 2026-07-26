@@ -264,12 +264,14 @@ Convertir el procesador de Murcia en un pipeline configurable para el conjunto d
 ### Exclusiones
 
 - No asumir que todos comparten configuración.
-- No habilitar un radar hasta superar su validación.
+- No publicar una capa meteorológica hasta que la muestra supere la validación;
+  el emplazamiento permanece visible y consultable aunque esté sin datos.
 - No ocultar radares fallidos como si estuvieran actualizados.
 
 ### Criterios de aceptación
 
-- Todos los radares habilitados tienen manifiesto independiente.
+- Los 15 radares del contrato OpenAPI tienen manifiesto independiente, también
+  cuando está vacío.
 - Cambiar de radar no mezcla fotogramas.
 - Cada radar muestra su estado y hora.
 - La aplicación solo precarga el seleccionado.

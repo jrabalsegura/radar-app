@@ -1,6 +1,12 @@
 export const HISTORY_HOURS = 3;
-export const MANIFEST_URL = '/radar/regional-mu/manifest.json';
 export const MADRID_TIME_ZONE = 'Europe/Madrid';
+
+export type MapCoordinates = [
+  [number, number],
+  [number, number],
+  [number, number],
+  [number, number],
+];
 
 export interface RadarTimelineFrame {
   id: string;
@@ -12,6 +18,7 @@ export interface RadarTimelineFrame {
   sourceHash: string;
   rawUrl: string;
   imageUrl: string;
+  imageCoordinates: MapCoordinates;
   status: 'available';
 }
 
@@ -27,7 +34,7 @@ export interface RadarTimelineGap {
 export interface RadarManifest {
   schemaVersion: 1;
   radar: {
-    id: 'regional-mu';
+    id: string;
     label: string;
     kind: 'regional';
     cadenceMinutes: number;
@@ -35,13 +42,13 @@ export interface RadarManifest {
   generatedAt: string;
   window: {
     hours: 3;
-    start: string;
-    end: string;
+    start: string | null;
+    end: string | null;
     anchor: 'latest-available-frame';
   };
-  latestFrameTime: string;
+  latestFrameTime: string | null;
   latestProductTime: string | null;
-  timeBasis: 'productTime' | 'retrievedAt' | 'mixed';
+  timeBasis: 'productTime' | 'retrievedAt' | 'mixed' | null;
   frames: RadarTimelineFrame[];
   gaps: RadarTimelineGap[];
   statistics: {
@@ -73,33 +80,50 @@ export function isRadarManifest(value: unknown): value is RadarManifest {
   const radar = value.radar;
   const window = value.window;
   const statistics = value.statistics;
+  if (
+    value.schemaVersion !== 1 ||
+    !isRecord(radar) ||
+    typeof radar.id !== 'string' ||
+    !radar.id.startsWith('regional-') ||
+    typeof radar.label !== 'string' ||
+    radar.kind !== 'regional' ||
+    !isPositiveNumber(radar.cadenceMinutes) ||
+    !isDateTime(value.generatedAt) ||
+    !isRecord(window) ||
+    window.hours !== HISTORY_HOURS ||
+    window.anchor !== 'latest-available-frame' ||
+    !Array.isArray(value.frames) ||
+    !value.frames.every(isTimelineFrame) ||
+    !isStrictlyOrdered(value.frames.map((frame) => frame.time)) ||
+    !Array.isArray(value.gaps) ||
+    !value.gaps.every(isTimelineGap) ||
+    !isRecord(statistics) ||
+    !isNonNegativeNumber(statistics.archivedFrames) ||
+    statistics.publishedFrames !== value.frames.length ||
+    !isNonNegativeNumber(statistics.discardedDuplicates) ||
+    !isNonNegativeNumber(statistics.invalidReports)
+  ) {
+    return false;
+  }
+
+  if (value.frames.length === 0) {
+    return (
+      window.start === null &&
+      window.end === null &&
+      value.latestFrameTime === null &&
+      value.latestProductTime === null &&
+      value.timeBasis === null &&
+      value.gaps.length === 0
+    );
+  }
+
   return (
-    value.schemaVersion === 1 &&
-    isRecord(radar) &&
-    radar.id === 'regional-mu' &&
-    typeof radar.label === 'string' &&
-    radar.kind === 'regional' &&
-    isPositiveNumber(radar.cadenceMinutes) &&
-    isDateTime(value.generatedAt) &&
-    isRecord(window) &&
-    window.hours === HISTORY_HOURS &&
     isDateTime(window.start) &&
     isDateTime(window.end) &&
-    window.anchor === 'latest-available-frame' &&
     isDateTime(value.latestFrameTime) &&
     (value.latestProductTime === null || isDateTime(value.latestProductTime)) &&
     isTimeBasis(value.timeBasis) &&
-    Array.isArray(value.frames) &&
-    value.frames.length > 0 &&
-    value.frames.every(isTimelineFrame) &&
-    isStrictlyOrdered(value.frames.map((frame) => frame.time)) &&
-    Array.isArray(value.gaps) &&
-    value.gaps.every(isTimelineGap) &&
-    isRecord(statistics) &&
-    isNonNegativeNumber(statistics.archivedFrames) &&
-    statistics.publishedFrames === value.frames.length &&
-    isNonNegativeNumber(statistics.discardedDuplicates) &&
-    isNonNegativeNumber(statistics.invalidReports)
+    value.latestFrameTime === value.frames.at(-1)?.time
   );
 }
 
@@ -161,7 +185,24 @@ function isTimelineFrame(value: unknown): value is RadarTimelineFrame {
     value.rawUrl.startsWith('/') &&
     typeof value.imageUrl === 'string' &&
     value.imageUrl.startsWith('/') &&
+    isMapCoordinates(value.imageCoordinates) &&
     value.status === 'available'
+  );
+}
+
+function isMapCoordinates(value: unknown): value is MapCoordinates {
+  return (
+    Array.isArray(value) &&
+    value.length === 4 &&
+    value.every(
+      (coordinate) =>
+        Array.isArray(coordinate) &&
+        coordinate.length === 2 &&
+        coordinate.every(
+          (component) =>
+            typeof component === 'number' && Number.isFinite(component),
+        ),
+    )
   );
 }
 

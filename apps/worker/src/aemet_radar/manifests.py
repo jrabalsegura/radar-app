@@ -20,6 +20,18 @@ from aemet_radar.products import RadarProduct
 from aemet_radar.storage import atomic_write_json
 
 _GAP_JITTER_TOLERANCE_SECONDS = 1.0
+MapCoordinates = tuple[
+    tuple[float, float],
+    tuple[float, float],
+    tuple[float, float],
+    tuple[float, float],
+]
+
+
+@dataclass(frozen=True, slots=True)
+class FrameImage:
+    url: str
+    coordinates: MapCoordinates
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,13 +50,15 @@ class ManifestPublisher:
         data_dir: Path,
         *,
         history_hours: float = 3.0,
-        image_url_resolver: Callable[[RadarProduct, ArchivedFrame], str | None] | None = None,
+        image_resolver: Callable[[RadarProduct, ArchivedFrame], FrameImage | None] | None = None,
+        radar_metadata_resolver: Callable[[RadarProduct], dict[str, object]] | None = None,
     ) -> None:
         if history_hours <= 0:
             raise ValueError("history_hours debe ser mayor que cero.")
         self.data_dir = data_dir.resolve()
         self.history_hours = history_hours
-        self.image_url_resolver = image_url_resolver
+        self.image_resolver = image_resolver
+        self.radar_metadata_resolver = radar_metadata_resolver
 
     def rebuild_product(
         self,
@@ -58,7 +72,7 @@ class ManifestPublisher:
             scan,
             generated_at=generated_at,
             history_hours=self.history_hours,
-            image_url_resolver=self.image_url_resolver,
+            image_resolver=self.image_resolver,
         )
         path = self.manifest_path(product)
         atomic_write_json(path, payload)
@@ -79,6 +93,11 @@ class ManifestPublisher:
         for product in products:
             manifest_path = self.manifest_path(product)
             manifest = _load_json_object(manifest_path)
+            metadata = (
+                self.radar_metadata_resolver(product)
+                if self.radar_metadata_resolver is not None
+                else {}
+            )
             radars.append(
                 {
                     "id": product.id,
@@ -87,6 +106,10 @@ class ManifestPublisher:
                     "cadenceMinutes": product.cadence_minutes,
                     "manifestUrl": f"/radar/{quote(product.id)}/manifest.json",
                     "available": manifest is not None and bool(manifest.get("frames")),
+                    "latestFrameTime": (
+                        manifest.get("latestFrameTime") if manifest is not None else None
+                    ),
+                    **metadata,
                 }
             )
 
@@ -114,7 +137,7 @@ def build_product_manifest(
     *,
     generated_at: datetime,
     history_hours: float,
-    image_url_resolver: Callable[[RadarProduct, ArchivedFrame], str | None] | None = None,
+    image_resolver: Callable[[RadarProduct, ArchivedFrame], FrameImage | None] | None = None,
 ) -> dict[str, object]:
     frames = scan.frames
     selected: tuple[ArchivedFrame, ...] = ()
@@ -127,7 +150,7 @@ def build_product_manifest(
         selected = select_history_frames(frames, history_hours)
 
     public_frames = [
-        _public_frame(frame, product, image_url_resolver=image_url_resolver) for frame in selected
+        _public_frame(frame, product, image_resolver=image_resolver) for frame in selected
     ]
     product_times = [frame.product_time for frame in selected if frame.product_time is not None]
     latest_product_time = max(product_times) if product_times else None
@@ -176,9 +199,10 @@ def _public_frame(
     frame: ArchivedFrame,
     product: RadarProduct,
     *,
-    image_url_resolver: Callable[[RadarProduct, ArchivedFrame], str | None] | None,
+    image_resolver: Callable[[RadarProduct, ArchivedFrame], FrameImage | None] | None,
 ) -> dict[str, object]:
     raw_url = "/" + "/".join(quote(part) for part in frame.raw_relative_path.split("/"))
+    image = image_resolver(product, frame) if image_resolver is not None else None
     return {
         "id": f"{product.id}_{frame.source_hash[:16]}",
         "time": isoformat_utc(frame.timeline_time),
@@ -190,8 +214,9 @@ def _public_frame(
         "lastRetrievedAt": isoformat_utc(frame.last_retrieved_at),
         "sourceHash": f"sha256:{frame.source_hash}",
         "rawUrl": raw_url,
-        "imageUrl": (
-            image_url_resolver(product, frame) if image_url_resolver is not None else None
+        "imageUrl": image.url if image is not None else None,
+        "imageCoordinates": (
+            [list(coordinate) for coordinate in image.coordinates] if image is not None else None
         ),
         "status": "available",
     }

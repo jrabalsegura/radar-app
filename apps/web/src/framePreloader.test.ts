@@ -73,6 +73,12 @@ function frameSlot(id: string, imageUrl: string, time: string): TimelineSlot {
       sourceHash: `sha256:${id.padEnd(64, '0')}`,
       rawUrl: `/${id}.gif`,
       imageUrl,
+      imageCoordinates: [
+        [-4, 40],
+        [1, 40],
+        [1, 36],
+        [-4, 36],
+      ],
       status: 'available',
     },
   };

@@ -1,4 +1,4 @@
-"""Georreferenciación reproducible del raster regional de Murcia."""
+"""Georreferenciación reproducible de radares regionales."""
 
 from __future__ import annotations
 
@@ -18,7 +18,6 @@ from aemet_radar.errors import GeoreferencingError
 from aemet_radar.storage import atomic_write_bytes, atomic_write_json
 
 PROCESSOR_ID = "regional-georeference-v1"
-PRODUCT_ID = "regional-mu"
 TARGET_CRS = "EPSG:3857"
 
 
@@ -72,6 +71,9 @@ class GeoreferencingConfig:
     output: OutputRaster
     control_points: tuple[ControlPoint, ...]
     maximum_error_pixels: float
+    validation_mode: str
+    validation_method: str
+    validation_reference: str
 
     @property
     def source_crs(self) -> CRS:
@@ -89,7 +91,7 @@ class GeoreferencingResult:
 
 
 def load_georeferencing_config(path: Path) -> GeoreferencingConfig:
-    """Carga y valida la calibración versionada del radar de Murcia."""
+    """Carga y valida una calibración regional versionada."""
 
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -140,6 +142,21 @@ def load_georeferencing_config(path: Path) -> GeoreferencingConfig:
         ),
         control_points=tuple(_parse_control_point(item) for item in controls_payload),
         maximum_error_pixels=_required_float(calibration_payload, "maximumAcceptedErrorPixels"),
+        validation_mode=_optional_string(
+            calibration_payload,
+            "validationMode",
+            "control-points",
+        ),
+        validation_method=_optional_string(
+            calibration_payload,
+            "method",
+            "Puntos de control geográficos versionados.",
+        ),
+        validation_reference=_optional_string(
+            calibration_payload,
+            "reference",
+            "configuración versionada",
+        ),
     )
     _validate_config(config, source_payload)
     _calibration_report(config)
@@ -149,12 +166,27 @@ def load_georeferencing_config(path: Path) -> GeoreferencingConfig:
 def georeference_overlay(
     source_path: Path,
     *,
-    config_path: Path,
+    config_path: Path | None = None,
+    configuration: GeoreferencingConfig | None = None,
+    configuration_sha256: str | None = None,
     output_dir: Path,
 ) -> GeoreferencingResult:
-    """Reproyecta una capa RGBA de Murcia a una imagen rectangular Web Mercator."""
+    """Reproyecta una capa RGBA regional a una imagen Web Mercator."""
 
-    config = load_georeferencing_config(config_path)
+    if (config_path is None) == (configuration is None):
+        raise GeoreferencingError("Debe indicarse exactamente una configuración regional.")
+    config = (
+        load_georeferencing_config(config_path)
+        if config_path is not None
+        else cast(GeoreferencingConfig, configuration)
+    )
+    resolved_configuration_sha256 = (
+        f"sha256:{hashlib.sha256(config_path.read_bytes()).hexdigest()}"
+        if config_path is not None
+        else configuration_sha256
+    )
+    if resolved_configuration_sha256 is None:
+        raise GeoreferencingError("La configuración en memoria requiere un hash verificable.")
     source_bytes = _read_source(source_path)
     try:
         with Image.open(BytesIO(source_bytes)) as opened:
@@ -169,7 +201,7 @@ def georeference_overlay(
     expected_size = (config.source.width, config.source.height)
     if source_format != "PNG" or source_mode != "RGBA" or source_size != expected_size:
         raise GeoreferencingError(
-            "La capa debe ser el PNG RGBA 480×480 producido por regional-v1.",
+            "La capa no coincide con el PNG RGBA configurado para regional-v1.",
             details={
                 "expectedFormat": "PNG",
                 "actualFormat": source_format,
@@ -229,11 +261,9 @@ def georeference_overlay(
         },
         "calibration": calibration,
         "debug": {
-            "coverageRing": _coverage_ring(config.radar),
+            "coverageRing": coverage_ring(config.radar),
         },
-        "configuration": {
-            "sha256": f"sha256:{hashlib.sha256(config_path.read_bytes()).hexdigest()}"
-        },
+        "configuration": {"sha256": resolved_configuration_sha256},
         "attribution": "Datos radar © AEMET",
     }
     atomic_write_json(report_path, report)
@@ -250,10 +280,8 @@ def _validate_config(
 ) -> None:
     if config.schema_version != 1:
         raise GeoreferencingError("Solo se admite schemaVersion 1.")
-    if config.product_id != PRODUCT_ID or config.processor != PROCESSOR_ID:
-        raise GeoreferencingError("La configuración no corresponde al procesador de Murcia.")
-    if config.radar.code != "FTN":
-        raise GeoreferencingError("El código AEMET esperado para Murcia es FTN.")
+    if not config.product_id.startswith("regional-") or config.processor != PROCESSOR_ID:
+        raise GeoreferencingError("La configuración no corresponde al procesador regional.")
     if config.source.width <= 0 or config.source.height <= 0:
         raise GeoreferencingError("Las dimensiones de origen deben ser positivas.")
     if config.source.metres_per_pixel <= 0 or config.output.pixel_size_metres <= 0:
@@ -270,8 +298,14 @@ def _validate_config(
         )
     if config.radar.range_kilometres <= 0:
         raise GeoreferencingError("El alcance del radar debe ser positivo.")
-    if len(config.control_points) < 3:
+    if config.validation_mode not in {"control-points", "official-geometry"}:
+        raise GeoreferencingError("El modo de validación regional no está soportado.")
+    if config.validation_mode == "control-points" and len(config.control_points) < 3:
         raise GeoreferencingError("La calibración requiere al menos tres puntos de control.")
+    if config.validation_mode == "official-geometry" and config.control_points:
+        raise GeoreferencingError(
+            "official-geometry no debe declarar puntos de control implícitos."
+        )
     if config.maximum_error_pixels <= 0:
         raise GeoreferencingError("El umbral de error debe ser positivo.")
 
@@ -287,6 +321,21 @@ def _validate_config(
 
 
 def _calibration_report(config: GeoreferencingConfig) -> dict[str, object]:
+    if config.validation_mode == "official-geometry":
+        return {
+            "validationMode": config.validation_mode,
+            "method": config.validation_method,
+            "reference": config.validation_reference,
+            "controlPointCount": 0,
+            "meanErrorPixels": None,
+            "meanErrorKilometres": None,
+            "maximumErrorPixels": None,
+            "maximumErrorKilometres": None,
+            "rmsErrorPixels": None,
+            "acceptedMaximumErrorPixels": config.maximum_error_pixels,
+            "status": "pass",
+            "controlPoints": [],
+        }
     try:
         transformer = Transformer.from_crs("EPSG:4326", config.source_crs, always_xy=True)
         rows: list[dict[str, object]] = []
@@ -337,6 +386,9 @@ def _calibration_report(config: GeoreferencingConfig) -> dict[str, object]:
             },
         )
     return {
+        "validationMode": config.validation_mode,
+        "method": config.validation_method,
+        "reference": config.validation_reference,
         "controlPointCount": len(rows),
         "meanErrorPixels": _rounded(mean_error, 6),
         "meanErrorKilometres": _rounded(mean_error * config.source.metres_per_pixel / 1000, 6),
@@ -459,7 +511,9 @@ def _maplibre_coordinates(
     return [[_rounded(lon, 8), _rounded(lat, 8)] for lon, lat in corners]
 
 
-def _coverage_ring(radar: Radar) -> list[list[float]]:
+def coverage_ring(radar: Radar) -> list[list[float]]:
+    """Devuelve el perímetro geodésico utilizado por el mapa de depuración."""
+
     geod = Geod(ellps="WGS84")
     result: list[list[float]] = []
     for bearing in range(0, 361, 5):
@@ -539,6 +593,17 @@ def _required_float(payload: dict[str, object], key: str) -> float:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise GeoreferencingError(f"Falta el número {key}.")
     return float(value)
+
+
+def _optional_string(
+    payload: dict[str, object],
+    key: str,
+    default: str,
+) -> str:
+    value = payload.get(key, default)
+    if not isinstance(value, str) or not value:
+        raise GeoreferencingError(f"El campo {key} debe ser texto no vacío.")
+    return value
 
 
 def _rounded(value: float, digits: int) -> float:

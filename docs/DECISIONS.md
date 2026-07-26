@@ -273,3 +273,55 @@ cero milisegundos.
 capas suavizan el cambio visual sin interpolar reflectividad, de acuerdo con
 ADR-005. Mantener la última imagen mejora la continuidad al seguir una tormenta
 sin alterar el contrato del manifiesto.
+
+---
+
+## ADR-018 — Catálogo completo y estado sin datos
+
+**Estado:** aceptada para la red regional.
+
+Los 15 códigos regionales publicados en OpenAPI forman parte del catálogo, del
+worker, del índice y del selector. La ausencia temporal de una imagen produce
+un manifiesto vacío y estado `no-data`; no elimina ni deshabilita el
+emplazamiento. Solo se dibuja reflectividad cuando un GIF supera la validación
+estricta del perfil asignado.
+
+Los emplazamientos oficiales sin endpoint OpenAPI no se consultan mediante
+códigos inferidos. Se incorporarán cuando exista un contrato oficial.
+
+**Motivo:** una indisponibilidad por mantenimiento no debe exigir desplegar
+código ni hacer desaparecer un radar que volverá a publicar datos. A la vez, un
+estado explícito evita presentar el servicio como actualizado.
+
+---
+
+## ADR-019 — Perfil regional conservador y georreferenciación por centro
+
+**Estado:** aceptada con limitación documentada.
+
+Las 12 muestras disponibles comparten plantilla indexada `480×530` y paleta de
+64 entradas. `regional-safe-v1` las valida de forma exacta y reproyecta cada
+rejilla desde una proyección azimutal equidistante centrada en su emplazamiento
+oficial. Un cambio de plantilla o paleta interrumpe la publicación.
+
+Murcia conserva su máscara temporal y la clase amarilla de 48 dBZ fuera de
+elementos fijos. Los demás radares descartan ese amarillo, ambiguo con límites
+administrativos, hasta contar con máscaras específicas construidas con varias
+muestras.
+
+**Motivo:** compartir un contrato observado reduce configuración duplicada sin
+asumir silenciosamente que AEMET nunca lo cambiará. Descartar la clase ambigua
+es una pérdida conocida y preferible a publicar fronteras como precipitación.
+
+---
+
+## ADR-020 — Ingesta regional secuencial y escalonada
+
+**Estado:** aceptada.
+
+Los productos se consultan secuencialmente con una pausa configurable de un
+segundo entre ellos y sin espera después del último. Cada producto mantiene
+reintentos y estado independientes; un error no interrumpe el resto del ciclo.
+
+**Motivo:** evita ráfagas innecesarias contra AEMET OpenData y conserva un
+comportamiento determinista y observable.

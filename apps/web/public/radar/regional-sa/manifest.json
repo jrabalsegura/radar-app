@@ -1,0 +1,58 @@
+{
+  "frames": [
+    {
+      "id": "regional-sa_13efb56bc4e8ffe4",
+      "imageCoordinates": [
+        [
+          -9.38739472,
+          45.62840802
+        ],
+        [
+          -3.22495187,
+          45.62840802
+        ],
+        [
+          -3.22495187,
+          41.26832186
+        ],
+        [
+          -9.38739472,
+          41.26832186
+        ]
+      ],
+      "imageUrl": "/radar/regional-sa/frames/13efb56bc4e8ffe47126a7b3e742a87bb807596999b832789970cb0c341f020f/overlay-3857.png",
+      "lastRetrievedAt": "2026-07-26T18:06:11.041250Z",
+      "productTime": null,
+      "rawUrl": "/raw/regional-sa/2026/07/26/13efb56bc4e8ffe47126a7b3e742a87bb807596999b832789970cb0c341f020f.gif",
+      "retrievedAt": "2026-07-26T18:06:11.041250Z",
+      "sourceHash": "sha256:13efb56bc4e8ffe47126a7b3e742a87bb807596999b832789970cb0c341f020f",
+      "status": "available",
+      "time": "2026-07-26T18:06:11.041250Z",
+      "timeSource": "retrievedAt"
+    }
+  ],
+  "gaps": [],
+  "generatedAt": "2026-07-26T19:21:58.464374Z",
+  "latestFrameTime": "2026-07-26T18:06:11.041250Z",
+  "latestProductTime": null,
+  "radar": {
+    "cadenceMinutes": 10,
+    "id": "regional-sa",
+    "kind": "regional",
+    "label": "Asturias"
+  },
+  "schemaVersion": 1,
+  "statistics": {
+    "archivedFrames": 1,
+    "discardedDuplicates": 0,
+    "invalidReports": 0,
+    "publishedFrames": 1
+  },
+  "timeBasis": "retrievedAt",
+  "window": {
+    "anchor": "latest-available-frame",
+    "end": "2026-07-26T18:06:11.041250Z",
+    "hours": 3.0,
+    "start": "2026-07-26T15:06:11.041250Z"
+  }
+}

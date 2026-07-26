@@ -51,6 +51,7 @@ def test_small_golden_overlay_and_mask_are_deterministic(tmp_path: Path) -> None
         "reflectivityPixels": 15,
         "discardedByStaticMask": 3,
         "discardedOutsideCoverage": 1,
+        "discardedByAmbiguousPolicy": 0,
         "unclassifiedPixels": 5,
         "transparentPixels": 9,
     }

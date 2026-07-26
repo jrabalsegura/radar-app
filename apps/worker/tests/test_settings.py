@@ -27,6 +27,7 @@ def test_operational_settings_read_environment(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setenv("AEMET_RETRY_BACKOFF_SECONDS", "0.25")
     monkeypatch.setenv("AEMET_RETENTION_HOURS", "36")
     monkeypatch.setenv("AEMET_HISTORY_HOURS", "2.5")
+    monkeypatch.setenv("AEMET_PRODUCT_DELAY_SECONDS", "0.75")
 
     settings = OperationalSettings.from_environment()
 
@@ -35,6 +36,7 @@ def test_operational_settings_read_environment(monkeypatch: pytest.MonkeyPatch) 
     assert settings.retry_backoff_seconds == 0.25
     assert settings.retention_hours == 36
     assert settings.history_hours == 2.5
+    assert settings.product_delay_seconds == 0.75
 
 
 def test_operational_settings_default_to_three_hour_history(

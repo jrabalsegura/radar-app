@@ -9,7 +9,7 @@ import httpx
 
 from aemet_radar.client import DEFAULT_BASE_URL, AemetClient
 from aemet_radar.manifests import ManifestPublisher
-from aemet_radar.products import MURCIA
+from aemet_radar.products import MURCIA, PRODUCTS
 from aemet_radar.retry import RetryPolicy
 from aemet_radar.runner import HistoryWorker
 from aemet_radar.service import IngestionService
@@ -221,6 +221,51 @@ def test_invalid_download_writes_only_safe_diagnostics(tmp_path: Path) -> None:
     assert (
         health["products"][0]["lastError"]["diagnosticReport"] == product_result.diagnostic_report
     )
+
+
+def test_products_are_staggered_without_waiting_after_the_last_one(
+    tmp_path: Path,
+) -> None:
+    almeria = PRODUCTS["regional-am"]
+    cycle_time = datetime(2026, 7, 24, 12, 0, tzinfo=UTC)
+    pauses: list[float] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith((MURCIA.endpoint, almeria.endpoint)):
+            return httpx.Response(
+                200,
+                json={
+                    "estado": 200,
+                    "datos": DATA_URL,
+                    "metadatos": METADATA_URL,
+                },
+                request=request,
+            )
+        if request.url == httpx.URL(DATA_URL):
+            return httpx.Response(
+                200,
+                content=b"GIF89a synthetic",
+                headers={"Content-Type": "image/gif"},
+                request=request,
+            )
+        return httpx.Response(200, json={"formato": "image/gif"}, request=request)
+
+    client = _client(handler)
+    worker = HistoryWorker(
+        IngestionService(client, ArchiveStore(tmp_path)),
+        data_dir=tmp_path,
+        products=(MURCIA, almeria),
+        retry_policy=RetryPolicy(max_attempts=1, initial_backoff_seconds=0),
+        product_delay_seconds=0.75,
+        sleeper=pauses.append,
+    )
+    try:
+        result = worker.run_cycle(generated_at=cycle_time)
+    finally:
+        client.close()
+
+    assert len(result.products) == 2
+    assert pauses == [0.75]
 
 
 def _client(handler: Callable[[httpx.Request], httpx.Response]) -> AemetClient:

@@ -156,7 +156,11 @@ Implementa únicamente la Fase 6: generalización a todos los radares regionales
 
 Crea `config/radars.yaml` y una arquitectura de plugins o estrategias configurables para crop, máscara, paleta y georreferenciación. Añade una herramienta de calibración y validación por radar.
 
-Incorpora el selector de radar, ajuste automático de vista, estado y último fotograma. Escalona las consultas para respetar la API. Solo habilita en el frontend los radares que superen los criterios de validación.
+Incorpora el selector de radar, ajuste automático de vista, estado y último
+fotograma. Escalona las consultas para respetar la API. Mantén visibles y
+seleccionables todos los radares del contrato OpenAPI, incluidos los
+temporalmente sin datos. Solo publica capas meteorológicas de muestras que
+superen los criterios de validación.
 
 No asumas que todas las imágenes son idénticas. No añadas todavía la composición nacional al selector final. No avances a la Fase 7.
 ```

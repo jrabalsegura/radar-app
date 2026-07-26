@@ -1,0 +1,58 @@
+{
+  "frames": [
+    {
+      "id": "regional-pm_eea25ba946addd39",
+      "imageCoordinates": [
+        [
+          -0.09881468,
+          41.55128964
+        ],
+        [
+          5.65938629,
+          41.55128964
+        ],
+        [
+          5.65938629,
+          37.1855377
+        ],
+        [
+          -0.09881468,
+          37.1855377
+        ]
+      ],
+      "imageUrl": "/radar/regional-pm/frames/eea25ba946addd39b982a833c74b2f734de075fee57f5b8c5cc8a8e9bef283cb/overlay-3857.png",
+      "lastRetrievedAt": "2026-07-26T18:06:12.415265Z",
+      "productTime": null,
+      "rawUrl": "/raw/regional-pm/2026/07/26/eea25ba946addd39b982a833c74b2f734de075fee57f5b8c5cc8a8e9bef283cb.gif",
+      "retrievedAt": "2026-07-26T18:06:12.415265Z",
+      "sourceHash": "sha256:eea25ba946addd39b982a833c74b2f734de075fee57f5b8c5cc8a8e9bef283cb",
+      "status": "available",
+      "time": "2026-07-26T18:06:12.415265Z",
+      "timeSource": "retrievedAt"
+    }
+  ],
+  "gaps": [],
+  "generatedAt": "2026-07-26T19:21:58.464374Z",
+  "latestFrameTime": "2026-07-26T18:06:12.415265Z",
+  "latestProductTime": null,
+  "radar": {
+    "cadenceMinutes": 10,
+    "id": "regional-pm",
+    "kind": "regional",
+    "label": "Illes Balears"
+  },
+  "schemaVersion": 1,
+  "statistics": {
+    "archivedFrames": 1,
+    "discardedDuplicates": 0,
+    "invalidReports": 0,
+    "publishedFrames": 1
+  },
+  "timeBasis": "retrievedAt",
+  "window": {
+    "anchor": "latest-available-frame",
+    "end": "2026-07-26T18:06:12.415265Z",
+    "hours": 3.0,
+    "start": "2026-07-26T15:06:12.415265Z"
+  }
+}

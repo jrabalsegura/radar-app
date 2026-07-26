@@ -1,0 +1,58 @@
+{
+  "frames": [
+    {
+      "id": "regional-ca_d9e74ac546103e81",
+      "imageCoordinates": [
+        [
+          -18.69394106,
+          30.3219422
+        ],
+        [
+          -13.69930808,
+          30.3219422
+        ],
+        [
+          -13.69930808,
+          25.95896928
+        ],
+        [
+          -18.69394106,
+          25.95896928
+        ]
+      ],
+      "imageUrl": "/radar/regional-ca/frames/d9e74ac546103e819e3bb7be76da3a5003b9d1593c4edadfb60dca4b1adc2862/overlay-3857.png",
+      "lastRetrievedAt": "2026-07-26T18:06:53.594917Z",
+      "productTime": null,
+      "rawUrl": "/raw/regional-ca/2026/07/26/d9e74ac546103e819e3bb7be76da3a5003b9d1593c4edadfb60dca4b1adc2862.gif",
+      "retrievedAt": "2026-07-26T18:06:53.594917Z",
+      "sourceHash": "sha256:d9e74ac546103e819e3bb7be76da3a5003b9d1593c4edadfb60dca4b1adc2862",
+      "status": "available",
+      "time": "2026-07-26T18:06:53.594917Z",
+      "timeSource": "retrievedAt"
+    }
+  ],
+  "gaps": [],
+  "generatedAt": "2026-07-26T19:21:58.464374Z",
+  "latestFrameTime": "2026-07-26T18:06:53.594917Z",
+  "latestProductTime": null,
+  "radar": {
+    "cadenceMinutes": 10,
+    "id": "regional-ca",
+    "kind": "regional",
+    "label": "Las Palmas"
+  },
+  "schemaVersion": 1,
+  "statistics": {
+    "archivedFrames": 1,
+    "discardedDuplicates": 0,
+    "invalidReports": 0,
+    "publishedFrames": 1
+  },
+  "timeBasis": "retrievedAt",
+  "window": {
+    "anchor": "latest-available-frame",
+    "end": "2026-07-26T18:06:53.594917Z",
+    "hours": 3.0,
+    "start": "2026-07-26T15:06:53.594917Z"
+  }
+}

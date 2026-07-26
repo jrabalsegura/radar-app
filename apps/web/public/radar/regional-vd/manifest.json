@@ -1,0 +1,58 @@
+{
+  "frames": [
+    {
+      "id": "regional-vd_779c1172b4f7a575",
+      "imageCoordinates": [
+        [
+          -7.60873046,
+          44.14558817
+        ],
+        [
+          -1.60798436,
+          44.14558817
+        ],
+        [
+          -1.60798436,
+          39.77983575
+        ],
+        [
+          -7.60873046,
+          39.77983575
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/779c1172b4f7a5758a2a2a85e379407a6e26c15cf6fb336c91d2c18d8af5458f/overlay-3857.png",
+      "lastRetrievedAt": "2026-07-26T18:06:52.248125Z",
+      "productTime": null,
+      "rawUrl": "/raw/regional-vd/2026/07/26/779c1172b4f7a5758a2a2a85e379407a6e26c15cf6fb336c91d2c18d8af5458f.gif",
+      "retrievedAt": "2026-07-26T18:06:52.248125Z",
+      "sourceHash": "sha256:779c1172b4f7a5758a2a2a85e379407a6e26c15cf6fb336c91d2c18d8af5458f",
+      "status": "available",
+      "time": "2026-07-26T18:06:52.248125Z",
+      "timeSource": "retrievedAt"
+    }
+  ],
+  "gaps": [],
+  "generatedAt": "2026-07-26T19:21:58.464374Z",
+  "latestFrameTime": "2026-07-26T18:06:52.248125Z",
+  "latestProductTime": null,
+  "radar": {
+    "cadenceMinutes": 10,
+    "id": "regional-vd",
+    "kind": "regional",
+    "label": "Palencia"
+  },
+  "schemaVersion": 1,
+  "statistics": {
+    "archivedFrames": 1,
+    "discardedDuplicates": 0,
+    "invalidReports": 0,
+    "publishedFrames": 1
+  },
+  "timeBasis": "retrievedAt",
+  "window": {
+    "anchor": "latest-available-frame",
+    "end": "2026-07-26T18:06:52.248125Z",
+    "hours": 3.0,
+    "start": "2026-07-26T15:06:52.248125Z"
+  }
+}

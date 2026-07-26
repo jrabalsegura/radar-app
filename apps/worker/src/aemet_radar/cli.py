@@ -22,10 +22,11 @@ from aemet_radar.history import scan_product_history
 from aemet_radar.manifests import ManifestPublisher, select_history_frames
 from aemet_radar.models import FetchOutcome
 from aemet_radar.products import (
-    PROVISIONAL_REGIONAL_PRODUCTS,
-    SPIKE_PRODUCTS,
+    PRODUCTS,
+    REGIONAL_PRODUCTS,
     RadarProduct,
 )
+from aemet_radar.radar_catalog import DEFAULT_CATALOG_PATH, load_radar_catalog
 from aemet_radar.reflectivity import (
     build_static_mask,
     process_reflectivity_sample,
@@ -35,7 +36,7 @@ from aemet_radar.runner import HistoryWorker, run_periodically
 from aemet_radar.service import IngestionService
 from aemet_radar.settings import OperationalSettings, Settings
 from aemet_radar.storage import ArchiveStore
-from aemet_radar.timeline_processing import MurciaTimelineProcessor
+from aemet_radar.timeline_processing import RegionalTimelineProcessor
 
 DEFAULT_REFLECTIVITY_CONFIG = Path("config/palettes/regional-mu-v1.json")
 DEFAULT_REFLECTIVITY_MASK = Path("config/masks/regional-mu-v1.png")
@@ -60,6 +61,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=_positive_int,
         default=DEFAULT_MAX_DOWNLOAD_BYTES,
         help="Tamaño máximo admitido por imagen.",
+    )
+    fetch_once.add_argument(
+        "--product-delay",
+        type=_non_negative_float,
+        default=None,
+        help="Pausa entre productos regionales; por defecto usa el entorno.",
     )
 
     inventory = subcommands.add_parser(
@@ -121,6 +128,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=_positive_int,
         default=None,
         help="Finaliza tras N ciclos; sin este argumento se ejecuta continuamente.",
+    )
+    run.add_argument(
+        "--product-delay",
+        type=_non_negative_float,
+        default=None,
+        help="Pausa entre productos regionales; por defecto usa el entorno.",
     )
 
     rebuild = subcommands.add_parser(
@@ -223,6 +236,34 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_REFLECTIVITY_CONFIG,
         help="Configuración versionada de paleta y recorte.",
     )
+
+    validate_radar = subcommands.add_parser(
+        "validate-radar",
+        help="Valida una muestra y genera previsualización geográfica por radar.",
+    )
+    validate_radar.add_argument(
+        "input",
+        type=Path,
+        help="Original GIF del radar regional.",
+    )
+    validate_radar.add_argument(
+        "--product",
+        required=True,
+        choices=tuple(product.id for product in REGIONAL_PRODUCTS),
+        help="Radar regional al que pertenece la muestra.",
+    )
+    validate_radar.add_argument(
+        "--radar-config",
+        type=Path,
+        default=DEFAULT_CATALOG_PATH,
+        help="Catálogo regional versionado.",
+    )
+    validate_radar.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("data/debug/phase-6/validation"),
+        help="Directorio para informes y previsualizaciones.",
+    )
     return parser
 
 
@@ -250,6 +291,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_georeferencing(arguments)
         if arguments.command == "build-reflectivity-mask":
             return _run_reflectivity_mask_build(arguments)
+        if arguments.command == "validate-radar":
+            return _run_radar_validation(arguments)
     except AemetRadarError as exc:
         _print_json({"status": "error", "error": _safe_error(exc)}, stream=sys.stderr)
         return 2
@@ -269,8 +312,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _run_fetch_once(arguments: argparse.Namespace, settings: Settings) -> int:
+    operational = OperationalSettings.from_environment()
     data_dir = _as_path(arguments.data_dir).resolve()
     selected = _selected_products(arguments.products)
+    product_delay = _value_or(
+        arguments.product_delay,
+        operational.product_delay_seconds,
+    )
     outcomes: list[FetchOutcome] = []
     results: list[dict[str, object]] = []
 
@@ -281,7 +329,7 @@ def _run_fetch_once(arguments: argparse.Namespace, settings: Settings) -> int:
     ) as client:
         store = ArchiveStore(data_dir)
         service = IngestionService(client, store)
-        for product in selected:
+        for product_index, product in enumerate(selected):
             try:
                 outcome = service.fetch_once(product)
             except AemetRadarError as exc:
@@ -295,6 +343,8 @@ def _run_fetch_once(arguments: argparse.Namespace, settings: Settings) -> int:
             else:
                 outcomes.append(outcome)
                 results.append(outcome.to_dict(relative_to=data_dir))
+            if product_index < len(selected) - 1 and product_delay > 0:
+                time.sleep(product_delay)
 
         comparison_path: str | None = None
         if len(selected) > 1:
@@ -317,6 +367,7 @@ def _run_fetch_once(arguments: argparse.Namespace, settings: Settings) -> int:
 
 def _run_inventory_check(arguments: argparse.Namespace, settings: Settings) -> int:
     data_dir = _as_path(arguments.data_dir).resolve()
+    products = load_radar_catalog(_as_path(arguments.radar_config)).products
     results: list[dict[str, object]] = []
     error_count = 0
     delay = float(arguments.delay)
@@ -325,7 +376,7 @@ def _run_inventory_check(arguments: argparse.Namespace, settings: Settings) -> i
         settings.api_key,
         timeout_seconds=float(arguments.timeout),
     ) as client:
-        for index, product in enumerate(PROVISIONAL_REGIONAL_PRODUCTS):
+        for index, product in enumerate(products):
             try:
                 probe = client.probe_product(product)
             except AemetRadarError as exc:
@@ -341,7 +392,7 @@ def _run_inventory_check(arguments: argparse.Namespace, settings: Settings) -> i
                 )
             else:
                 results.append(probe.to_dict())
-            if index < len(PROVISIONAL_REGIONAL_PRODUCTS) - 1 and delay:
+            if index < len(products) - 1 and delay:
                 time.sleep(delay)
 
     store = ArchiveStore(data_dir)
@@ -388,7 +439,14 @@ def _run_history(arguments: argparse.Namespace, settings: Settings) -> int:
                 arguments.history_hours,
                 operational.history_hours,
             ),
-            timeline_processor=_timeline_processor(data_dir),
+            timeline_processor=_timeline_processor(
+                data_dir,
+                _as_path(arguments.radar_config),
+            ),
+            product_delay_seconds=_value_or(
+                arguments.product_delay,
+                operational.product_delay_seconds,
+            ),
         )
 
         def execute_cycle() -> None:
@@ -418,11 +476,15 @@ def _run_rebuild(arguments: argparse.Namespace) -> int:
     selected = _selected_products(arguments.products)
     generated_at = datetime.now(UTC)
     history_hours = _value_or(arguments.history_hours, operational.history_hours)
-    timeline_processor = _timeline_processor(data_dir)
+    timeline_processor = _timeline_processor(
+        data_dir,
+        _as_path(arguments.radar_config),
+    )
     publisher = ManifestPublisher(
         data_dir,
         history_hours=history_hours,
-        image_url_resolver=timeline_processor.image_url,
+        image_resolver=timeline_processor.frame_image,
+        radar_metadata_resolver=timeline_processor.radar_metadata,
     )
     results = []
     for product in selected:
@@ -555,12 +617,38 @@ def _run_reflectivity_mask_build(arguments: argparse.Namespace) -> int:
     return 0
 
 
-def _timeline_processor(data_dir: Path) -> MurciaTimelineProcessor:
-    return MurciaTimelineProcessor(
+def _run_radar_validation(arguments: argparse.Namespace) -> int:
+    product_id = str(arguments.product)
+    product = PRODUCTS[product_id]
+    output_dir = _as_path(arguments.output_dir).resolve()
+    processor = RegionalTimelineProcessor(
+        output_dir,
+        catalog=load_radar_catalog(_as_path(arguments.radar_config)),
+    )
+    report = processor.validate_sample(
+        product,
+        _as_path(arguments.input).resolve(),
+        output_dir=output_dir,
+    )
+    _print_json(
+        {
+            "status": report["status"],
+            "productId": product.id,
+            "report": (output_dir / "validation.json").as_posix(),
+            "overlay": (output_dir / str(report["overlay"])).as_posix(),
+            "calibrationPreview": (output_dir / str(report["calibrationPreview"])).as_posix(),
+        }
+    )
+    return 0
+
+
+def _timeline_processor(
+    data_dir: Path,
+    catalog_path: Path,
+) -> RegionalTimelineProcessor:
+    return RegionalTimelineProcessor(
         data_dir,
-        reflectivity_config_path=DEFAULT_REFLECTIVITY_CONFIG,
-        static_mask_path=DEFAULT_REFLECTIVITY_MASK,
-        georeferencing_config_path=DEFAULT_GEOREFERENCING_CONFIG,
+        catalog=load_radar_catalog(catalog_path),
     )
 
 
@@ -568,9 +656,9 @@ def _add_product_argument(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--product",
         action="append",
-        choices=tuple(SPIKE_PRODUCTS),
+        choices=tuple(PRODUCTS),
         dest="products",
-        help="Producto; se puede repetir. Por defecto usa Murcia y nacional.",
+        help="Producto; se puede repetir. Por defecto usa los 15 radares regionales.",
     )
 
 
@@ -587,6 +675,12 @@ def _add_data_arguments(parser: argparse.ArgumentParser) -> None:
         default=Path(".env"),
         help="Archivo local opcional que carga variables sin sobrescribir el entorno.",
     )
+    parser.add_argument(
+        "--radar-config",
+        type=Path,
+        default=DEFAULT_CATALOG_PATH,
+        help="Catálogo regional versionado (por defecto: config/radars.yaml).",
+    )
 
 
 def _add_common_network_arguments(parser: argparse.ArgumentParser) -> None:
@@ -601,10 +695,10 @@ def _add_common_network_arguments(parser: argparse.ArgumentParser) -> None:
 
 def _selected_products(value: object) -> tuple[RadarProduct, ...]:
     if value is None:
-        return tuple(SPIKE_PRODUCTS.values())
+        return REGIONAL_PRODUCTS
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise TypeError("products debe ser una lista de identificadores")
-    return tuple(SPIKE_PRODUCTS[product_id] for product_id in value)
+    return tuple(PRODUCTS[product_id] for product_id in value)
 
 
 def _as_path(value: object) -> Path:

@@ -43,6 +43,7 @@ def test_manifest_orders_nineteen_frames_and_only_publishes_three_hours(
     }
     assert len(list((tmp_path / "raw").rglob("*.gif"))) == 20
     assert all(frame["imageUrl"] is None for frame in frames)
+    assert all(frame["imageCoordinates"] is None for frame in frames)
 
 
 def test_manifest_deduplicates_and_resolves_same_time_by_latest_retrieval(

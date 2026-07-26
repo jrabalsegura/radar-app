@@ -1,0 +1,58 @@
+{
+  "frames": [
+    {
+      "id": "regional-ma_936170f07a75bfbc",
+      "imageCoordinates": [
+        [
+          -6.63854995,
+          42.34632995
+        ],
+        [
+          -0.80848376,
+          42.34632995
+        ],
+        [
+          -0.80848376,
+          37.98282609
+        ],
+        [
+          -6.63854995,
+          37.98282609
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/936170f07a75bfbc1d41fdbbaa5a7938f22746df358508437600c0842a40a186/overlay-3857.png",
+      "lastRetrievedAt": "2026-07-26T18:06:48.138181Z",
+      "productTime": null,
+      "rawUrl": "/raw/regional-ma/2026/07/26/936170f07a75bfbc1d41fdbbaa5a7938f22746df358508437600c0842a40a186.gif",
+      "retrievedAt": "2026-07-26T18:06:48.138181Z",
+      "sourceHash": "sha256:936170f07a75bfbc1d41fdbbaa5a7938f22746df358508437600c0842a40a186",
+      "status": "available",
+      "time": "2026-07-26T18:06:48.138181Z",
+      "timeSource": "retrievedAt"
+    }
+  ],
+  "gaps": [],
+  "generatedAt": "2026-07-26T19:21:58.464374Z",
+  "latestFrameTime": "2026-07-26T18:06:48.138181Z",
+  "latestProductTime": null,
+  "radar": {
+    "cadenceMinutes": 10,
+    "id": "regional-ma",
+    "kind": "regional",
+    "label": "Madrid"
+  },
+  "schemaVersion": 1,
+  "statistics": {
+    "archivedFrames": 1,
+    "discardedDuplicates": 0,
+    "invalidReports": 0,
+    "publishedFrames": 1
+  },
+  "timeBasis": "retrievedAt",
+  "window": {
+    "anchor": "latest-available-frame",
+    "end": "2026-07-26T18:06:48.138181Z",
+    "hours": 3.0,
+    "start": "2026-07-26T15:06:48.138181Z"
+  }
+}

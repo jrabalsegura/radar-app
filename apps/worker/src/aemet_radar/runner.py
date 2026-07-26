@@ -18,7 +18,7 @@ from aemet_radar.products import RadarProduct
 from aemet_radar.retention import RetentionManager
 from aemet_radar.retry import RetryPolicy, call_with_retry
 from aemet_radar.service import IngestionService
-from aemet_radar.timeline_processing import MurciaTimelineProcessor
+from aemet_radar.timeline_processing import RegionalTimelineProcessor
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,20 +78,27 @@ class HistoryWorker:
         retry_policy: RetryPolicy,
         retention_hours: float = 24.0,
         history_hours: float = 3.0,
-        timeline_processor: MurciaTimelineProcessor | None = None,
+        timeline_processor: RegionalTimelineProcessor | None = None,
+        product_delay_seconds: float = 1.0,
         sleeper: Callable[[float], None] = time.sleep,
     ) -> None:
+        if product_delay_seconds < 0:
+            raise ValueError("product_delay_seconds debe ser cero o mayor.")
         self.service = service
         self.products = products
         self.retry_policy = retry_policy
         self.sleeper = sleeper
         self.data_dir = data_dir.resolve()
         self.timeline_processor = timeline_processor
+        self.product_delay_seconds = product_delay_seconds
         self.manifests = ManifestPublisher(
             data_dir,
             history_hours=history_hours,
-            image_url_resolver=(
-                timeline_processor.image_url if timeline_processor is not None else None
+            image_resolver=(
+                timeline_processor.frame_image if timeline_processor is not None else None
+            ),
+            radar_metadata_resolver=(
+                timeline_processor.radar_metadata if timeline_processor is not None else None
             ),
         )
         self.retention = RetentionManager(data_dir, retention_hours=retention_hours)
@@ -107,7 +114,7 @@ class HistoryWorker:
             if not self.manifests.manifest_path(product).is_file():
                 self.manifests.rebuild_product(product, generated_at=cycle_time)
 
-        for product in self.products:
+        for product_index, product in enumerate(self.products):
             attempt_count = 0
 
             def fetch() -> FetchOutcome:
@@ -158,6 +165,7 @@ class HistoryWorker:
                         diagnostic_report=diagnostic_report,
                     )
                 )
+                self._pause_between_products(product_index)
                 continue
 
             try:
@@ -195,6 +203,7 @@ class HistoryWorker:
                         error_message=message,
                     )
                 )
+                self._pause_between_products(product_index)
                 continue
 
             frames = manifest.payload.get("frames")
@@ -214,6 +223,7 @@ class HistoryWorker:
                     published_frames=published_frames,
                 )
             )
+            self._pause_between_products(product_index)
 
         self.manifests.rebuild_index(self.products, generated_at=cycle_time)
         self.health.publish(
@@ -222,6 +232,10 @@ class HistoryWorker:
             polls=observations,
         )
         return CycleResult(generated_at=cycle_time, products=tuple(results))
+
+    def _pause_between_products(self, product_index: int) -> None:
+        if product_index < len(self.products) - 1 and self.product_delay_seconds > 0:
+            self.sleeper(self.product_delay_seconds)
 
 
 def run_periodically(

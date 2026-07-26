@@ -2,10 +2,10 @@
 
 Paquete Python del worker de Radar AEMET.
 
-La Fase 5 encadena `regional-v1` y `regional-georeference-v1` para publicar
-automáticamente cada observación de Murcia como PNG Web Mercator. El manifiesto
-expone tres horas y una URL derivada estable por hash. El resto de radares sigue
-fuera de alcance.
+La Fase 6 ejecuta un pipeline regional configurable para los 15 códigos
+publicados por AEMET. Cada radar tiene manifiesto, estado, centro y cobertura
+propios. Un producto temporalmente sin imagen conserva un manifiesto vacío y
+sigue consultándose.
 
 La API key solo se lee de `AEMET_API_KEY`. La CLI también puede cargar un `.env`
 local ignorado por Git; una variable ya exportada tiene prioridad.
@@ -17,6 +17,7 @@ local ignorado por Git; una variable ya exportada tiene prioridad.
 .venv/bin/aemet-radar run --cycles 1
 .venv/bin/aemet-radar run
 .venv/bin/aemet-radar rebuild-manifests
+.venv/bin/aemet-radar validate-radar --product regional-am ruta/al/original.gif
 .venv/bin/aemet-radar serve-files
 .venv/bin/aemet-radar analyze-reflectivity ruta/al/original.gif
 .venv/bin/aemet-radar georeference-murcia ruta/al/overlay.png
@@ -34,10 +35,12 @@ segundo y no descarga los GIF regionales.
 reemplaza el manifiesto de un producto cuando falla su consulta. Los valores
 por defecto se pueden ajustar con `AEMET_POLL_INTERVAL_SECONDS`,
 `AEMET_RETRY_ATTEMPTS`, `AEMET_RETRY_BACKOFF_SECONDS`,
-`AEMET_RETENTION_HOURS` y `AEMET_HISTORY_HOURS`.
+`AEMET_RETENTION_HOURS`, `AEMET_HISTORY_HOURS` y
+`AEMET_PRODUCT_DELAY_SECONDS`. Este último introduce por defecto un segundo
+entre productos y no espera después del último.
 
 `rebuild-manifests` y `serve-files` no necesitan API key. La reconstrucción
-genera también cualquier derivado de Murcia que falte en la ventana pública. El
+genera también cualquier derivado regional que falte en la ventana pública. El
 servidor escucha solo en `127.0.0.1` por defecto y no permite listar
 directorios.
 
@@ -77,6 +80,11 @@ El ciclo periódico reutiliza los derivados si coinciden el hash del original,
 la paleta, la máscara y la calibración. Los publica bajo:
 
 ```text
-data/processed/regional-mu/<sha256>/reflectivity/
-data/radar/regional-mu/frames/<sha256>/overlay-3857.png
+data/processed/<radar>/<sha256>/reflectivity/
+data/radar/<radar>/frames/<sha256>/overlay-3857.png
 ```
+
+`validate-radar` aplica exactamente la estrategia de `config/radars.yaml` y
+genera la capa, su reproyección y una previsualización de límites. No necesita
+API key. El contrato y las limitaciones del perfil compartido están en
+`docs/PHASE_6.md`.
