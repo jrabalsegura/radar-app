@@ -126,11 +126,11 @@ valor temporal. Cuando esa evidencia no existe, usa `retrievedAt` únicamente
 como hora de obtención y publica `timeSource: "retrievedAt"` y
 `productTime: null`.
 
-Los manifiestos se anclan en el último fotograma disponible y publican como
-máximo las dos horas anteriores a ese instante. Los huecos describen intervalos
-esperados sin crear entradas de fotograma ni duplicar observaciones. La
-detección admite un segundo de tolerancia alrededor del umbral para que el
-jitter subsegundo del polling no oculte una ausencia.
+Los manifiestos se anclan en el último fotograma disponible. La duración visible
+queda definida por ADR-016. Los huecos describen intervalos esperados sin crear
+entradas de fotograma ni duplicar observaciones. La detección admite un segundo
+de tolerancia alrededor del umbral para que el jitter subsegundo del polling no
+oculte una ausencia.
 
 **Motivo:** `SPEC.md` permite presentar la hora de obtención cuando no se puede
 determinar la hora del producto. Mantener ambas semánticas separadas evita
@@ -230,3 +230,46 @@ WGS84; no interpreta ni adivina la proyección original.
 el interior. Reproyectar antes de servirla mantiene el ajuste durante zoom y
 pan. El vecino más próximo conserva las clases RGBA exactas y evita inventar
 valores meteorológicos intermedios.
+
+---
+
+## ADR-016 — Ventana visible de tres horas
+
+**Estado:** aceptada; sustituye la duración de dos horas prevista inicialmente.
+
+El backend y el frontend publican y reproducen las tres horas anteriores al
+último fotograma disponible. Con una cadencia exacta de 10 minutos, Murcia puede
+contener hasta 19 observaciones contando ambos extremos. Los originales siguen
+con una retención predeterminada de 24 horas.
+
+La cantidad real puede ser menor por ausencias o distinta cuando la única base
+disponible es `retrievedAt` y el sondeo no coincide exactamente con la cadencia
+del producto. En ningún caso se completa la ventana duplicando o interpolando
+imágenes.
+
+**Motivo:** dos horas ofrecían poco contexto para evaluar el desplazamiento de
+la precipitación. Tres horas aumentan el contexto sin hacer pesado el
+manifiesto ni la precarga del único radar de esta fase.
+
+---
+
+## ADR-017 — Derivado público inmutable por hash y crossfade de dos capas
+
+**Estado:** aceptada para Murcia.
+
+Cada original de Murcia se procesa una sola vez mientras sigan vigentes la
+paleta, la máscara y la calibración. Su PNG Web Mercator se publica bajo una URL
+que contiene el SHA-256 del original y el manifiesto lo referencia mediante
+`imageUrl`.
+
+El navegador precarga primero el último fotograma, deduplica solicitudes por URL
+y alterna dos fuentes `image` de MapLibre para hacer una transición breve de
+opacidad. Durante un hueco conserva visible la última capa real, pero mantiene
+la hora original de esa imagen y marca el intervalo como `Sin dato`: no genera
+una observación intermedia. Con `prefers-reduced-motion`, la transición dura
+cero milisegundos.
+
+**Motivo:** las URLs inmutables permiten caché y evitan reprocesamiento. Dos
+capas suavizan el cambio visual sin interpolar reflectividad, de acuerdo con
+ADR-005. Mantener la última imagen mejora la continuidad al seguir una tormenta
+sin alterar el contrato del manifiesto.

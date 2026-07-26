@@ -6,14 +6,14 @@ from aemet_radar.manifests import ManifestPublisher
 from aemet_radar.products import MURCIA, NATIONAL, RadarProduct
 
 
-def test_manifest_orders_thirteen_frames_and_only_publishes_two_hours(
+def test_manifest_orders_nineteen_frames_and_only_publishes_three_hours(
     tmp_path: Path,
 ) -> None:
     latest = datetime(2026, 7, 24, 12, 0, tzinfo=UTC)
-    times = [latest - timedelta(minutes=10 * index) for index in range(12, -1, -1)]
+    times = [latest - timedelta(minutes=10 * index) for index in range(18, -1, -1)]
     for index, product_time in reversed(list(enumerate(times, start=1))):
         _archive_report(tmp_path, index=index, product_time=product_time)
-    _archive_report(tmp_path, index=99, product_time=latest - timedelta(hours=3))
+    _archive_report(tmp_path, index=99, product_time=latest - timedelta(hours=4))
 
     result = ManifestPublisher(tmp_path).rebuild_product(
         MURCIA,
@@ -22,20 +22,27 @@ def test_manifest_orders_thirteen_frames_and_only_publishes_two_hours(
 
     frames = result.payload["frames"]
     assert isinstance(frames, list)
-    assert len(frames) == 13
+    assert len(frames) == 19
     assert [frame["time"] for frame in frames] == [
         _isoformat(product_time) for product_time in times
     ]
     assert result.payload["latestFrameTime"] == "2026-07-24T12:00:00Z"
+    assert result.payload["window"] == {
+        "hours": 3.0,
+        "start": "2026-07-24T09:00:00Z",
+        "end": "2026-07-24T12:00:00Z",
+        "anchor": "latest-available-frame",
+    }
     assert result.payload["timeBasis"] == "productTime"
     assert result.payload["gaps"] == []
     assert result.payload["statistics"] == {
-        "archivedFrames": 14,
-        "publishedFrames": 13,
+        "archivedFrames": 20,
+        "publishedFrames": 19,
         "discardedDuplicates": 0,
         "invalidReports": 0,
     }
-    assert len(list((tmp_path / "raw").rglob("*.gif"))) == 14
+    assert len(list((tmp_path / "raw").rglob("*.gif"))) == 20
+    assert all(frame["imageUrl"] is None for frame in frames)
 
 
 def test_manifest_deduplicates_and_resolves_same_time_by_latest_retrieval(

@@ -18,7 +18,7 @@ Construir una aplicación web rápida, minimalista e instalable como PWA para vi
 La aplicación debe permitir comprender de un vistazo:
 
 - dónde está lloviendo;
-- cómo se ha desplazado la precipitación durante las últimas dos horas;
+- cómo se ha desplazado la precipitación durante las últimas tres horas;
 - qué fotograma se está viendo y a qué hora corresponde;
 - qué radar regional o composición nacional está seleccionado.
 
@@ -146,10 +146,12 @@ No se utilizará OCR general como dependencia central. La hora del producto se i
 
 #### Historial
 
-- Visualización de las últimas **dos horas**.
-- Para productos regionales con cadencia de 10 minutos, objetivo de 13 posiciones contando ambos extremos cuando estén disponibles.
-- El backend conservará margen adicional para soportar retrasos y reconstrucción del manifiesto; la interfaz mostrará dos horas.
+- Visualización de las últimas **tres horas**.
+- Para productos regionales con cadencia de 10 minutos, objetivo de 19 posiciones contando ambos extremos cuando estén disponibles.
+- El backend conservará margen adicional para soportar retrasos y reconstrucción del manifiesto; la interfaz mostrará tres horas.
 - Ausencias de fotogramas representadas como huecos, no como datos inventados.
+- Durante un hueco, la interfaz conservará visible la última reflectividad real
+  para facilitar el seguimiento, mostrando su hora original y el estado `Sin dato`.
 
 #### Controles temporales
 
@@ -211,7 +213,7 @@ La aplicación será de una sola pantalla:
 │                                                   [ubicación] │
 │                                                   [opacidad]  │
 ├──────────────────────────────────────────────────────────────┤
-│ 11:20 · hace 4 min                              [−2 h … ahora]│
+│ 11:20 · hace 4 min                              [−3 h … ahora]│
 │ [▶] ─────────────────────●────────────────────────── [1×]     │
 │ [09:20] [09:30] [09:40] … [11:10] [11:20]                    │
 └──────────────────────────────────────────────────────────────┘
@@ -455,7 +457,7 @@ Si el hash coincide con el último fotograma del mismo radar:
 
 ### 10.3 Conservación
 
-- Interfaz: últimas 2 horas.
+- Interfaz: últimas 3 horas.
 - Almacenamiento inicial: 24 horas para facilitar diagnóstico.
 - Retención configurable.
 - Los originales y derivados se eliminarán de forma coordinada.
@@ -665,7 +667,7 @@ Debe documentarse en `OPERATIONS.md`:
 
 ### Integración
 
-- fixture de dos horas;
+- fixture de tres horas;
 - worker genera manifiesto;
 - Nginx sirve recursos;
 - navegador reproduce todos los fotogramas;
@@ -679,7 +681,7 @@ El MVP estará terminado cuando:
 
 1. la composición nacional y los radares regionales validados sean seleccionables;
 2. la reflectividad se muestre sobre MapLibre sin el mapa gráfico original de AEMET;
-3. se puedan recorrer las últimas dos horas con slider y botones individuales;
+3. se puedan recorrer las últimas tres horas con slider y botones individuales;
 4. la reproducción sea fluida y no invente observaciones;
 5. la hora y antigüedad sean claras;
 6. la aplicación funcione correctamente en móvil y escritorio;

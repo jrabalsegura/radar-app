@@ -35,7 +35,7 @@ Los valores por defecto son:
 | `AEMET_RETRY_ATTEMPTS` | 3 | máximo de intentos por producto |
 | `AEMET_RETRY_BACKOFF_SECONDS` | 1 | espera inicial del backoff |
 | `AEMET_RETENTION_HOURS` | 24 | conservación inicial |
-| `AEMET_HISTORY_HOURS` | 2 | ventana pública |
+| `AEMET_HISTORY_HOURS` | 3 | ventana pública |
 
 Los argumentos homónimos de `run` tienen prioridad sobre el entorno. La espera
 de reintento se duplica hasta un máximo interno de 60 segundos.
@@ -76,10 +76,10 @@ Los fotogramas se:
 - deduplican primero por hash;
 - deduplican después por instante, conservando la revisión obtenida más tarde;
 - ordenan por tiempo efectivo;
-- filtran de forma inclusiva entre `último - 2 h` y `último`.
+- filtran de forma inclusiva entre `último - 3 h` y `último`.
 
-Para Murcia, una secuencia completa contiene 13 fotogramas contando ambos
-extremos. Para nacional, con su cadencia de catálogo actual, contiene 5.
+Para Murcia, una secuencia completa contiene 19 fotogramas contando ambos
+extremos. Para nacional, con su cadencia de catálogo actual, contiene 7.
 
 ## Representación de huecos
 
@@ -177,7 +177,7 @@ Equivalentes con opciones:
 ```bash
 .venv/bin/aemet-radar run --cycles 1 --product regional-mu
 .venv/bin/aemet-radar run --poll-interval 300 --retry-attempts 3
-.venv/bin/aemet-radar rebuild-manifests --history-hours 2
+.venv/bin/aemet-radar rebuild-manifests --history-hours 3
 .venv/bin/aemet-radar serve-files --host 127.0.0.1 --port 8000
 ```
 
@@ -193,11 +193,11 @@ mismo comando.
 
 Las pruebas usan GIF e informes sintéticos y cubren:
 
-- 13 fotogramas regionales completos;
-- 5 fotogramas nacionales completos;
+- 19 fotogramas regionales completos;
+- 7 fotogramas nacionales completos;
 - orden desordenado en disco;
 - duplicados por hash y por instante;
-- ventana pública de dos horas con originales adicionales conservados;
+- ventana pública de tres horas con originales adicionales conservados;
 - secuencia incompleta y detección del hueco;
 - llegada tardía que rellena el hueco;
 - jitter subsegundo alrededor del umbral real de 15 minutos;
@@ -231,9 +231,11 @@ como no reintentable, por lo que no se generó carga repetida.
 API key ni las URLs efímeras aparecían en informes, manifiestos o health. El
 directorio temporal se eliminó después de la comprobación.
 
-Una segunda validación manual de casi tres horas archivó 18 originales y publicó
-13 en una ventana exacta de dos horas. Los fotogramas quedaron ordenados, con
-hashes únicos y cada SHA-256 coincidió con el GIF referenciado.
+Una segunda validación manual de casi tres horas archivó 18 originales. La
+reconstrucción de la Fase 5 publica los 18 dentro de una ventana exacta de tres
+horas y representa tres ausencias detectadas, sin crear imágenes para ellas. Los
+fotogramas quedaron ordenados, con hashes únicos y cada SHA-256 coincidió con el
+GIF referenciado.
 
 La prueba observó varias respuestas que Pillow no pudo identificar como GIF. El
 manifiesto sobrevivió a todos esos ciclos. También mostró una separación real
@@ -253,5 +255,5 @@ la tolerancia de un segundo y una prueba de regresión con los timestamps reales
   recuperarse retrospectivamente. Los ciclos futuros sí dejarán ese diagnóstico.
 - El servidor HTTP incluido es solo una ayuda local. HTTPS, Nginx, unidades de
   servicio y reinicio automático pertenecen a la Fase 9.
-- Los manifiestos apuntan al GIF original. Los derivados transparentes se
-  incorporarán únicamente después de las fases de procesamiento.
+- Desde la Fase 5, los manifiestos conservan `rawUrl` para auditoría e incorporan
+  `imageUrl` para el derivado transparente georreferenciado de Murcia.

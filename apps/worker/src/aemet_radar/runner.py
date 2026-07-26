@@ -11,13 +11,14 @@ from pathlib import Path
 from aemet_radar.diagnostics import FailureRecorder
 from aemet_radar.errors import AemetRadarError, DownloadValidationError
 from aemet_radar.health import HealthPublisher, PollObservation
-from aemet_radar.history import isoformat_utc
-from aemet_radar.manifests import ManifestPublisher
+from aemet_radar.history import isoformat_utc, scan_product_history
+from aemet_radar.manifests import ManifestPublisher, select_history_frames
 from aemet_radar.models import FetchOutcome
 from aemet_radar.products import RadarProduct
 from aemet_radar.retention import RetentionManager
 from aemet_radar.retry import RetryPolicy, call_with_retry
 from aemet_radar.service import IngestionService
+from aemet_radar.timeline_processing import MurciaTimelineProcessor
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,7 +77,8 @@ class HistoryWorker:
         products: tuple[RadarProduct, ...],
         retry_policy: RetryPolicy,
         retention_hours: float = 24.0,
-        history_hours: float = 2.0,
+        history_hours: float = 3.0,
+        timeline_processor: MurciaTimelineProcessor | None = None,
         sleeper: Callable[[float], None] = time.sleep,
     ) -> None:
         self.service = service
@@ -84,7 +86,14 @@ class HistoryWorker:
         self.retry_policy = retry_policy
         self.sleeper = sleeper
         self.data_dir = data_dir.resolve()
-        self.manifests = ManifestPublisher(data_dir, history_hours=history_hours)
+        self.timeline_processor = timeline_processor
+        self.manifests = ManifestPublisher(
+            data_dir,
+            history_hours=history_hours,
+            image_url_resolver=(
+                timeline_processor.image_url if timeline_processor is not None else None
+            ),
+        )
         self.retention = RetentionManager(data_dir, retention_hours=retention_hours)
         self.health = HealthPublisher(data_dir, self.manifests)
         self.failures = FailureRecorder(data_dir)
@@ -156,11 +165,17 @@ class HistoryWorker:
                     product,
                     reference_time=cycle_time,
                 )
+                if self.timeline_processor is not None:
+                    scan = scan_product_history(self.data_dir, product)
+                    self.timeline_processor.ensure_frames(
+                        product,
+                        select_history_frames(scan.frames, self.manifests.history_hours),
+                    )
                 manifest = self.manifests.rebuild_product(
                     product,
                     generated_at=cycle_time,
                 )
-            except (OSError, ValueError):
+            except (AemetRadarError, OSError, ValueError):
                 message = "No se pudo actualizar de forma segura el archivo público."
                 observations[product.id] = PollObservation(
                     status="error",
