@@ -39,6 +39,9 @@ se sustituye por cartografía de otra fuente.
 
 - El selector agrupa composición nacional y 15 radares regionales y conserva la
   última elección en el dispositivo.
+- Los radares regionales parten de un encuadre cercano (`zoom 7.1`) que mantiene
+  visible su entorno provincial; la composición nacional conserva su encuadre
+  general. Canarias aplica el mismo acercamiento desde su ajuste específico.
 - `Cerca de mí` usa `navigator.geolocation`, calcula la distancia de gran
   círculo en el navegador y selecciona el radar regional más cercano. Las
   coordenadas no se envían ni se guardan.
