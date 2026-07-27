@@ -538,6 +538,18 @@ h1 {
   cursor: ew-resize;
 }
 
+.timeline-slider input:focus-visible {
+  outline: none;
+}
+
+.timeline-slider input:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 0.22rem rgb(255 121 82 / 28%);
+}
+
+.timeline-slider input:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 0.22rem rgb(255 121 82 / 28%);
+}
+
 .timeline-range {
   display: grid;
   grid-template-columns: 1fr auto 1fr;

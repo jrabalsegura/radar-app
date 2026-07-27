@@ -62,6 +62,11 @@ test('recorre el radar con controles accesibles y conserva la edad visible', asy
   );
   const timeline = page.getByLabel('Instante del radar');
   await expect(timeline).toBeFocused();
+  await expect
+    .poll(() =>
+      timeline.evaluate((element) => getComputedStyle(element).outlineStyle),
+    )
+    .toBe('none');
   const initialTimelineValue = Number(await timeline.inputValue());
   await page.keyboard.press('ArrowLeft');
   await expect(timeline).toHaveValue(String(initialTimelineValue - 1));
