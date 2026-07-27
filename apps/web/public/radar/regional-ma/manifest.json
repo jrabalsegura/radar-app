@@ -1,40 +1,730 @@
 {
   "frames": [
     {
-      "id": "regional-ma_936170f07a75bfbc",
+      "id": "regional-ma_20260727T042000Z_f5487fde130c",
       "imageCoordinates": [
         [
-          -6.63854995,
-          42.34632995
+          -12.624095299999999,
+          48.3369343
         ],
         [
-          -0.80848376,
-          42.34632995
+          5.19416777537212,
+          48.3369343
         ],
         [
-          -0.80848376,
-          37.98282609
+          5.19416777537212,
+          31.98218914946983
         ],
         [
-          -6.63854995,
-          37.98282609
+          -12.624095299999999,
+          31.98218914946983
         ]
       ],
-      "imageUrl": "/radar/regional-ma/frames/936170f07a75bfbc1d41fdbbaa5a7938f22746df358508437600c0842a40a186/overlay-3857.png",
-      "lastRetrievedAt": "2026-07-26T18:06:48.138181Z",
-      "productTime": null,
-      "rawUrl": "/raw/regional-ma/2026/07/26/936170f07a75bfbc1d41fdbbaa5a7938f22746df358508437600c0842a40a186.gif",
-      "retrievedAt": "2026-07-26T18:06:48.138181Z",
-      "sourceHash": "sha256:936170f07a75bfbc1d41fdbbaa5a7938f22746df358508437600c0842a40a186",
+      "imageUrl": "/radar/regional-ma/frames/f5487fde130cfb3443e4e46b2cfb3e3b97d94391fd3cf794226882f6f40c9c0b/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.809183Z",
+      "productTime": "2026-07-27T04:20:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T042000Z-f5487fde130cfb3443e4e46b2cfb3e3b97d94391fd3cf794226882f6f40c9c0b.png",
+      "retrievedAt": "2026-07-27T08:35:44.809183Z",
+      "sourceHash": "sha256:f5487fde130cfb3443e4e46b2cfb3e3b97d94391fd3cf794226882f6f40c9c0b",
       "status": "available",
-      "time": "2026-07-26T18:06:48.138181Z",
-      "timeSource": "retrievedAt"
+      "time": "2026-07-27T04:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T043000Z_ddc2715690c8",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/ddc2715690c8deb39615ce716f71cd558b978e91eefddca149d33b5165876901/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.874676Z",
+      "productTime": "2026-07-27T04:30:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T043000Z-ddc2715690c8deb39615ce716f71cd558b978e91eefddca149d33b5165876901.png",
+      "retrievedAt": "2026-07-27T08:35:44.874676Z",
+      "sourceHash": "sha256:ddc2715690c8deb39615ce716f71cd558b978e91eefddca149d33b5165876901",
+      "status": "available",
+      "time": "2026-07-27T04:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T044000Z_d52ef01d9bd0",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/d52ef01d9bd07f784a1fec46ac45fcda4d8d8cec7dc14e5e0c95389c23d43200/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.027429Z",
+      "productTime": "2026-07-27T04:40:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T044000Z-d52ef01d9bd07f784a1fec46ac45fcda4d8d8cec7dc14e5e0c95389c23d43200.png",
+      "retrievedAt": "2026-07-27T08:35:45.027429Z",
+      "sourceHash": "sha256:d52ef01d9bd07f784a1fec46ac45fcda4d8d8cec7dc14e5e0c95389c23d43200",
+      "status": "available",
+      "time": "2026-07-27T04:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T045000Z_1a8909271594",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/1a8909271594552155687b13ad36148dfe214bc86861def63f2a2f14dee6e0af/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.119529Z",
+      "productTime": "2026-07-27T04:50:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T045000Z-1a8909271594552155687b13ad36148dfe214bc86861def63f2a2f14dee6e0af.png",
+      "retrievedAt": "2026-07-27T08:35:45.119529Z",
+      "sourceHash": "sha256:1a8909271594552155687b13ad36148dfe214bc86861def63f2a2f14dee6e0af",
+      "status": "available",
+      "time": "2026-07-27T04:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T050000Z_b9c217eeb747",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/b9c217eeb747c3d1f9a0540890432de8b2ce24334bc0ac887ab0d3b63f41eb7a/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.191625Z",
+      "productTime": "2026-07-27T05:00:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T050000Z-b9c217eeb747c3d1f9a0540890432de8b2ce24334bc0ac887ab0d3b63f41eb7a.png",
+      "retrievedAt": "2026-07-27T08:35:45.191625Z",
+      "sourceHash": "sha256:b9c217eeb747c3d1f9a0540890432de8b2ce24334bc0ac887ab0d3b63f41eb7a",
+      "status": "available",
+      "time": "2026-07-27T05:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T051000Z_63ba0bfc57f9",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/63ba0bfc57f9755614b370085c34982f82bbf178514ee3e0da90a789794773c3/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.260316Z",
+      "productTime": "2026-07-27T05:10:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T051000Z-63ba0bfc57f9755614b370085c34982f82bbf178514ee3e0da90a789794773c3.png",
+      "retrievedAt": "2026-07-27T08:35:45.260316Z",
+      "sourceHash": "sha256:63ba0bfc57f9755614b370085c34982f82bbf178514ee3e0da90a789794773c3",
+      "status": "available",
+      "time": "2026-07-27T05:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T052000Z_0a0ff242750d",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/0a0ff242750d0f1265680fa44b25ea61d105393ad7534dfc118218cf7fc0f6f4/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.328487Z",
+      "productTime": "2026-07-27T05:20:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T052000Z-0a0ff242750d0f1265680fa44b25ea61d105393ad7534dfc118218cf7fc0f6f4.png",
+      "retrievedAt": "2026-07-27T08:35:45.328487Z",
+      "sourceHash": "sha256:0a0ff242750d0f1265680fa44b25ea61d105393ad7534dfc118218cf7fc0f6f4",
+      "status": "available",
+      "time": "2026-07-27T05:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T053000Z_b11d215be996",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/b11d215be996ea982a9aac1b62a354b6b30c1678a0d19d4e0a1d026a1fd3267d/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.392011Z",
+      "productTime": "2026-07-27T05:30:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T053000Z-b11d215be996ea982a9aac1b62a354b6b30c1678a0d19d4e0a1d026a1fd3267d.png",
+      "retrievedAt": "2026-07-27T08:35:45.392011Z",
+      "sourceHash": "sha256:b11d215be996ea982a9aac1b62a354b6b30c1678a0d19d4e0a1d026a1fd3267d",
+      "status": "available",
+      "time": "2026-07-27T05:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T054000Z_410e8af457c2",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/410e8af457c2430dac12c588bd0dff0403ad23b368c439ecd9805f87f29ec3a6/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.466530Z",
+      "productTime": "2026-07-27T05:40:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T054000Z-410e8af457c2430dac12c588bd0dff0403ad23b368c439ecd9805f87f29ec3a6.png",
+      "retrievedAt": "2026-07-27T08:35:45.466530Z",
+      "sourceHash": "sha256:410e8af457c2430dac12c588bd0dff0403ad23b368c439ecd9805f87f29ec3a6",
+      "status": "available",
+      "time": "2026-07-27T05:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T055000Z_0f368896a588",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/0f368896a588a60b43e40ddd89476dc330979bae48dda9a72441c4788376c181/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.533090Z",
+      "productTime": "2026-07-27T05:50:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T055000Z-0f368896a588a60b43e40ddd89476dc330979bae48dda9a72441c4788376c181.png",
+      "retrievedAt": "2026-07-27T08:35:45.533090Z",
+      "sourceHash": "sha256:0f368896a588a60b43e40ddd89476dc330979bae48dda9a72441c4788376c181",
+      "status": "available",
+      "time": "2026-07-27T05:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T060000Z_907b029c07c8",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/907b029c07c836f5e044a0cb36767328f5be3b736c02f9e98a3fda3827dcdc6c/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.599946Z",
+      "productTime": "2026-07-27T06:00:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T060000Z-907b029c07c836f5e044a0cb36767328f5be3b736c02f9e98a3fda3827dcdc6c.png",
+      "retrievedAt": "2026-07-27T08:35:45.599946Z",
+      "sourceHash": "sha256:907b029c07c836f5e044a0cb36767328f5be3b736c02f9e98a3fda3827dcdc6c",
+      "status": "available",
+      "time": "2026-07-27T06:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T061000Z_93c8d61019c0",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/93c8d61019c0e8495a3b55dd2718161be6b3e397023b035f020cf1372ceebba8/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.667408Z",
+      "productTime": "2026-07-27T06:10:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T061000Z-93c8d61019c0e8495a3b55dd2718161be6b3e397023b035f020cf1372ceebba8.png",
+      "retrievedAt": "2026-07-27T08:35:45.667408Z",
+      "sourceHash": "sha256:93c8d61019c0e8495a3b55dd2718161be6b3e397023b035f020cf1372ceebba8",
+      "status": "available",
+      "time": "2026-07-27T06:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T062000Z_b844c60c757c",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/b844c60c757cc042fabf68406743abd86dba6ff80ddbf6281c829b6af94e9502/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.780611Z",
+      "productTime": "2026-07-27T06:20:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T062000Z-b844c60c757cc042fabf68406743abd86dba6ff80ddbf6281c829b6af94e9502.png",
+      "retrievedAt": "2026-07-27T08:35:45.780611Z",
+      "sourceHash": "sha256:b844c60c757cc042fabf68406743abd86dba6ff80ddbf6281c829b6af94e9502",
+      "status": "available",
+      "time": "2026-07-27T06:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T063000Z_275bac6bd365",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/275bac6bd365443e2688349880fa66652bee25cbd75e9604e8e9f68604c74fdf/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.854212Z",
+      "productTime": "2026-07-27T06:30:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T063000Z-275bac6bd365443e2688349880fa66652bee25cbd75e9604e8e9f68604c74fdf.png",
+      "retrievedAt": "2026-07-27T08:35:45.854212Z",
+      "sourceHash": "sha256:275bac6bd365443e2688349880fa66652bee25cbd75e9604e8e9f68604c74fdf",
+      "status": "available",
+      "time": "2026-07-27T06:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T064000Z_50c63654759a",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/50c63654759acdc217113b197b36134716fe7aaaa020745ef127590c1ecf1090/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:45.921209Z",
+      "productTime": "2026-07-27T06:40:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T064000Z-50c63654759acdc217113b197b36134716fe7aaaa020745ef127590c1ecf1090.png",
+      "retrievedAt": "2026-07-27T08:35:45.921209Z",
+      "sourceHash": "sha256:50c63654759acdc217113b197b36134716fe7aaaa020745ef127590c1ecf1090",
+      "status": "available",
+      "time": "2026-07-27T06:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T065000Z_4c783768bae5",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/4c783768bae5ef7cd8309d0a44fe782a3944a3f4e39f4f32d1eacba8d11fc6c7/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:46.052611Z",
+      "productTime": "2026-07-27T06:50:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T065000Z-4c783768bae5ef7cd8309d0a44fe782a3944a3f4e39f4f32d1eacba8d11fc6c7.png",
+      "retrievedAt": "2026-07-27T08:35:46.052611Z",
+      "sourceHash": "sha256:4c783768bae5ef7cd8309d0a44fe782a3944a3f4e39f4f32d1eacba8d11fc6c7",
+      "status": "available",
+      "time": "2026-07-27T06:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T070000Z_96d1354041c7",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/96d1354041c728964e654f41e3567e212537e1515d7bf4717d45d1106c841819/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:46.134300Z",
+      "productTime": "2026-07-27T07:00:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T070000Z-96d1354041c728964e654f41e3567e212537e1515d7bf4717d45d1106c841819.png",
+      "retrievedAt": "2026-07-27T08:35:46.134300Z",
+      "sourceHash": "sha256:96d1354041c728964e654f41e3567e212537e1515d7bf4717d45d1106c841819",
+      "status": "available",
+      "time": "2026-07-27T07:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T071000Z_47bea6c19d65",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/47bea6c19d65cb05d73c17d8810710ff55c31fa1d4f5cb51b360c74c86057f89/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:46.204883Z",
+      "productTime": "2026-07-27T07:10:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T071000Z-47bea6c19d65cb05d73c17d8810710ff55c31fa1d4f5cb51b360c74c86057f89.png",
+      "retrievedAt": "2026-07-27T08:35:46.204883Z",
+      "sourceHash": "sha256:47bea6c19d65cb05d73c17d8810710ff55c31fa1d4f5cb51b360c74c86057f89",
+      "status": "available",
+      "time": "2026-07-27T07:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T072000Z_5ac0881bec7d",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/5ac0881bec7d1bfcce3fc47421d17a3e0f138c126635c57771dde4d0d40a73ad/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:46.282478Z",
+      "productTime": "2026-07-27T07:20:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T072000Z-5ac0881bec7d1bfcce3fc47421d17a3e0f138c126635c57771dde4d0d40a73ad.png",
+      "retrievedAt": "2026-07-27T08:35:46.282478Z",
+      "sourceHash": "sha256:5ac0881bec7d1bfcce3fc47421d17a3e0f138c126635c57771dde4d0d40a73ad",
+      "status": "available",
+      "time": "2026-07-27T07:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T073000Z_c0ec7fbbe5b9",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/c0ec7fbbe5b93fcaf97813c3e5bb991bb6c758085872d15256647abcf69fbbf0/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:46.352176Z",
+      "productTime": "2026-07-27T07:30:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T073000Z-c0ec7fbbe5b93fcaf97813c3e5bb991bb6c758085872d15256647abcf69fbbf0.png",
+      "retrievedAt": "2026-07-27T08:35:46.352176Z",
+      "sourceHash": "sha256:c0ec7fbbe5b93fcaf97813c3e5bb991bb6c758085872d15256647abcf69fbbf0",
+      "status": "available",
+      "time": "2026-07-27T07:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T074000Z_a23fa77f5419",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/a23fa77f5419cc5bf136e34a7f95381a4db6ee5eb531186ad8ae7a53796ca67e/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:46.420943Z",
+      "productTime": "2026-07-27T07:40:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T074000Z-a23fa77f5419cc5bf136e34a7f95381a4db6ee5eb531186ad8ae7a53796ca67e.png",
+      "retrievedAt": "2026-07-27T08:35:46.420943Z",
+      "sourceHash": "sha256:a23fa77f5419cc5bf136e34a7f95381a4db6ee5eb531186ad8ae7a53796ca67e",
+      "status": "available",
+      "time": "2026-07-27T07:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T075000Z_94af10d39395",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/94af10d393955da1042e6bcb38c3113011719ad0db3a7fbe5285a079568d0238/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:46.492987Z",
+      "productTime": "2026-07-27T07:50:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T075000Z-94af10d393955da1042e6bcb38c3113011719ad0db3a7fbe5285a079568d0238.png",
+      "retrievedAt": "2026-07-27T08:35:46.492987Z",
+      "sourceHash": "sha256:94af10d393955da1042e6bcb38c3113011719ad0db3a7fbe5285a079568d0238",
+      "status": "available",
+      "time": "2026-07-27T07:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T080000Z_bd514868fcd1",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/bd514868fcd1eeecccc50a1dfaa2e61ba1c0f5e7704e45c2110e382a5ec71ea1/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:46.593190Z",
+      "productTime": "2026-07-27T08:00:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T080000Z-bd514868fcd1eeecccc50a1dfaa2e61ba1c0f5e7704e45c2110e382a5ec71ea1.png",
+      "retrievedAt": "2026-07-27T08:35:46.593190Z",
+      "sourceHash": "sha256:bd514868fcd1eeecccc50a1dfaa2e61ba1c0f5e7704e45c2110e382a5ec71ea1",
+      "status": "available",
+      "time": "2026-07-27T08:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-ma_20260727T081000Z_df1ab05b150f",
+      "imageCoordinates": [
+        [
+          -12.624095299999999,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          48.3369343
+        ],
+        [
+          5.19416777537212,
+          31.98218914946983
+        ],
+        [
+          -12.624095299999999,
+          31.98218914946983
+        ]
+      ],
+      "imageUrl": "/radar/regional-ma/frames/df1ab05b150f8d9c685dba449d06f71b30d447543324f783253477c1fb16c795/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.726979Z",
+      "productTime": "2026-07-27T08:10:00Z",
+      "rawUrl": "/raw/regional-ma/2026/07/27/20260727T081000Z-df1ab05b150f8d9c685dba449d06f71b30d447543324f783253477c1fb16c795.png",
+      "retrievedAt": "2026-07-27T08:35:44.726979Z",
+      "sourceHash": "sha256:df1ab05b150f8d9c685dba449d06f71b30d447543324f783253477c1fb16c795",
+      "status": "available",
+      "time": "2026-07-27T08:10:00Z",
+      "timeSource": "productTime"
     }
   ],
   "gaps": [],
-  "generatedAt": "2026-07-26T19:21:58.464374Z",
-  "latestFrameTime": "2026-07-26T18:06:48.138181Z",
-  "latestProductTime": null,
+  "generatedAt": "2026-07-27T09:01:14.764734Z",
+  "latestFrameTime": "2026-07-27T08:10:00Z",
+  "latestProductTime": "2026-07-27T08:10:00Z",
   "radar": {
     "cadenceMinutes": 10,
     "id": "regional-ma",
@@ -43,16 +733,17 @@
   },
   "schemaVersion": 1,
   "statistics": {
-    "archivedFrames": 1,
+    "archivedFrames": 24,
     "discardedDuplicates": 0,
     "invalidReports": 0,
-    "publishedFrames": 1
+    "publishedFrames": 24
   },
-  "timeBasis": "retrievedAt",
+  "timeBasis": "productTime",
   "window": {
     "anchor": "latest-available-frame",
-    "end": "2026-07-26T18:06:48.138181Z",
-    "hours": 3.0,
-    "start": "2026-07-26T15:06:48.138181Z"
+    "end": "2026-07-27T08:10:00Z",
+    "hours": 3.8333333333333335,
+    "minutes": 230,
+    "start": "2026-07-27T04:20:00Z"
   }
 }

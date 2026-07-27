@@ -180,6 +180,7 @@ describe('App regional', () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Radar regional')).toHaveValue('regional-mu');
     expect(screen.getAllByRole('option')).toHaveLength(15);
+    expect(screen.getByText('Últimas 3 h 50 min')).toBeInTheDocument();
     expect(screen.getByTestId('radar-map')).toHaveAttribute(
       'data-radar',
       'regional-mu',
@@ -362,8 +363,9 @@ function manifestFor(
     },
     generatedAt: '2026-07-24T17:31:00Z',
     window: {
-      hours: 3,
-      start: latest ? '2026-07-24T14:30:00Z' : null,
+      hours: 230 / 60,
+      minutes: 230,
+      start: latest ? '2026-07-24T13:40:00Z' : null,
       end: latest,
       anchor: 'latest-available-frame',
     },

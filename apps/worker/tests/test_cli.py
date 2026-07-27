@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from aemet_radar.cli import main
-from aemet_radar.errors import AemetApiStatusError
+from aemet_radar.errors import AemetApiStatusError, AemetResponseError
 
 REFLECTIVITY_FIXTURES = Path(__file__).parent / "fixtures" / "reflectivity"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -31,8 +31,22 @@ def test_fetch_once_reports_aemet_404_as_no_data(
         def fetch_product(self, _product: object) -> None:
             raise AemetApiStatusError(404)
 
+    class NoTimelineClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> NoTimelineClient:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            pass
+
+        def fetch_timeline(self) -> None:
+            raise AemetResponseError("fixture sin cronología")
+
     monkeypatch.setenv("AEMET_API_KEY", "safe-test-key")
     monkeypatch.setattr("aemet_radar.cli.AemetClient", NoDataClient)
+    monkeypatch.setattr("aemet_radar.cli.AemetViewerClient", NoTimelineClient)
 
     exit_code = main(
         [

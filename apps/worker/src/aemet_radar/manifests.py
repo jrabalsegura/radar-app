@@ -18,6 +18,7 @@ from aemet_radar.history import (
 )
 from aemet_radar.products import RadarProduct
 from aemet_radar.storage import atomic_write_json
+from aemet_radar.temporal import HISTORY_HOURS
 
 _GAP_JITTER_TOLERANCE_SECONDS = 1.0
 MapCoordinates = tuple[
@@ -49,7 +50,7 @@ class ManifestPublisher:
         self,
         data_dir: Path,
         *,
-        history_hours: float = 3.0,
+        history_hours: float = HISTORY_HOURS,
         image_resolver: Callable[[RadarProduct, ArchivedFrame], FrameImage | None] | None = None,
         radar_metadata_resolver: Callable[[RadarProduct], dict[str, object]] | None = None,
     ) -> None:
@@ -165,6 +166,7 @@ def build_product_manifest(
         "generatedAt": isoformat_utc(generated_at),
         "window": {
             "hours": history_hours,
+            "minutes": round(history_hours * 60),
             "start": isoformat_utc(window_start) if window_start is not None else None,
             "end": isoformat_utc(window_end) if window_end is not None else None,
             "anchor": "latest-available-frame",
@@ -175,7 +177,15 @@ def build_product_manifest(
         ),
         "timeBasis": _time_basis(selected),
         "frames": public_frames,
-        "gaps": _detect_gaps(selected, product.cadence_minutes),
+        "gaps": _detect_gaps(
+            selected,
+            product.cadence_minutes,
+            window_start=(
+                window_start
+                if selected and all(frame.source_provider == "aemet-viewer" for frame in selected)
+                else None
+            ),
+        ),
         "statistics": {
             "archivedFrames": len(frames),
             "publishedFrames": len(selected),
@@ -204,7 +214,10 @@ def _public_frame(
     raw_url = "/" + "/".join(quote(part) for part in frame.raw_relative_path.split("/"))
     image = image_resolver(product, frame) if image_resolver is not None else None
     return {
-        "id": f"{product.id}_{frame.source_hash[:16]}",
+        "id": (
+            f"{product.id}_{frame.timeline_time.strftime('%Y%m%dT%H%M%SZ')}"
+            f"_{frame.source_hash[:12]}"
+        ),
         "time": isoformat_utc(frame.timeline_time),
         "timeSource": frame.time_source,
         "productTime": (
@@ -234,13 +247,32 @@ def _time_basis(frames: tuple[ArchivedFrame, ...]) -> str | None:
 def _detect_gaps(
     frames: tuple[ArchivedFrame, ...],
     cadence_minutes: int,
+    *,
+    window_start: datetime | None = None,
 ) -> list[dict[str, object]]:
-    if len(frames) < 2:
+    if not frames:
         return []
 
     cadence = timedelta(minutes=cadence_minutes)
     cadence_seconds = cadence.total_seconds()
     gaps: list[dict[str, object]] = []
+    if window_start is not None:
+        elapsed = (frames[0].timeline_time - window_start).total_seconds()
+        if elapsed + _GAP_JITTER_TOLERANCE_SECONDS >= cadence_seconds:
+            missing_count = max(1, round(elapsed / cadence_seconds))
+            gaps.append(
+                {
+                    "after": None,
+                    "before": isoformat_utc(frames[0].timeline_time),
+                    "expectedCadenceMinutes": cadence_minutes,
+                    "missingCount": missing_count,
+                    "expectedTimes": [
+                        isoformat_utc(window_start + cadence * offset)
+                        for offset in range(missing_count)
+                    ],
+                    "timeBasis": frames[0].time_source,
+                }
+            )
     for previous, current in zip(frames, frames[1:]):
         elapsed = (current.timeline_time - previous.timeline_time).total_seconds()
         if elapsed + _GAP_JITTER_TOLERANCE_SECONDS < cadence_seconds * 1.5:

@@ -151,3 +151,28 @@ class FetchOutcome:
             "inspection": self.inspection,
             "productTime": self.product_time.to_dict(),
         }
+
+
+@dataclass(frozen=True, slots=True)
+class BatchFetchOutcome:
+    """Resultado resumido de una línea temporal obtenida del visor oficial."""
+
+    product_id: str
+    status: Literal["stored", "duplicate"]
+    source: Literal["aemet-viewer"]
+    stored_frames: int
+    duplicate_frames: int
+    skipped_frames: int
+    latest_observation: datetime
+
+    def to_dict(self, *, relative_to: Path | None = None) -> dict[str, object]:
+        del relative_to
+        return {
+            "productId": self.product_id,
+            "status": self.status,
+            "source": self.source,
+            "storedFrames": self.stored_frames,
+            "duplicateFrames": self.duplicate_frames,
+            "skippedFrames": self.skipped_frames,
+            "latestObservation": (self.latest_observation.isoformat().replace("+00:00", "Z")),
+        }

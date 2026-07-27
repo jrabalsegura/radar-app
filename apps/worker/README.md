@@ -7,8 +7,10 @@ publicados por AEMET. Cada radar tiene manifiesto, estado, centro y cobertura
 propios. Un producto temporalmente sin imagen conserva un manifiesto vacío y
 sigue consultándose.
 
-La API key solo se lee de `AEMET_API_KEY`. La CLI también puede cargar un `.env`
-local ignorado por Git; una variable ya exportada tiene prioridad.
+La cronología PPI del visor oficial es la fuente primaria y no requiere key.
+La API key de fallback OpenData solo se lee de `AEMET_API_KEY`. La CLI también
+puede cargar un `.env` local ignorado por Git; una variable ya exportada tiene
+prioridad.
 
 ```bash
 .venv/bin/aemet-radar fetch-once
@@ -39,6 +41,11 @@ ignorado por Git.
 `check-inventory` consulta secuencialmente la pasarela con una pausa de un
 segundo y no descarga los GIF regionales.
 
+`run` consulta una vez por ciclo la cronología PPI, archiva hasta 24
+observaciones por radar y después procesa solo novedades. Si la cronología, el
+emplazamiento o el PPI más reciente no son utilizables, consulta OpenData. Los
+PPI secos son válidos; una lámina de indisponibilidad no lo es.
+
 `run` reintenta únicamente fallos transitorios, aplica backoff exponencial y no
 reemplaza el manifiesto de un producto cuando falla su consulta. Los valores
 por defecto se pueden ajustar con `AEMET_POLL_INTERVAL_SECONDS`,
@@ -52,7 +59,7 @@ genera también cualquier derivado regional que falte en la ventana pública. El
 servidor escucha solo en `127.0.0.1` por defecto y no permite listar
 directorios.
 
-Las descargas que no superan la validación no se archivan como GIF. El worker
+Las descargas que no superan la validación no se archivan. El worker
 publica tamaño, MIME declarado y SHA-256 en la salida estructurada y en
 `data/reports/phase-2/failures/`, sin conservar el cuerpo o la URL efímera.
 
@@ -91,8 +98,15 @@ La salida usa EPSG:3857, píxeles de 1.000 m y vecino más próximo. El informe
 incluye esquinas para una fuente `image` de MapLibre, hashes, círculo de
 cobertura y el error de los ocho puntos de control.
 
-El ciclo periódico reutiliza los derivados si coinciden el hash del original,
-la paleta, la máscara y la calibración. Los publica bajo:
+El PPI primario elimina fondo y no-dato conservando exactamente los once
+colores de reflectividad; usa las esquinas oficiales de AEMET y publica:
+
+```text
+data/radar/<radar>/frames/<sha256>/overlay.png
+```
+
+El fallback GIF reutiliza los derivados si coinciden el hash del original, la
+paleta, la máscara y la calibración. Los publica bajo:
 
 ```text
 data/processed/<radar>/<sha256>/reflectivity/

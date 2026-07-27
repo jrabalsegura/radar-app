@@ -122,7 +122,7 @@ radars:
   - id: regional-ca
     label: Las Palmas
     apiCode: ca
-    siteCode: LPA
+    siteCode: CAN
     siteName: Canarias
     longitude: -16.189392
     latitude: 28.149181

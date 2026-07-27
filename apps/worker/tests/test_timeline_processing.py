@@ -28,6 +28,8 @@ def test_murcia_timeline_processor_publishes_and_reuses_derived_frame(
     observed_at = datetime(2026, 7, 24, 12, 0, tzinfo=UTC)
     frame = ArchivedFrame(
         product_id=MURCIA.id,
+        source_id=digest,
+        source_provider=None,
         source_hash=digest,
         product_time=observed_at,
         retrieved_at=observed_at,
@@ -57,6 +59,57 @@ def test_murcia_timeline_processor_publishes_and_reuses_derived_frame(
         assert output.size == (630, 618)
     report = json.loads((output_dir / "georeferencing.json").read_text())
     assert report["output"]["resampling"] == "nearest"
+
+
+def test_viewer_timeline_processor_uses_official_png_bounds_without_masks(
+    tmp_path: Path,
+) -> None:
+    raw_path = tmp_path / "source.png"
+    source = Image.new("RGBA", (1000, 1000), (239, 242, 249, 179))
+    source.putpixel((1, 1), (255, 0, 0, 255))
+    source.putpixel((999, 999), (0, 0, 0, 0))
+    source.save(raw_path)
+    digest = hashlib.sha256(raw_path.read_bytes()).hexdigest()
+    observed_at = datetime(2026, 7, 27, 8, 0, tzinfo=UTC)
+    report_path = tmp_path / "source.json"
+    coordinates = [[-7.0, 42.0], [4.0, 42.0], [4.0, 34.0], [-7.0, 34.0]]
+    report_path.write_text(
+        json.dumps({"viewer": {"maplibreCoordinates": coordinates}}),
+        encoding="utf-8",
+    )
+    frame = ArchivedFrame(
+        product_id=MURCIA.id,
+        source_id="FTN260727080000.PPI.Z_005_240.png",
+        source_provider="aemet-viewer",
+        source_hash=digest,
+        product_time=observed_at,
+        retrieved_at=observed_at,
+        last_retrieved_at=observed_at,
+        timeline_time=observed_at,
+        time_source="productTime",
+        raw_path=raw_path,
+        raw_relative_path="raw/regional-mu/source.png",
+        report_path=report_path,
+    )
+    processor = RegionalTimelineProcessor(
+        tmp_path,
+        catalog=load_radar_catalog(RADAR_CATALOG),
+    )
+
+    assert processor.ensure_frames(MURCIA, (frame,)) == 1
+    assert processor.ensure_frames(MURCIA, (frame,)) == 0
+    image = processor.frame_image(MURCIA, frame)
+
+    assert image is not None
+    assert image.url == f"/radar/regional-mu/frames/{digest}/overlay.png"
+    assert image.coordinates == tuple(tuple(value) for value in coordinates)
+    with Image.open(tmp_path / "radar" / MURCIA.id / "frames" / digest / "overlay.png") as overlay:
+        overlay.load()
+        assert overlay.size == (1000, 1000)
+        background_pixel = overlay.getpixel((0, 0))
+        assert isinstance(background_pixel, tuple)
+        assert background_pixel[3] == 0
+        assert overlay.getpixel((1, 1)) == (255, 0, 0, 255)
 
 
 def test_reviewed_dry_profile_validates_a_different_radar_geometry(

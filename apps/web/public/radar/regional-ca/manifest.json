@@ -1,7 +1,7 @@
 {
   "frames": [
     {
-      "id": "regional-ca_d9e74ac546103e81",
+      "id": "regional-ca_20260727T083552Z_fdde94486e50",
       "imageCoordinates": [
         [
           -18.69394106,
@@ -20,20 +20,20 @@
           25.95896928
         ]
       ],
-      "imageUrl": "/radar/regional-ca/frames/d9e74ac546103e819e3bb7be76da3a5003b9d1593c4edadfb60dca4b1adc2862/overlay-3857.png",
-      "lastRetrievedAt": "2026-07-26T18:06:53.594917Z",
+      "imageUrl": "/radar/regional-ca/frames/fdde94486e50e3cf83da17f06251f64690ee95f1cc1ad32ce9e2f52af5a7cf41/overlay-3857.png",
+      "lastRetrievedAt": "2026-07-27T08:35:52.802560Z",
       "productTime": null,
-      "rawUrl": "/raw/regional-ca/2026/07/26/d9e74ac546103e819e3bb7be76da3a5003b9d1593c4edadfb60dca4b1adc2862.gif",
-      "retrievedAt": "2026-07-26T18:06:53.594917Z",
-      "sourceHash": "sha256:d9e74ac546103e819e3bb7be76da3a5003b9d1593c4edadfb60dca4b1adc2862",
+      "rawUrl": "/raw/regional-ca/2026/07/27/fdde94486e50e3cf83da17f06251f64690ee95f1cc1ad32ce9e2f52af5a7cf41.gif",
+      "retrievedAt": "2026-07-27T08:35:52.802560Z",
+      "sourceHash": "sha256:fdde94486e50e3cf83da17f06251f64690ee95f1cc1ad32ce9e2f52af5a7cf41",
       "status": "available",
-      "time": "2026-07-26T18:06:53.594917Z",
+      "time": "2026-07-27T08:35:52.802560Z",
       "timeSource": "retrievedAt"
     }
   ],
   "gaps": [],
-  "generatedAt": "2026-07-26T19:21:58.464374Z",
-  "latestFrameTime": "2026-07-26T18:06:53.594917Z",
+  "generatedAt": "2026-07-27T09:01:14.764734Z",
+  "latestFrameTime": "2026-07-27T08:35:52.802560Z",
   "latestProductTime": null,
   "radar": {
     "cadenceMinutes": 10,
@@ -51,8 +51,9 @@
   "timeBasis": "retrievedAt",
   "window": {
     "anchor": "latest-available-frame",
-    "end": "2026-07-26T18:06:53.594917Z",
-    "hours": 3.0,
-    "start": "2026-07-26T15:06:53.594917Z"
+    "end": "2026-07-27T08:35:52.802560Z",
+    "hours": 3.8333333333333335,
+    "minutes": 230,
+    "start": "2026-07-27T04:45:52.802560Z"
   }
 }

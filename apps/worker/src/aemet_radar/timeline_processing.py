@@ -34,6 +34,8 @@ from aemet_radar.reflectivity import (
     process_reflectivity_sample,
 )
 from aemet_radar.storage import atomic_write_bytes, atomic_write_json
+from aemet_radar.viewer_processing import PROCESSOR_ID as VIEWER_PROCESSOR
+from aemet_radar.viewer_processing import publish_viewer_overlay
 
 
 class RegionalTimelineProcessor:
@@ -55,6 +57,20 @@ class RegionalTimelineProcessor:
             return 0
         processed = 0
         for frame in frames:
+            if frame.raw_path.suffix.lower() == ".png":
+                if self._viewer_is_current(frame):
+                    continue
+                coordinates = self._viewer_coordinates(frame)
+                if coordinates is None:
+                    continue
+                publish_viewer_overlay(
+                    frame.raw_path,
+                    output_dir=self._public_frame_dir(product, frame),
+                    expected_sha256=frame.source_hash,
+                    coordinates=coordinates,
+                )
+                processed += 1
+                continue
             if self._is_current(definition, frame):
                 continue
             reflectivity_dir = self._reflectivity_dir(product, frame)
@@ -83,7 +99,21 @@ class RegionalTimelineProcessor:
         """Resuelve URL y esquinas solo para un derivado completo y vigente."""
 
         definition = self._definition(product)
-        if definition is None or not self._is_current(definition, frame):
+        if definition is None:
+            return None
+        if frame.raw_path.suffix.lower() == ".png":
+            if not self._viewer_is_current(frame):
+                return None
+            report = _load_json(self._public_frame_dir(product, frame) / "viewer-processing.json")
+            output = _mapping(report.get("output")) if report is not None else {}
+            coordinates = _map_coordinates(output.get("maplibreCoordinates"))
+            if coordinates is None:
+                return None
+            return FrameImage(
+                url=f"/radar/{product.id}/frames/{frame.source_hash}/overlay.png",
+                coordinates=coordinates,
+            )
+        if not self._is_current(definition, frame):
             return None
         report = _load_json(self._public_frame_dir(product, frame) / "georeferencing.json")
         output = _mapping(report.get("output")) if report is not None else {}
@@ -237,6 +267,29 @@ class RegionalTimelineProcessor:
             and georeferencing_config.get("sha256") == self._georeferencing_sha256(definition)
         )
 
+    def _viewer_is_current(self, frame: ArchivedFrame) -> bool:
+        report = _load_json(
+            self._public_frame_dir_for_id(frame.product_id, frame.source_hash)
+            / "viewer-processing.json"
+        )
+        if report is None:
+            return False
+        source = _mapping(report.get("source"))
+        output = _mapping(report.get("output"))
+        return (
+            report.get("processor") == VIEWER_PROCESSOR
+            and source.get("sha256") == f"sha256:{frame.source_hash}"
+            and _map_coordinates(output.get("maplibreCoordinates")) is not None
+            and (
+                self._public_frame_dir_for_id(frame.product_id, frame.source_hash) / "overlay.png"
+            ).is_file()
+        )
+
+    def _viewer_coordinates(self, frame: ArchivedFrame) -> MapCoordinates | None:
+        report = _load_json(frame.report_path)
+        viewer = _mapping(report.get("viewer")) if report is not None else {}
+        return _map_coordinates(viewer.get("maplibreCoordinates"))
+
     def _georeferencing_sha256(self, definition: RadarDefinition) -> str:
         if definition.georeferencing_config_path is not None:
             return _prefixed_sha256(definition.georeferencing_config_path)
@@ -254,7 +307,10 @@ class RegionalTimelineProcessor:
         product: RadarProduct,
         frame: ArchivedFrame,
     ) -> Path:
-        return self.data_dir / "radar" / product.id / "frames" / frame.source_hash
+        return self._public_frame_dir_for_id(product.id, frame.source_hash)
+
+    def _public_frame_dir_for_id(self, product_id: str, source_hash: str) -> Path:
+        return self.data_dir / "radar" / product_id / "frames" / source_hash
 
 
 def _catalog_georeferencing(

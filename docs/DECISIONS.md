@@ -235,7 +235,7 @@ valores meteorológicos intermedios.
 
 ## ADR-016 — Ventana visible de tres horas
 
-**Estado:** aceptada; sustituye la duración de dos horas prevista inicialmente.
+**Estado:** sustituida por ADR-024.
 
 El backend y el frontend publican y reproducen las tres horas anteriores al
 último fotograma disponible. Con una cadencia exacta de 10 minutos, Murcia puede
@@ -390,3 +390,48 @@ salidas se conservan como evidencia, pero no se convierten en máscaras.
 cartografía amarilla sin esperar diversidad temporal, manteniendo una prueba
 reproducible. Una capa distinta, aproximada o con ecos no demuestra qué píxeles
 amarillos del GIF son fijos.
+
+---
+
+## ADR-024 — PPI del visor como fuente primaria y ventana de 3 h 50 min
+
+**Estado:** aceptada; sustituye ADR-016 para la ventana y convierte el pipeline
+GIF de ADR-018 a ADR-023 en respaldo.
+
+La API web empleada por el visor oficial de AEMET es la fuente regional
+primaria. El worker consulta una vez por ciclo
+`/es/api-eltiempo/radar/timeline/PPI/PB`, cruza la fecha ISO con la fecha UTC
+del nombre de fichero y archiva las 24 observaciones reales de cada
+emplazamiento configurado. Son 3 horas y 50 minutos a cadencia de 10 minutos,
+contando ambos extremos. El manifiesto declara `window.minutes: 230` y
+`window.hours: 230 / 60`.
+
+Cada PNG debe ser RGBA, respetar la geometría y la paleta PPI observadas y
+contener solo fondo, transparencia y los once colores exactos de
+reflectividad. Un PPI seco es válido. Una lámina con texto, colores ajenos o
+“Producto no disponible” no lo es. El derivado elimina fondo y no-dato
+conservando únicamente píxeles de reflectividad; usa directamente las cuatro
+esquinas oficiales de `bounds-radar`, sin máscara ni georreferenciación
+inferida.
+
+Si falla la cronología, falta el emplazamiento o la observación más reciente no
+es un PPI válido, se consulta OpenData con la API key y se aplica el pipeline
+GIF anterior. Si tampoco hay GIF, el producto queda `no-data` y conserva
+cualquier historial válido previo. No se mezclan imágenes aproximadas ni se
+generan observaciones.
+
+La identidad primaria es el nombre de observación oficial. Dos horas distintas
+se conservan aunque su contenido y SHA-256 coincidan —caso posible en un radar
+seco—; repetir la misma observación no crea otro archivo. El SHA-256 sigue
+protegiendo la integridad y permite reutilizar el derivado visual.
+
+La API del visor es pública y oficial, pero no aparece en el OpenAPI de
+OpenData. Por ello el parser es estricto, las URLs se mantienen centralizadas,
+una deriva de contrato activa el fallback y las pruebas se complementan con una
+validación real controlada.
+
+**Motivo:** el visor ofrece la cronología exacta, hora de producto, PNG de
+reflectividad ya separado y límites oficiales. Esto recupera A Coruña y
+Vizcaya, reduce el procesamiento destructivo de cartografía y permite mostrar
+el bucle completo que AEMET publica, manteniendo OpenData como vía de
+continuidad independiente.

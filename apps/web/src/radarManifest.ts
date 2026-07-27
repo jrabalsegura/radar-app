@@ -1,4 +1,6 @@
-export const HISTORY_HOURS = 3;
+export const HISTORY_MINUTES = 230;
+export const HISTORY_HOURS = HISTORY_MINUTES / 60;
+export const HISTORY_LABEL = '3 h 50 min';
 export const MADRID_TIME_ZONE = 'Europe/Madrid';
 
 export type MapCoordinates = [
@@ -23,7 +25,7 @@ export interface RadarTimelineFrame {
 }
 
 export interface RadarTimelineGap {
-  after: string;
+  after: string | null;
   before: string;
   expectedCadenceMinutes: number;
   missingCount: number;
@@ -41,7 +43,8 @@ export interface RadarManifest {
   };
   generatedAt: string;
   window: {
-    hours: 3;
+    hours: number;
+    minutes: 230;
     start: string | null;
     end: string | null;
     anchor: 'latest-available-frame';
@@ -91,6 +94,7 @@ export function isRadarManifest(value: unknown): value is RadarManifest {
     !isDateTime(value.generatedAt) ||
     !isRecord(window) ||
     window.hours !== HISTORY_HOURS ||
+    window.minutes !== HISTORY_MINUTES ||
     window.anchor !== 'latest-available-frame' ||
     !Array.isArray(value.frames) ||
     !value.frames.every(isTimelineFrame) ||
@@ -209,7 +213,7 @@ function isMapCoordinates(value: unknown): value is MapCoordinates {
 function isTimelineGap(value: unknown): value is RadarTimelineGap {
   return (
     isRecord(value) &&
-    isDateTime(value.after) &&
+    (value.after === null || isDateTime(value.after)) &&
     isDateTime(value.before) &&
     isPositiveNumber(value.expectedCadenceMinutes) &&
     typeof value.missingCount === 'number' &&

@@ -4,7 +4,11 @@ import publicIndex from '../public/radar/index.json';
 import publicHealth from '../public/status/health.json';
 import { isRadarHealth } from './radarHealth';
 import { isRadarIndex } from './radarIndex';
-import { isRadarManifest, type RadarManifest } from './radarManifest';
+import {
+  buildTimelineSlots,
+  isRadarManifest,
+  type RadarManifest,
+} from './radarManifest';
 
 const manifestModules = import.meta.glob(
   '../public/radar/regional-*/manifest.json',
@@ -14,7 +18,10 @@ const manifestModules = import.meta.glob(
   },
 );
 const frameImages = import.meta.glob(
-  '../public/radar/regional-*/frames/*/overlay-3857.png',
+  [
+    '../public/radar/regional-*/frames/*/overlay-3857.png',
+    '../public/radar/regional-*/frames/*/overlay.png',
+  ],
   {
     eager: true,
     import: 'default',
@@ -37,13 +44,13 @@ describe('muestra pública de la fase 6', () => {
     }
     expect(indexPayload.radars).toHaveLength(15);
     expect(indexPayload.radars.filter((radar) => radar.available)).toHaveLength(
-      12,
+      14,
     );
     expect(
       indexPayload.radars
         .filter((radar) => !radar.available)
         .map((radar) => radar.id),
-    ).toEqual(['regional-co', 'regional-va', 'regional-ss']);
+    ).toEqual(['regional-va']);
     expect(healthPayload.products).toHaveLength(15);
   });
 
@@ -59,7 +66,8 @@ describe('muestra pública de la fase 6', () => {
         ? publicIndex.radars.find((radar) => radar.id === manifest.radar.id)
         : undefined;
       expect(indexRadar).toBeDefined();
-      expect(manifest.window.hours).toBe(3);
+      expect(manifest.window.hours).toBe(230 / 60);
+      expect(manifest.window.minutes).toBe(230);
       expect(manifest.frames.length > 0).toBe(indexRadar?.available);
       expect(
         manifest.frames.every(
@@ -69,5 +77,17 @@ describe('muestra pública de la fase 6', () => {
         ),
       ).toBe(true);
     }
+
+    const byId = new Map(
+      manifests.map((manifest) => [manifest.radar.id, manifest]),
+    );
+    expect(byId.get('regional-co')?.frames).toHaveLength(24);
+    expect(byId.get('regional-ss')?.frames).toHaveLength(24);
+    expect(byId.get('regional-mu')?.frames).toHaveLength(24);
+    expect(byId.get('regional-ml')?.frames).toHaveLength(3);
+    expect(byId.get('regional-ml')?.gaps[0]?.missingCount).toBe(21);
+    expect(buildTimelineSlots(byId.get('regional-ml')!)).toHaveLength(24);
+    expect(byId.get('regional-ca')?.frames).toHaveLength(1);
+    expect(byId.get('regional-va')?.frames).toHaveLength(0);
   });
 });

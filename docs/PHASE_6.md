@@ -9,20 +9,54 @@ imagen. Un radar sin datos muestra su emplazamiento y un estado explícito; no
 hereda fotogramas de otro radar y continúa formando parte de cada ciclo de
 consulta.
 
+La revisión del 27 de julio de 2026 migró la ingesta regional a la API web del
+visor oficial. Una única cronología aporta 24 observaciones PPI por
+emplazamiento, ordenadas cada 10 minutos entre `último - 3 h 50 min` y el
+último dato. OpenData y el pipeline GIF se conservan como fallback.
+
 Fuentes oficiales:
 
 - [AEMET OpenData OpenAPI](https://opendata.aemet.es/AEMET_OpenData_specification.json),
   para los códigos de los endpoints;
 - [visor de radares de AEMET](https://www.aemet.es/es/eltiempo/observacion/radar.html),
-  para los emplazamientos y coordenadas;
+  para la cronología PPI, imágenes, límites, emplazamientos y coordenadas;
 - [ayuda de radar de AEMET](https://www.aemet.es/es/eltiempo/observacion/radar/ayuda),
   para alcance, resolución y naturaleza del producto.
 
+## Fuente primaria PPI y fallback
+
+El worker obtiene una sola vez por ciclo:
+
+```text
+GET /es/api-eltiempo/radar/timeline/PPI/PB
+```
+
+La respuesta observada contiene 432 entradas: 18 emplazamientos por 24 horas
+de producto. La app utiliza los 15 radares de su catálogo OpenAPI. Para cada
+entrada valida el nombre `SSSYYMMDDHHMMSS.PPI.Z_005_240.png`, la fecha
+ISO-8601 con zona y su coincidencia exacta en UTC; después descarga:
+
+```text
+GET /es/api-eltiempo/radar/imagen-radar/PPI/<fichero>
+GET /es/api-eltiempo/radar/bounds-radar/PPI/<fichero>
+```
+
+El PNG válido es RGBA y solo contiene fondo, transparencia y la paleta exacta
+de reflectividad. Un radar seco sigue siendo una observación válida. Texto,
+colores desconocidos o “Producto no disponible” activan OpenData como
+respaldo. Los límites oficiales se reordenan al contrato NW, NE, SE, SW de
+MapLibre; el PPI no usa las máscaras o proyecciones del GIF.
+
+La API web del visor no requiere key. `AEMET_API_KEY` continúa siendo necesaria
+para el fallback OpenData. Ninguna de las dos rutas, ni la key, se escribe en
+informes o logs.
+
 ## Inventario verificado
 
-La comprobación controlada del 26 de julio de 2026 encontró 12 productos con
-GIF válido y tres respuestas sin datos. La falta temporal de imagen no elimina
-una entrada:
+La comprobación completa del 27 de julio de 2026 obtuvo 24 PPI válidos para
+doce productos. Málaga entregó tres PPI válidos y 21 láminas no disponibles;
+Las Palmas recurrió al GIF OpenData y Valencia quedó sin datos. A Coruña y
+Vizcaya, antes ausentes en OpenData, publicaron las 24 observaciones:
 
 | API | Producto | Emplazamiento | Validación de muestra |
 | --- | --- | --- | --- |
@@ -31,21 +65,20 @@ una entrada:
 | `pm` | Illes Balears | LLM, Llucmajor | verificada |
 | `ba` | Barcelona | GLD, Gelida | verificada |
 | `cc` | Cáceres | SFT, Sierra de Fuentes | verificada |
-| `co` | A Coruña | CCD, Cerceda | pendiente de datos |
+| `co` | A Coruña | CCD, Cerceda | 24 PPI |
 | `ma` | Madrid | TJV, Torrejón de Velasco | verificada |
 | `ml` | Málaga | AHR, Alhaurín el Grande | verificada |
 | `mu` | Murcia | FTN, Fortuna | ocho puntos de control |
 | `vd` | Palencia | LID | verificada |
-| `ca` | Las Palmas | LPA, Canarias | verificada |
+| `ca` | Las Palmas | CAN, Canarias | fallback GIF |
 | `se` | Sevilla | CLG, El Castillo de las Guardas | verificada |
-| `va` | Valencia | VAL | pendiente de datos |
-| `ss` | Vizcaya | SSE, Maruri-Jatabe | pendiente de datos |
+| `va` | Valencia | VAL | sin datos |
+| `ss` | Vizcaya | SSE, Maruri-Jatabe | 24 PPI |
 | `za` | Zaragoza | PDG, Perdiguera | verificada |
 
-El visor oficial también representa emplazamientos en Ciudad Real (`AMG`) y
-Salamanca (`GRM`), pero la especificación OpenAPI no ofrece hoy un código
-regional para consultarlos. No se inventan endpoints: se podrán añadir cuando
-AEMET publique el contrato correspondiente.
+El visor oficial también representa emplazamientos sin producto regional
+OpenData configurado. No se añaden al selector hasta definir su identidad,
+operación y alcance dentro del proyecto.
 
 ## Catálogo y estrategias
 
@@ -64,6 +97,7 @@ El worker carga y valida el YAML al arrancar. Rechaza un catálogo que no tenga
 exactamente los 15 códigos, identificadores duplicados, coordenadas imposibles
 o ficheros de estrategia inexistentes.
 
+El bloque siguiente documenta el pipeline GIF que ahora actúa como fallback.
 Los 12 GIF disponibles compartieron en la muestra controlada dimensiones
 `480×530`, modo indexado y la misma paleta de 64 entradas. El perfil
 `regional-safe-v1` comprueba esos datos para cada descarga: un cambio de
@@ -108,13 +142,11 @@ El PPI de Málaga de las 10:50 UTC contiene únicamente transparencia y el color
 RGBA `[239, 242, 249, 179]`. El GIF de la misma hora aporta las posiciones
 exactas de sus 3.207 píxeles amarillos fijos; el informe conserva ambos hashes.
 
-Permanecen en modo conservador A Coruña, Valencia y Vizcaya. Sus GIF OpenData
-responden 404 y el visor no ofrece una sustitución equivalente: A Coruña y
-Vizcaya muestran capas PPI con ecos azules/cian; Valencia devuelve “Producto no
-disponible”. El visor dibuja límites y reflectividad en capas separadas y su
-rasterizado no coincide píxel a píxel con el GIF `480×530`, por lo que no se
-activa una máscara aproximada. Las cinco capturas, URLs, hashes y diagnóstico
-están en `docs/evidence/phase-6/official-viewer/`.
+A Coruña y Vizcaya conservan el modo GIF conservador para el fallback porque
+OpenData responde 404, pero sus PPI se publican directamente: no necesitan
+máscara. Valencia sigue sin PPI utilizable ni GIF. Las capturas, hashes y
+diagnóstico previo se conservan como evidencia histórica en
+`docs/evidence/phase-6/official-viewer/`.
 
 El worker interpreta el estado AEMET 404 como `no-data`, no como un fallo: hace
 un único intento, mantiene el manifiesto y la retención, limpia `lastError` y
@@ -123,7 +155,7 @@ no degradan un ciclo cuyos demás radares estén actuales.
 
 ## Georreferenciación y validación
 
-Cada radar usa una proyección azimutal equidistante propia centrada en las
+En el fallback GIF, cada radar usa una proyección azimutal equidistante propia centrada en las
 coordenadas oficiales. La rejilla regional se reproyecta a EPSG:3857 con vecino
 más próximo y cada fotograma publica sus cuatro esquinas en
 `imageCoordinates`. MapLibre nunca reutiliza las coordenadas de Murcia.
@@ -204,13 +236,18 @@ por radar.
 ## Validación realizada
 
 - 15 manifiestos independientes;
-- 12 radares con una muestra real procesada;
+- 13 radares con cronología PPI primaria y Las Palmas con fallback GIF;
+- 24 observaciones PPI ordenadas para A Coruña, Vizcaya, Murcia y otros nueve
+  productos;
+- ventana exacta de 230 minutos y hasta 24 observaciones reales;
 - 12 máscaras propias activas y tres políticas conservadoras;
 - cinco imágenes oficiales del visor conservadas con SHA-256;
-- 3 manifiestos vacíos y seleccionables;
+- un manifiesto vacío y seleccionable;
 - cambio de producto sin mezcla de rutas ni fotogramas;
 - ajuste de centro, zoom, cobertura y esquinas por radar;
 - precarga limitada al timeline seleccionado;
 - pausa configurada entre consultas;
+- pruebas de cronología, fechas, límites, paleta PPI, radar seco, fallback,
+  idempotencia y 24 observaciones con el mismo hash;
 - pruebas de catálogo, perfil compartido y geometría de Almería;
 - lint, formato, tipado, tests y build de producción.

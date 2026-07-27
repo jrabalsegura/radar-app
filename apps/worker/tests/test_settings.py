@@ -39,9 +39,9 @@ def test_operational_settings_read_environment(monkeypatch: pytest.MonkeyPatch) 
     assert settings.product_delay_seconds == 0.75
 
 
-def test_operational_settings_default_to_three_hour_history(
+def test_operational_settings_default_to_three_hours_fifty_minutes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("AEMET_HISTORY_HOURS", raising=False)
 
-    assert OperationalSettings.from_environment().history_hours == 3
+    assert OperationalSettings.from_environment().history_hours == 23 / 6

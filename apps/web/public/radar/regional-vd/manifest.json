@@ -1,40 +1,730 @@
 {
   "frames": [
     {
-      "id": "regional-vd_779c1172b4f7a575",
+      "id": "regional-vd_20260727T042000Z_42b7baebaa44",
       "imageCoordinates": [
         [
-          -7.60873046,
-          44.14558817
+          -13.600951899999998,
+          50.155888099999984
         ],
         [
-          -1.60798436,
-          44.14558817
+          4.391150189144839,
+          50.155888099999984
         ],
         [
-          -1.60798436,
-          39.77983575
+          4.391150189144839,
+          33.80094852216654
         ],
         [
-          -7.60873046,
-          39.77983575
+          -13.600951899999998,
+          33.80094852216654
         ]
       ],
-      "imageUrl": "/radar/regional-vd/frames/779c1172b4f7a5758a2a2a85e379407a6e26c15cf6fb336c91d2c18d8af5458f/overlay-3857.png",
-      "lastRetrievedAt": "2026-07-26T18:06:52.248125Z",
-      "productTime": null,
-      "rawUrl": "/raw/regional-vd/2026/07/26/779c1172b4f7a5758a2a2a85e379407a6e26c15cf6fb336c91d2c18d8af5458f.gif",
-      "retrievedAt": "2026-07-26T18:06:52.248125Z",
-      "sourceHash": "sha256:779c1172b4f7a5758a2a2a85e379407a6e26c15cf6fb336c91d2c18d8af5458f",
+      "imageUrl": "/radar/regional-vd/frames/42b7baebaa448d73ace8d04bc6afca5ad708715b653021997d2f9b022dbbe44d/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.251905Z",
+      "productTime": "2026-07-27T04:20:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T042000Z-42b7baebaa448d73ace8d04bc6afca5ad708715b653021997d2f9b022dbbe44d.png",
+      "retrievedAt": "2026-07-27T08:35:50.251905Z",
+      "sourceHash": "sha256:42b7baebaa448d73ace8d04bc6afca5ad708715b653021997d2f9b022dbbe44d",
       "status": "available",
-      "time": "2026-07-26T18:06:52.248125Z",
-      "timeSource": "retrievedAt"
+      "time": "2026-07-27T04:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T043000Z_98442b467296",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/98442b467296b09cafbcde7c1191d2b25464c3743e030eb5c954c5f1963be3cb/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.327255Z",
+      "productTime": "2026-07-27T04:30:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T043000Z-98442b467296b09cafbcde7c1191d2b25464c3743e030eb5c954c5f1963be3cb.png",
+      "retrievedAt": "2026-07-27T08:35:50.327255Z",
+      "sourceHash": "sha256:98442b467296b09cafbcde7c1191d2b25464c3743e030eb5c954c5f1963be3cb",
+      "status": "available",
+      "time": "2026-07-27T04:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T044000Z_65464b974968",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/65464b97496841ca4c25368aba2c050cd295734a169a1ea36f6032610cd8bf37/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.397464Z",
+      "productTime": "2026-07-27T04:40:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T044000Z-65464b97496841ca4c25368aba2c050cd295734a169a1ea36f6032610cd8bf37.png",
+      "retrievedAt": "2026-07-27T08:35:50.397464Z",
+      "sourceHash": "sha256:65464b97496841ca4c25368aba2c050cd295734a169a1ea36f6032610cd8bf37",
+      "status": "available",
+      "time": "2026-07-27T04:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T045000Z_8103a5928908",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/8103a5928908a51740c0045f7a53ec90db9e9a56bbb90aa98de719c05e4b8f74/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.468836Z",
+      "productTime": "2026-07-27T04:50:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T045000Z-8103a5928908a51740c0045f7a53ec90db9e9a56bbb90aa98de719c05e4b8f74.png",
+      "retrievedAt": "2026-07-27T08:35:50.468836Z",
+      "sourceHash": "sha256:8103a5928908a51740c0045f7a53ec90db9e9a56bbb90aa98de719c05e4b8f74",
+      "status": "available",
+      "time": "2026-07-27T04:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T050000Z_00ccc82a8d9e",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/00ccc82a8d9e1fa3fcf290914acb40c44deceb827e8f35a5f45155d8705f0cdd/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.538963Z",
+      "productTime": "2026-07-27T05:00:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T050000Z-00ccc82a8d9e1fa3fcf290914acb40c44deceb827e8f35a5f45155d8705f0cdd.png",
+      "retrievedAt": "2026-07-27T08:35:50.538963Z",
+      "sourceHash": "sha256:00ccc82a8d9e1fa3fcf290914acb40c44deceb827e8f35a5f45155d8705f0cdd",
+      "status": "available",
+      "time": "2026-07-27T05:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T051000Z_056549c54499",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/056549c544998943b7cd595d4f1705774c4ed35125f0c12cec710bf4bde72dc2/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.605791Z",
+      "productTime": "2026-07-27T05:10:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T051000Z-056549c544998943b7cd595d4f1705774c4ed35125f0c12cec710bf4bde72dc2.png",
+      "retrievedAt": "2026-07-27T08:35:50.605791Z",
+      "sourceHash": "sha256:056549c544998943b7cd595d4f1705774c4ed35125f0c12cec710bf4bde72dc2",
+      "status": "available",
+      "time": "2026-07-27T05:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T052000Z_da98fe4e9828",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/da98fe4e98280fb986a7d2ee4ccfb36139eac4f0cc4ed78dbee192d53a25655d/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.673187Z",
+      "productTime": "2026-07-27T05:20:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T052000Z-da98fe4e98280fb986a7d2ee4ccfb36139eac4f0cc4ed78dbee192d53a25655d.png",
+      "retrievedAt": "2026-07-27T08:35:50.673187Z",
+      "sourceHash": "sha256:da98fe4e98280fb986a7d2ee4ccfb36139eac4f0cc4ed78dbee192d53a25655d",
+      "status": "available",
+      "time": "2026-07-27T05:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T053000Z_0ff328171dc9",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/0ff328171dc91e06af29d14dc8fffef16698dee598d8c3ea9714eb4b26db69a5/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.741316Z",
+      "productTime": "2026-07-27T05:30:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T053000Z-0ff328171dc91e06af29d14dc8fffef16698dee598d8c3ea9714eb4b26db69a5.png",
+      "retrievedAt": "2026-07-27T08:35:50.741316Z",
+      "sourceHash": "sha256:0ff328171dc91e06af29d14dc8fffef16698dee598d8c3ea9714eb4b26db69a5",
+      "status": "available",
+      "time": "2026-07-27T05:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T054000Z_dabf3a4e6195",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/dabf3a4e6195cea0afb622bb1121280d210d04f0422a8cde10590b0cd31a0c9a/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.806772Z",
+      "productTime": "2026-07-27T05:40:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T054000Z-dabf3a4e6195cea0afb622bb1121280d210d04f0422a8cde10590b0cd31a0c9a.png",
+      "retrievedAt": "2026-07-27T08:35:50.806772Z",
+      "sourceHash": "sha256:dabf3a4e6195cea0afb622bb1121280d210d04f0422a8cde10590b0cd31a0c9a",
+      "status": "available",
+      "time": "2026-07-27T05:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T055000Z_d19561c41c92",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/d19561c41c92eab61f2b085845716446258a581a9138cc77d35f6670eb797d19/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.873557Z",
+      "productTime": "2026-07-27T05:50:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T055000Z-d19561c41c92eab61f2b085845716446258a581a9138cc77d35f6670eb797d19.png",
+      "retrievedAt": "2026-07-27T08:35:50.873557Z",
+      "sourceHash": "sha256:d19561c41c92eab61f2b085845716446258a581a9138cc77d35f6670eb797d19",
+      "status": "available",
+      "time": "2026-07-27T05:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T060000Z_67e6f179d1d9",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/67e6f179d1d966029075464048479baa9e44ebe0ccaab03c77cf37cc2391682d/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.947254Z",
+      "productTime": "2026-07-27T06:00:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T060000Z-67e6f179d1d966029075464048479baa9e44ebe0ccaab03c77cf37cc2391682d.png",
+      "retrievedAt": "2026-07-27T08:35:50.947254Z",
+      "sourceHash": "sha256:67e6f179d1d966029075464048479baa9e44ebe0ccaab03c77cf37cc2391682d",
+      "status": "available",
+      "time": "2026-07-27T06:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T061000Z_69ea062d3f8a",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/69ea062d3f8a2d909a1fb687a61c1c6c4861ffe418dcb6ab72c30c9007c2a4ad/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:51.018151Z",
+      "productTime": "2026-07-27T06:10:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T061000Z-69ea062d3f8a2d909a1fb687a61c1c6c4861ffe418dcb6ab72c30c9007c2a4ad.png",
+      "retrievedAt": "2026-07-27T08:35:51.018151Z",
+      "sourceHash": "sha256:69ea062d3f8a2d909a1fb687a61c1c6c4861ffe418dcb6ab72c30c9007c2a4ad",
+      "status": "available",
+      "time": "2026-07-27T06:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T062000Z_8c0c1dab8f8b",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/8c0c1dab8f8bd7d0ab692d6155e429eb78a451b4be5e3593fa97de1ae9c63553/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:51.085546Z",
+      "productTime": "2026-07-27T06:20:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T062000Z-8c0c1dab8f8bd7d0ab692d6155e429eb78a451b4be5e3593fa97de1ae9c63553.png",
+      "retrievedAt": "2026-07-27T08:35:51.085546Z",
+      "sourceHash": "sha256:8c0c1dab8f8bd7d0ab692d6155e429eb78a451b4be5e3593fa97de1ae9c63553",
+      "status": "available",
+      "time": "2026-07-27T06:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T063000Z_bc98473c25eb",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/bc98473c25ebc7f5fa0aa43cad2391aa7eeef8961b83092fb0055df897ee1c8e/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:51.154783Z",
+      "productTime": "2026-07-27T06:30:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T063000Z-bc98473c25ebc7f5fa0aa43cad2391aa7eeef8961b83092fb0055df897ee1c8e.png",
+      "retrievedAt": "2026-07-27T08:35:51.154783Z",
+      "sourceHash": "sha256:bc98473c25ebc7f5fa0aa43cad2391aa7eeef8961b83092fb0055df897ee1c8e",
+      "status": "available",
+      "time": "2026-07-27T06:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T064000Z_c857235fcca1",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/c857235fcca1067a851ccc5299946b6f043799a5587cea2d5f3caecb2b709468/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:51.270233Z",
+      "productTime": "2026-07-27T06:40:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T064000Z-c857235fcca1067a851ccc5299946b6f043799a5587cea2d5f3caecb2b709468.png",
+      "retrievedAt": "2026-07-27T08:35:51.270233Z",
+      "sourceHash": "sha256:c857235fcca1067a851ccc5299946b6f043799a5587cea2d5f3caecb2b709468",
+      "status": "available",
+      "time": "2026-07-27T06:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T065000Z_07cfbb32af55",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/07cfbb32af55ed6f0e089800d079ca896b4694a4b81259bd15dc48f252de5378/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:51.398412Z",
+      "productTime": "2026-07-27T06:50:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T065000Z-07cfbb32af55ed6f0e089800d079ca896b4694a4b81259bd15dc48f252de5378.png",
+      "retrievedAt": "2026-07-27T08:35:51.398412Z",
+      "sourceHash": "sha256:07cfbb32af55ed6f0e089800d079ca896b4694a4b81259bd15dc48f252de5378",
+      "status": "available",
+      "time": "2026-07-27T06:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T070000Z_62e5a79475ea",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/62e5a79475ead595f792f115c09c7ab5cdd02c7527196e8de88405ed59d3e697/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:51.556016Z",
+      "productTime": "2026-07-27T07:00:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T070000Z-62e5a79475ead595f792f115c09c7ab5cdd02c7527196e8de88405ed59d3e697.png",
+      "retrievedAt": "2026-07-27T08:35:51.556016Z",
+      "sourceHash": "sha256:62e5a79475ead595f792f115c09c7ab5cdd02c7527196e8de88405ed59d3e697",
+      "status": "available",
+      "time": "2026-07-27T07:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T071000Z_ee559b0bfde4",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/ee559b0bfde468fb6f58ade9220946a8f11f01219364c665c0211210cde9347b/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:51.720232Z",
+      "productTime": "2026-07-27T07:10:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T071000Z-ee559b0bfde468fb6f58ade9220946a8f11f01219364c665c0211210cde9347b.png",
+      "retrievedAt": "2026-07-27T08:35:51.720232Z",
+      "sourceHash": "sha256:ee559b0bfde468fb6f58ade9220946a8f11f01219364c665c0211210cde9347b",
+      "status": "available",
+      "time": "2026-07-27T07:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T072000Z_9d423597994b",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/9d423597994b006665da9b210cd9e8a50971602876377f1afc53a892d75439a5/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:51.882532Z",
+      "productTime": "2026-07-27T07:20:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T072000Z-9d423597994b006665da9b210cd9e8a50971602876377f1afc53a892d75439a5.png",
+      "retrievedAt": "2026-07-27T08:35:51.882532Z",
+      "sourceHash": "sha256:9d423597994b006665da9b210cd9e8a50971602876377f1afc53a892d75439a5",
+      "status": "available",
+      "time": "2026-07-27T07:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T073000Z_5f848cdc1757",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/5f848cdc175726eec1508b3c7bf412ffdb955b47d88099a83aa3cd89115deb43/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:52.010333Z",
+      "productTime": "2026-07-27T07:30:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T073000Z-5f848cdc175726eec1508b3c7bf412ffdb955b47d88099a83aa3cd89115deb43.png",
+      "retrievedAt": "2026-07-27T08:35:52.010333Z",
+      "sourceHash": "sha256:5f848cdc175726eec1508b3c7bf412ffdb955b47d88099a83aa3cd89115deb43",
+      "status": "available",
+      "time": "2026-07-27T07:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T074000Z_d55384fa1d57",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/d55384fa1d57bf784f8d81abc547136e42bb6fe92eeeb26674cd87be92103a14/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:52.152326Z",
+      "productTime": "2026-07-27T07:40:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T074000Z-d55384fa1d57bf784f8d81abc547136e42bb6fe92eeeb26674cd87be92103a14.png",
+      "retrievedAt": "2026-07-27T08:35:52.152326Z",
+      "sourceHash": "sha256:d55384fa1d57bf784f8d81abc547136e42bb6fe92eeeb26674cd87be92103a14",
+      "status": "available",
+      "time": "2026-07-27T07:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T075000Z_8b340c32045f",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/8b340c32045f37ee31f530f13fb3de5361117e1b0b8b6c97d0d0175ca622c445/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:52.305062Z",
+      "productTime": "2026-07-27T07:50:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T075000Z-8b340c32045f37ee31f530f13fb3de5361117e1b0b8b6c97d0d0175ca622c445.png",
+      "retrievedAt": "2026-07-27T08:35:52.305062Z",
+      "sourceHash": "sha256:8b340c32045f37ee31f530f13fb3de5361117e1b0b8b6c97d0d0175ca622c445",
+      "status": "available",
+      "time": "2026-07-27T07:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T080000Z_769f278de499",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/769f278de4992311116a381b0e99ddb291d7fdc6fc8735763bb872baa894d847/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:52.383543Z",
+      "productTime": "2026-07-27T08:00:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T080000Z-769f278de4992311116a381b0e99ddb291d7fdc6fc8735763bb872baa894d847.png",
+      "retrievedAt": "2026-07-27T08:35:52.383543Z",
+      "sourceHash": "sha256:769f278de4992311116a381b0e99ddb291d7fdc6fc8735763bb872baa894d847",
+      "status": "available",
+      "time": "2026-07-27T08:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-vd_20260727T081000Z_147060b66ab4",
+      "imageCoordinates": [
+        [
+          -13.600951899999998,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          50.155888099999984
+        ],
+        [
+          4.391150189144839,
+          33.80094852216654
+        ],
+        [
+          -13.600951899999998,
+          33.80094852216654
+        ]
+      ],
+      "imageUrl": "/radar/regional-vd/frames/147060b66ab49e7d3097e9386d8af27cca98e9dc4968b590d48ddce37e98a4e8/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:50.153637Z",
+      "productTime": "2026-07-27T08:10:00Z",
+      "rawUrl": "/raw/regional-vd/2026/07/27/20260727T081000Z-147060b66ab49e7d3097e9386d8af27cca98e9dc4968b590d48ddce37e98a4e8.png",
+      "retrievedAt": "2026-07-27T08:35:50.153637Z",
+      "sourceHash": "sha256:147060b66ab49e7d3097e9386d8af27cca98e9dc4968b590d48ddce37e98a4e8",
+      "status": "available",
+      "time": "2026-07-27T08:10:00Z",
+      "timeSource": "productTime"
     }
   ],
   "gaps": [],
-  "generatedAt": "2026-07-26T19:21:58.464374Z",
-  "latestFrameTime": "2026-07-26T18:06:52.248125Z",
-  "latestProductTime": null,
+  "generatedAt": "2026-07-27T09:01:14.764734Z",
+  "latestFrameTime": "2026-07-27T08:10:00Z",
+  "latestProductTime": "2026-07-27T08:10:00Z",
   "radar": {
     "cadenceMinutes": 10,
     "id": "regional-vd",
@@ -43,16 +733,17 @@
   },
   "schemaVersion": 1,
   "statistics": {
-    "archivedFrames": 1,
+    "archivedFrames": 24,
     "discardedDuplicates": 0,
     "invalidReports": 0,
-    "publishedFrames": 1
+    "publishedFrames": 24
   },
-  "timeBasis": "retrievedAt",
+  "timeBasis": "productTime",
   "window": {
     "anchor": "latest-available-frame",
-    "end": "2026-07-26T18:06:52.248125Z",
-    "hours": 3.0,
-    "start": "2026-07-26T15:06:52.248125Z"
+    "end": "2026-07-27T08:10:00Z",
+    "hours": 3.8333333333333335,
+    "minutes": 230,
+    "start": "2026-07-27T04:20:00Z"
   }
 }

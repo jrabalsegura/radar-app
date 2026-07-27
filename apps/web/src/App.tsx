@@ -18,7 +18,7 @@ import {
   buildTimelineSlots,
   formatMadridDate,
   formatMadridTime,
-  HISTORY_HOURS,
+  HISTORY_LABEL,
   isRadarManifest,
   type RadarManifest,
   type RadarTimelineFrame,
@@ -219,7 +219,7 @@ export function App() {
     <main className="radar-app">
       <header className="topbar">
         <div className="radar-heading">
-          <p className="eyebrow">Últimas {HISTORY_HOURS} horas</p>
+          <p className="eyebrow">Últimas {HISTORY_LABEL}</p>
           <div className="radar-title-row">
             <h1>Radar {selectedRadar.label}</h1>
             <span className={`status-chip status-chip--${status}`}>
@@ -479,7 +479,7 @@ function Timeline({
             <time dateTime={firstSlot.time}>
               {formatMadridTime(firstSlot.time)}
             </time>
-            <span>{HISTORY_HOURS} h</span>
+            <span>{HISTORY_LABEL}</span>
             <time dateTime={lastSlot.time}>
               {formatMadridTime(lastSlot.time)}
             </time>

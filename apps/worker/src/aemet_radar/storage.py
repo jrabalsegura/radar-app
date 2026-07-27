@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from dataclasses import dataclass
 from datetime import datetime
@@ -34,9 +35,16 @@ class ArchiveStore:
         sha256: str,
         retrieved_at: datetime,
         report: dict[str, object],
+        extension: str = ".gif",
+        archive_key: str | None = None,
     ) -> ArchiveResult:
+        if not re.fullmatch(r"\.[a-z0-9]+", extension):
+            raise ValueError("La extensión de archivo no es segura.")
+        key = archive_key or sha256
+        if not re.fullmatch(r"[A-Za-z0-9._-]+", key):
+            raise ValueError("La clave de archivo no es segura.")
         product_root = self.data_dir / "raw" / product.id
-        existing = next(product_root.glob(f"*/*/*/{sha256}.gif"), None)
+        existing = next(product_root.glob(f"*/*/*/{key}{extension}"), None)
         if existing is not None:
             existing_report = existing.with_suffix(".json")
             refreshed = _merge_duplicate_report(
@@ -58,8 +66,8 @@ class ArchiveStore:
             / f"{retrieved_at.month:02d}"
             / f"{retrieved_at.day:02d}"
         )
-        raw_path = target_dir / f"{sha256}.gif"
-        report_path = target_dir / f"{sha256}.json"
+        raw_path = target_dir / f"{key}{extension}"
+        report_path = target_dir / f"{key}.json"
         target_dir.mkdir(parents=True, exist_ok=True)
 
         complete_report = _report_with_paths(report, self.data_dir, raw_path, report_path)

@@ -19,6 +19,7 @@ from aemet_radar.file_server import serve_files
 from aemet_radar.georeferencing import georeference_overlay
 from aemet_radar.health import HealthPublisher
 from aemet_radar.history import scan_product_history
+from aemet_radar.hybrid_service import HybridIngestionService
 from aemet_radar.manifests import ManifestPublisher, select_history_frames
 from aemet_radar.mask_calibration import discover_mask_samples
 from aemet_radar.products import (
@@ -38,6 +39,7 @@ from aemet_radar.service import IngestionService
 from aemet_radar.settings import OperationalSettings, Settings
 from aemet_radar.storage import ArchiveStore
 from aemet_radar.timeline_processing import RegionalTimelineProcessor
+from aemet_radar.viewer_client import AemetViewerClient
 
 DEFAULT_REFLECTIVITY_CONFIG = Path("config/palettes/regional-mu-v1.json")
 DEFAULT_REFLECTIVITY_MASK = Path("config/masks/regional-mu-v1.png")
@@ -414,13 +416,26 @@ def _run_fetch_once(arguments: argparse.Namespace, settings: Settings) -> int:
     error_count = 0
     results: list[dict[str, object]] = []
 
-    with AemetClient(
-        settings.api_key,
-        timeout_seconds=float(arguments.timeout),
-        max_download_bytes=int(arguments.max_bytes),
-    ) as client:
-        store = ArchiveStore(data_dir)
-        service = IngestionService(client, store)
+    catalog = load_radar_catalog(_as_path(arguments.radar_config))
+    store = ArchiveStore(data_dir)
+    with (
+        AemetClient(
+            settings.api_key,
+            timeout_seconds=float(arguments.timeout),
+            max_download_bytes=int(arguments.max_bytes),
+        ) as client,
+        AemetViewerClient(
+            timeout_seconds=float(arguments.timeout),
+            max_image_bytes=int(arguments.max_bytes),
+        ) as viewer,
+    ):
+        service = HybridIngestionService(
+            viewer,
+            IngestionService(client, store),
+            store,
+            catalog=catalog,
+        )
+        service.begin_cycle()
         for product_index, product in enumerate(selected):
             try:
                 outcome = service.fetch_once(product)
@@ -521,13 +536,26 @@ def _run_history(arguments: argparse.Namespace, settings: Settings) -> int:
     )
     had_error = False
 
-    with AemetClient(
-        settings.api_key,
-        timeout_seconds=float(arguments.timeout),
-        max_download_bytes=int(arguments.max_bytes),
-    ) as client:
+    catalog = load_radar_catalog(_as_path(arguments.radar_config))
+    store = ArchiveStore(data_dir)
+    with (
+        AemetClient(
+            settings.api_key,
+            timeout_seconds=float(arguments.timeout),
+            max_download_bytes=int(arguments.max_bytes),
+        ) as client,
+        AemetViewerClient(
+            timeout_seconds=float(arguments.timeout),
+            max_image_bytes=int(arguments.max_bytes),
+        ) as viewer,
+    ):
         worker = HistoryWorker(
-            IngestionService(client, ArchiveStore(data_dir)),
+            HybridIngestionService(
+                viewer,
+                IngestionService(client, store),
+                store,
+                catalog=catalog,
+            ),
             data_dir=data_dir,
             products=selected,
             retry_policy=retry_policy,

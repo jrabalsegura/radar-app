@@ -7,18 +7,23 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Protocol
 
 from aemet_radar.diagnostics import FailureRecorder
 from aemet_radar.errors import AemetRadarError, DownloadValidationError, is_no_data_error
 from aemet_radar.health import HealthPublisher, PollObservation
 from aemet_radar.history import isoformat_utc, scan_product_history
+from aemet_radar.hybrid_service import IngestionOutcome
 from aemet_radar.manifests import ManifestPublisher, select_history_frames
-from aemet_radar.models import FetchOutcome
 from aemet_radar.products import RadarProduct
 from aemet_radar.retention import RetentionManager
 from aemet_radar.retry import RetryPolicy, call_with_retry
-from aemet_radar.service import IngestionService
+from aemet_radar.temporal import HISTORY_HOURS
 from aemet_radar.timeline_processing import RegionalTimelineProcessor
+
+
+class IngestionServiceProtocol(Protocol):
+    def fetch_once(self, product: RadarProduct) -> IngestionOutcome: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,13 +76,13 @@ class CycleResult:
 class HistoryWorker:
     def __init__(
         self,
-        service: IngestionService,
+        service: IngestionServiceProtocol,
         *,
         data_dir: Path,
         products: tuple[RadarProduct, ...],
         retry_policy: RetryPolicy,
         retention_hours: float = 24.0,
-        history_hours: float = 3.0,
+        history_hours: float = HISTORY_HOURS,
         timeline_processor: RegionalTimelineProcessor | None = None,
         product_delay_seconds: float = 1.0,
         sleeper: Callable[[float], None] = time.sleep,
@@ -109,6 +114,9 @@ class HistoryWorker:
         cycle_time = generated_at or datetime.now(UTC)
         results: list[ProductCycleResult] = []
         observations: dict[str, PollObservation] = {}
+        begin_cycle = getattr(self.service, "begin_cycle", None)
+        if callable(begin_cycle):
+            begin_cycle()
 
         for product in self.products:
             if not self.manifests.manifest_path(product).is_file():
@@ -117,7 +125,7 @@ class HistoryWorker:
         for product_index, product in enumerate(self.products):
             attempt_count = 0
 
-            def fetch() -> FetchOutcome:
+            def fetch() -> IngestionOutcome:
                 nonlocal attempt_count
                 attempt_count += 1
                 return self.service.fetch_once(product)

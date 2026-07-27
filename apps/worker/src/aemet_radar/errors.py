@@ -52,7 +52,9 @@ class AemetApiStatusError(AemetRadarError):
 def is_no_data_error(error: AemetRadarError) -> bool:
     """Indica que AEMET reconoce el producto, pero no tiene datos disponibles."""
 
-    return isinstance(error, AemetApiStatusError) and error.status_code == 404
+    return (isinstance(error, AemetApiStatusError) and error.status_code == 404) or isinstance(
+        error, ViewerNoDataError
+    )
 
 
 class AemetResponseError(AemetRadarError):
@@ -85,6 +87,15 @@ class DownloadValidationError(AemetRadarError):
             "sha256": f"sha256:{self.sha256}" if self.sha256 is not None else None,
             "declaredContentType": self.declared_content_type,
         }
+
+
+class ViewerNoDataError(AemetRadarError):
+    """El visor oficial reconoce la observación, pero no publica reflectividad válida."""
+
+    code = "viewer_no_data"
+
+    def __init__(self, message: str = "AEMET no tiene imagen PPI disponible.") -> None:
+        super().__init__(message)
 
 
 class ReflectivityProcessingError(AemetRadarError):

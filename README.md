@@ -99,31 +99,36 @@ samples/           muestras mínimas y documentadas
 scripts/           utilidades reproducibles futuras
 ```
 
+La fuente regional primaria es la cronología PPI pública del visor oficial de
+AEMET: entrega 24 PNG con hora de producto y límites geográficos. OpenData
+permanece como fallback y requiere `AEMET_API_KEY`.
+
 Los originales se guardan en
-`data/raw/<producto>/<AAAA>/<MM>/<DD>/<sha256>.gif`; cada GIF tiene un informe
-JSON adyacente. Las URLs efímeras de AEMET y la API key no se almacenan. Si el
-hash ya existe para el producto, la ejecución informa `duplicate` y no crea otra
-copia.
+`data/raw/<producto>/<AAAA>/<MM>/<DD>/`: los PPI usan una clave de observación y
+SHA-256 con extensión `.png`; el fallback conserva `.gif`. Cada imagen tiene un
+informe JSON adyacente. Las URLs de AEMET y la API key no se almacenan. Repetir
+la misma observación informa `duplicate`; dos horas oficiales distintas se
+conservan aunque sus píxeles coincidan.
 
 La publicación estática se genera en:
 
 ```text
 data/radar/index.json
 data/radar/<producto>/manifest.json
-data/radar/<radar>/frames/<sha256>/overlay-3857.png
+data/radar/<radar>/frames/<sha256>/overlay.png
 data/status/health.json
 ```
 
-El manifiesto conserva una ventana pública de tres horas anclada en el último
+El manifiesto conserva una ventana pública de 3 horas y 50 minutos anclada en el último
 fotograma disponible, mientras el archivo mantiene inicialmente 24 horas. Cada
 observación regional publicable incorpora un `imageUrl` y cuatro
-`imageCoordinates` propios, generados una sola vez por hash. `productTime` se
-usa únicamente si existe evidencia; en caso
-contrario se usa `retrievedAt` y se declara como
+`imageCoordinates` oficiales, generados una sola vez por hash. El PPI aporta
+`productTime`; en el fallback solo se usa si existe evidencia y, en caso
+contrario, se usa `retrievedAt` y se declara como
 `timeSource: "retrievedAt"`. Los huecos se enumeran sin crear fotogramas
 artificiales. La interfaz puede mantener visible el último fotograma real para
 dar continuidad, pero conserva su hora original y marca el intervalo como
-`Sin dato`. Con cadencia exacta de 10 minutos caben hasta 19 observaciones
+`Sin dato`. Con cadencia exacta de 10 minutos caben hasta 24 observaciones
 contando ambos extremos.
 
 El catálogo [`config/radars.yaml`](config/radars.yaml) declara los 15 endpoints,
@@ -149,8 +154,10 @@ próximo no crea colores intermedios. El ciclo y `rebuild-manifests` encadenan
 automáticamente ambos procesadores para cada hash nuevo regional.
 
 La muestra real versionada del frontend publica 15 manifiestos bajo
-`apps/web/public/radar/`: 12 contienen una imagen validada y tres permanecen
-vacíos. Puede verse con `make dev-web`. La
+`apps/web/public/radar/`: trece reproducen PPI, Las Palmas conserva un GIF de
+fallback y Valencia permanece sin datos. Los radares PPI disponibles incluyen
+su animación completa de 24 observaciones; Málaga refleja honestamente los
+huecos de AEMET. Puede verse con `make dev-web`. La
 calibración se documenta en [`docs/PHASE_4.md`](docs/PHASE_4.md) y la
 reproducción en [`docs/PHASE_5.md`](docs/PHASE_5.md).
 

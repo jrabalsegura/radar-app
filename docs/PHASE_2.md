@@ -35,7 +35,7 @@ Los valores por defecto son:
 | `AEMET_RETRY_ATTEMPTS` | 3 | máximo de intentos por producto |
 | `AEMET_RETRY_BACKOFF_SECONDS` | 1 | espera inicial del backoff |
 | `AEMET_RETENTION_HOURS` | 24 | conservación inicial |
-| `AEMET_HISTORY_HOURS` | 3 | ventana pública |
+| `AEMET_HISTORY_HOURS` | 3.8333333333333335 | ventana pública (230 min) |
 
 Los argumentos homónimos de `run` tienen prioridad sobre el entorno. La espera
 de reintento se duplica hasta un máximo interno de 60 segundos.
@@ -76,10 +76,10 @@ Los fotogramas se:
 - deduplican primero por hash;
 - deduplican después por instante, conservando la revisión obtenida más tarde;
 - ordenan por tiempo efectivo;
-- filtran de forma inclusiva entre `último - 3 h` y `último`.
+- filtran de forma inclusiva entre `último - 3 h 50 min` y `último`.
 
-Para Murcia, una secuencia completa contiene 19 fotogramas contando ambos
-extremos. Para nacional, con su cadencia de catálogo actual, contiene 7.
+Para un radar regional, una secuencia completa contiene 24 fotogramas contando
+ambos extremos. La cifra nacional depende de su cadencia real.
 
 ## Representación de huecos
 
@@ -193,11 +193,11 @@ mismo comando.
 
 Las pruebas usan GIF e informes sintéticos y cubren:
 
-- 19 fotogramas regionales completos;
+- 24 fotogramas regionales completos;
 - 7 fotogramas nacionales completos;
 - orden desordenado en disco;
 - duplicados por hash y por instante;
-- ventana pública de tres horas con originales adicionales conservados;
+- ventana pública de 3 horas y 50 minutos con originales adicionales conservados;
 - secuencia incompleta y detección del hueco;
 - llegada tardía que rellena el hueco;
 - jitter subsegundo alrededor del umbral real de 15 minutos;
@@ -234,9 +234,9 @@ Una auditoría confirmó que ni la API key ni las URLs efímeras aparecían en
 informes, manifiestos o health. El directorio temporal se eliminó después de la
 comprobación.
 
-Una segunda validación manual de casi tres horas archivó 18 originales. La
-reconstrucción de la Fase 5 publica los 18 dentro de una ventana exacta de tres
-horas y representa tres ausencias detectadas, sin crear imágenes para ellas. Los
+Una segunda validación manual archivó 18 originales. La reconstrucción actual
+los publica dentro de una ventana exacta de 3 horas y 50 minutos y representa
+tres ausencias detectadas, sin crear imágenes para ellas. Los
 fotogramas quedaron ordenados, con hashes únicos y cada SHA-256 coincidió con el
 GIF referenciado.
 
