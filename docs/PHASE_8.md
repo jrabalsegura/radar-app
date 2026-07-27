@@ -89,6 +89,13 @@ para conservar `position: absolute`, `width: 100%` y `height: 100%`. No debe
 sustituirse por una regla menos específica sin ejecutar las pruebas de
 navegador.
 
+MapLibre construye la URL de su worker mediante una función interna que Vite no
+puede analizar como el patrón estático `new Worker(new URL(...))`. El frontend
+importa por ello `maplibre-gl-worker.mjs?worker&url` y configura esa URL antes de
+crear el mapa. Así el build emite un worker versionado junto con todas sus
+dependencias; sin esta declaración, el raster de relieve puede aparecer aunque
+no funcionen las teselas vectoriales, las carreteras ni las etiquetas.
+
 Las métricas se recogen solo en memoria, sin telemetría remota, en
 `window.__RADAR_PERFORMANCE__`:
 
@@ -108,6 +115,8 @@ Playwright ejecuta los recorridos principales en Chrome de escritorio y móvil:
 - carga, edad visible, selector nacional, opacidad, reproducción y teclado;
 - lienzo WebGL visible y contenedor de mapa con altura real, para detectar
   regresiones de orden o especificidad CSS;
+- descarga satisfactoria de al menos una tesela vectorial de OpenFreeMap, para
+  comprobar que el worker de producción está empaquetado y operativo;
 - recarga real con el contexto de navegador sin conexión;
 - `prefers-reduced-motion`;
 - permiso de geolocalización y selección del radar más cercano.
@@ -138,7 +147,7 @@ make preview-live
 `http://127.0.0.1:4173/`. Al ser una única dependencia de Make, un build
 interrumpido detiene el proceso y nunca se publica como si estuviera completo.
 
-Durante la validación de la fase se detectaron dos síntomas diferentes:
+Durante la validación de la fase se detectaron tres síntomas diferentes:
 
 1. Servir un `dist` copiado después de cancelar Vite produjo un listado de
    directorio porque faltaba `index.html`.
@@ -146,11 +155,16 @@ Durante la validación de la fase se detectaron dos síntomas diferentes:
    `.maplibregl-map { position: relative }` se cargaba después de la regla de la
    aplicación. El contenedor quedaba con altura computada `0px`, aunque estilo,
    teselas, manifiesto e imágenes respondieran correctamente.
+3. El servidor de desarrollo resolvía el worker de MapLibre desde
+   `node_modules`, pero el build no lo emitía. El mapa de producción mostraba
+   únicamente el raster de relieve: faltaban teselas vectoriales, carreteras,
+   límites y etiquetas.
 
 El segundo caso no era un problema de versión, worker WebGL, georreferenciación
-ni reflectividad. La corrección está en la regla específica descrita en
-“Memoria y rendimiento”, y la prueba E2E mide la geometría real además del
-estado `data-map-ready`.
+ni reflectividad. El tercero sí correspondía al empaquetado del worker. Ambas
+correcciones se describen en “Memoria y rendimiento”; la prueba E2E mide la
+geometría real y exige una tesela vectorial, además del estado
+`data-map-ready`.
 
 Los mensajes `beforeinstallprompt` y la advertencia sobre la metaetiqueta de
 iOS no impiden renderizar el mapa. Un `AbortError` aislado durante desarrollo

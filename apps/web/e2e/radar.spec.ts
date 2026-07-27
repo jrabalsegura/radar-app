@@ -4,10 +4,22 @@ test('recorre el radar con controles accesibles y conserva la edad visible', asy
   page,
 }) => {
   const failedAssetResponses: Array<{ status: number; url: string }> = [];
+  const vectorTileResponses: Array<{ status: number; url: string }> = [];
   page.on('response', (response) => {
-    const pathname = new URL(response.url()).pathname;
+    const url = new URL(response.url());
+    const pathname = url.pathname;
     if (pathname.startsWith('/assets/') && response.status() >= 400) {
       failedAssetResponses.push({
+        status: response.status(),
+        url: response.url(),
+      });
+    }
+    if (
+      url.hostname === 'tiles.openfreemap.org' &&
+      pathname.startsWith('/planet/') &&
+      pathname.endsWith('.pbf')
+    ) {
+      vectorTileResponses.push({
         status: response.status(),
         url: response.url(),
       });
@@ -28,7 +40,10 @@ test('recorre el radar con controles accesibles y conserva la edad visible', asy
   await expect
     .poll(async () => (await mapContainer.boundingBox())?.height ?? 0)
     .toBeGreaterThan(300);
-  await page.waitForTimeout(250);
+  await expect.poll(() => vectorTileResponses.length).toBeGreaterThan(0);
+  expect(vectorTileResponses.every((response) => response.status < 400)).toBe(
+    true,
+  );
   expect(failedAssetResponses).toHaveLength(0);
   await expect(page.locator('.data-freshness')).toContainText(
     /Último dato .* · hace /,

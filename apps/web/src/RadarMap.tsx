@@ -4,8 +4,10 @@ import {
   Map as MapLibreMap,
   Marker,
   NavigationControl,
+  setWorkerUrl,
   type GeoJSONSourceSpecification,
 } from 'maplibre-gl';
+import mapLibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { useEffect, useRef, useState } from 'react';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -14,6 +16,8 @@ import { preloadFrame } from './framePreloader';
 import type { RadarIndexEntry, RegionalRadarIndexEntry } from './radarIndex';
 import type { LongitudeLatitude } from './radarLocation';
 import type { RadarTimelineFrame } from './radarManifest';
+
+setWorkerUrl(mapLibreWorkerUrl);
 
 const DEFAULT_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 const RADAR_SOURCE_IDS = ['regional-frame-a', 'regional-frame-b'] as const;
