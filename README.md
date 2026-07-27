@@ -5,11 +5,10 @@ repositorio sigue el desarrollo incremental definido en
 [`docs/ROADMAP.md`](docs/ROADMAP.md); la fuente principal de verdad es
 [`docs/SPEC.md`](docs/SPEC.md).
 
-La Fase 5 conecta el archivo real de Murcia con sus derivados transparentes y
-ofrece tres horas de reproducción sobre MapLibre. Incluye huecos explícitos,
-slider, botones temporales, play/pause, tres velocidades, teclado, precarga
-deduplicada y movimiento reducido. Durante un hueco conserva en el mapa la
-última reflectividad real, indicando siempre que no existe una observación nueva.
+La Fase 6 generaliza el pipeline a los 15 radares regionales del contrato
+OpenAPI de AEMET. El selector ajusta automáticamente mapa, cobertura, estado y
+timeline. Los radares temporalmente sin datos permanecen visibles y se siguen
+consultando, sin mezclar ni reutilizar imágenes de otro producto.
 
 ## Requisitos
 
@@ -51,13 +50,14 @@ la CLI no sobrescribe una variable ya exportada.
 
 ```bash
 make dev-web       # servidor Vite local
-make fetch-once    # una consulta de Murcia y nacional; carga .env
+make fetch-once    # una consulta de los 15 radares regionales; carga .env
 make check-inventory # comprueba códigos sin descargar sus GIF
 make poll-once     # ciclo completo: ingesta, retención y publicación
 make run-worker    # scheduler continuo
 make rebuild-manifests # reconstruye la publicación solo desde disco
 make serve-files   # inspección local en http://127.0.0.1:8000
 make analyze-reflectivity SAMPLE=ruta/original.gif # depuración completa de Murcia
+make validate-radar PRODUCT=regional-am SAMPLE=ruta/original.gif
 make georeference-murcia OVERLAY=ruta/overlay.png # salida Web Mercator
 make check         # lint, formato, tipado, tests y build
 make format        # aplica los formateadores
@@ -99,31 +99,43 @@ samples/           muestras mínimas y documentadas
 scripts/           utilidades reproducibles futuras
 ```
 
+La fuente regional primaria es la cronología PPI pública del visor oficial de
+AEMET: entrega 24 PNG con hora de producto y límites geográficos. OpenData
+permanece como fallback y requiere `AEMET_API_KEY`.
+
 Los originales se guardan en
-`data/raw/<producto>/<AAAA>/<MM>/<DD>/<sha256>.gif`; cada GIF tiene un informe
-JSON adyacente. Las URLs efímeras de AEMET y la API key no se almacenan. Si el
-hash ya existe para el producto, la ejecución informa `duplicate` y no crea otra
-copia.
+`data/raw/<producto>/<AAAA>/<MM>/<DD>/`: los PPI usan una clave de observación y
+SHA-256 con extensión `.png`; el fallback conserva `.gif`. Cada imagen tiene un
+informe JSON adyacente. Las URLs de AEMET y la API key no se almacenan. Repetir
+la misma observación informa `duplicate`; dos horas oficiales distintas se
+conservan aunque sus píxeles coincidan.
 
 La publicación estática se genera en:
 
 ```text
 data/radar/index.json
 data/radar/<producto>/manifest.json
-data/radar/regional-mu/frames/<sha256>/overlay-3857.png
+data/radar/<radar>/frames/<sha256>/overlay.png
 data/status/health.json
 ```
 
-El manifiesto conserva una ventana pública de tres horas anclada en el último
-fotograma disponible, mientras el archivo mantiene inicialmente 24 horas. Para
-Murcia, cada observación publicable incorpora un `imageUrl` generado una sola
-vez por hash. `productTime` se usa únicamente si existe evidencia; en caso
-contrario se usa `retrievedAt` y se declara como
+El manifiesto conserva una ventana pública de 3 horas y 50 minutos anclada en el último
+fotograma disponible, mientras el archivo mantiene inicialmente 24 horas. Cada
+observación regional publicable incorpora un `imageUrl` y cuatro
+`imageCoordinates` oficiales, generados una sola vez por hash. El PPI aporta
+`productTime`; en el fallback solo se usa si existe evidencia y, en caso
+contrario, se usa `retrievedAt` y se declara como
 `timeSource: "retrievedAt"`. Los huecos se enumeran sin crear fotogramas
 artificiales. La interfaz puede mantener visible el último fotograma real para
 dar continuidad, pero conserva su hora original y marca el intervalo como
-`Sin dato`. Con cadencia exacta de 10 minutos caben hasta 19 observaciones
+`Sin dato`. Con cadencia exacta de 10 minutos caben hasta 24 observaciones
 contando ambos extremos.
+
+El catálogo [`config/radars.yaml`](config/radars.yaml) declara los 15 endpoints,
+emplazamientos, centros y estrategias. `validate-radar` comprueba una muestra
+contra su perfil y genera previsualizaciones de reflectividad,
+georreferenciación y límites. Los detalles y limitaciones están en
+[`docs/PHASE_6.md`](docs/PHASE_6.md).
 
 Para Murcia, `analyze-reflectivity` valida la plantilla `480×530`, recorta la
 zona `480×480`, clasifica las once clases de la leyenda y aplica
@@ -139,10 +151,13 @@ metodología de extracción se documenta en
 equidistante de 1 km a EPSG:3857, recorta el alcance nominal de 240 km y genera
 `overlay-3857.png` más `georeferencing.json`. El remuestreo por vecino más
 próximo no crea colores intermedios. El ciclo y `rebuild-manifests` encadenan
-automáticamente ambos procesadores para cada hash nuevo de Murcia.
+automáticamente ambos procesadores para cada hash nuevo regional.
 
-La muestra real versionada del frontend está en
-`apps/web/public/radar/regional-mu/`; puede verse con `make dev-web`. La
+La muestra real versionada del frontend publica 15 manifiestos bajo
+`apps/web/public/radar/`: trece reproducen PPI, Las Palmas conserva un GIF de
+fallback y Valencia permanece sin datos. Los radares PPI disponibles incluyen
+su animación completa de 24 observaciones; Málaga refleja honestamente los
+huecos de AEMET. Puede verse con `make dev-web`. La
 calibración se documenta en [`docs/PHASE_4.md`](docs/PHASE_4.md) y la
 reproducción en [`docs/PHASE_5.md`](docs/PHASE_5.md).
 

@@ -1,0 +1,168 @@
+schemaVersion: 1
+sources:
+  openApi: https://opendata.aemet.es/AEMET_OpenData_specification.json
+  officialViewer: https://www.aemet.es/es/eltiempo/observacion/radar.html
+defaults:
+  cadenceMinutes: 10
+  rangeKilometres: 240
+  mapZoom: 6.1
+  reflectivityConfig: palettes/regional-safe-v1.json
+  ambiguousClassPolicy: discard
+  sourceRaster:
+    width: 480
+    height: 480
+    centerX: 240
+    centerY: 240
+    metresPerPixel: 1000
+  output:
+    crs: EPSG:3857
+    pixelSizeMetres: 1000
+    resampling: nearest
+radars:
+  - id: regional-am
+    label: Almería
+    apiCode: am
+    siteCode: NJR
+    siteName: Almería - Níjar
+    longitude: -2.08209663
+    latitude: 36.83242654
+    sampleValidation: verified
+    staticMask: masks/regional-am-v1.png
+    ambiguousClassPolicy: static-mask
+  - id: regional-sa
+    label: Asturias
+    apiCode: sa
+    siteCode: SLS
+    siteName: Asturias - Salas
+    longitude: -6.3020955
+    latitude: 43.4625218305556
+    sampleValidation: verified
+    staticMask: masks/regional-sa-v1.png
+    ambiguousClassPolicy: static-mask
+  - id: regional-pm
+    label: Illes Balears
+    apiCode: pm
+    siteCode: LLM
+    siteName: Illes Balears - Llucmajor
+    longitude: 2.78509531
+    latitude: 39.37978959
+    sampleValidation: verified
+    staticMask: masks/regional-pm-v1.png
+    ambiguousClassPolicy: static-mask
+  - id: regional-ba
+    label: Barcelona
+    apiCode: ba
+    siteCode: GLD
+    siteName: Barcelona - Gelida
+    longitude: 1.88489475
+    latitude: 41.40818492
+    sampleValidation: verified
+    staticMask: masks/regional-ba-v1.png
+    ambiguousClassPolicy: static-mask
+  - id: regional-cc
+    label: Cáceres
+    apiCode: cc
+    siteCode: SFT
+    siteName: Cáceres - Sierra de Fuentes
+    longitude: -6.28527748055556
+    latitude: 39.4288340666667
+    sampleValidation: verified
+    staticMask: masks/regional-cc-v1.png
+    ambiguousClassPolicy: static-mask
+  - id: regional-co
+    label: A Coruña
+    apiCode: co
+    siteCode: CCD
+    siteName: A Coruña - Cerceda
+    longitude: -8.52690718
+    latitude: 43.16902998
+    sampleValidation: awaiting-data
+  - id: regional-ma
+    label: Madrid
+    apiCode: ma
+    siteCode: TJV
+    siteName: Madrid - Torrejón de Velasco
+    longitude: -3.71368328333333
+    latitude: 40.1759238222222
+    sampleValidation: verified
+    staticMask: masks/regional-ma-v1.png
+    ambiguousClassPolicy: static-mask
+  - id: regional-ml
+    label: Málaga
+    apiCode: ml
+    siteCode: AHR
+    siteName: Málaga - Alhaurín el Grande
+    longitude: -4.65933
+    latitude: 36.6134271638889
+    sampleValidation: verified
+    staticMask: masks/regional-ml-v1.png
+    ambiguousClassPolicy: static-mask
+  - id: regional-mu
+    label: Murcia
+    apiCode: mu
+    siteCode: FTN
+    siteName: Murcia - Fortuna
+    longitude: -1.18970006
+    latitude: 38.26438295
+    sampleValidation: control-points
+    reflectivityConfig: palettes/regional-mu-v1.json
+    staticMask: masks/regional-mu-v1.png
+    ambiguousClassPolicy: static-mask
+    georeferencingConfig: georeferencing/regional-mu-v1.json
+  - id: regional-vd
+    label: Palencia
+    apiCode: vd
+    siteCode: LID
+    siteName: Palencia
+    longitude: -4.602303426729533
+    latitude: 41.97747381500432
+    sampleValidation: verified
+    staticMask: masks/regional-vd-v1.png
+    ambiguousClassPolicy: static-mask
+  - id: regional-ca
+    label: Las Palmas
+    apiCode: ca
+    siteCode: CAN
+    siteName: Canarias
+    longitude: -16.189392
+    latitude: 28.149181
+    mapZoom: 5.7
+    sampleValidation: verified
+    staticMask: masks/regional-ca-v1.png
+    ambiguousClassPolicy: static-mask
+  - id: regional-se
+    label: Sevilla
+    apiCode: se
+    siteCode: CLG
+    siteName: Sevilla - El Castillo de las Guardas
+    longitude: -6.33308
+    latitude: 37.68868
+    sampleValidation: verified
+    staticMask: masks/regional-se-v1.png
+    ambiguousClassPolicy: static-mask
+  - id: regional-va
+    label: Valencia
+    apiCode: va
+    siteCode: VAL
+    siteName: Valencia
+    longitude: -0.2544363183210079
+    latitude: 39.15896325099358
+    sampleValidation: awaiting-data
+  - id: regional-ss
+    label: Vizcaya
+    apiCode: ss
+    siteCode: SSE
+    siteName: Bizkaia - Maruri-Jatabe
+    longitude: -2.844146670725987
+    latitude: 43.385104702111434
+    sampleValidation: awaiting-data
+  - id: regional-za
+    label: Zaragoza
+    apiCode: za
+    siteCode: PDG
+    siteName: Zaragoza - Perdiguera
+    longitude: -0.54594373
+    latitude: 41.7339941
+    sampleValidation: verified
+    staticMask: masks/regional-za-v1.png
+    ambiguousClassPolicy: static-mask

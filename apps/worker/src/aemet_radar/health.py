@@ -16,7 +16,7 @@ from aemet_radar.storage import atomic_write_json
 
 @dataclass(frozen=True, slots=True)
 class PollObservation:
-    status: Literal["success", "error"]
+    status: Literal["success", "no-data", "error"]
     checked_at: datetime
     attempts: int
     outcome_status: str | None = None
@@ -51,12 +51,12 @@ class HealthPublisher:
             for product in products
         ]
         statuses = {state["status"] for state in product_states}
-        if statuses == {"current"}:
-            overall_status = "ok"
+        if "error" in statuses or "delayed" in statuses:
+            overall_status = "degraded"
         elif statuses == {"no-data"}:
             overall_status = "no-data"
         else:
-            overall_status = "degraded"
+            overall_status = "ok"
 
         atomic_write_json(
             self.path,
@@ -108,12 +108,14 @@ class HealthPublisher:
         else:
             data_status = "current"
         previous_status = _optional_string(previous, "status")
-        status = (
-            "error"
-            if (observation is not None and observation.status == "error")
-            or (observation is None and previous_status == "error")
-            else data_status
-        )
+        if observation is not None and observation.status == "error":
+            status = "error"
+        elif observation is not None and observation.status == "no-data":
+            status = "no-data"
+        elif observation is None and previous_status == "error":
+            status = "error"
+        else:
+            status = data_status
 
         previous_last_poll = _optional_string(previous, "lastPollAt")
         previous_last_success = _optional_string(previous, "lastSuccessAt")
@@ -127,6 +129,9 @@ class HealthPublisher:
         last_error: object | None
         if observation is not None and observation.status == "success":
             last_success_at = isoformat_utc(observation.checked_at)
+            last_error = None
+        elif observation is not None and observation.status == "no-data":
+            last_success_at = previous_last_success
             last_error = None
         elif observation is not None:
             last_success_at = previous_last_success

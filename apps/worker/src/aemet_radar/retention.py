@@ -39,7 +39,7 @@ class RetentionManager:
         removable = [
             frame
             for frame in scan.frames
-            if frame.source_hash != latest.source_hash and frame.last_retrieved_at < cutoff
+            if frame.source_id != latest.source_id and frame.last_retrieved_at < cutoff
         ]
         for frame in removable:
             _remove_pair(frame)

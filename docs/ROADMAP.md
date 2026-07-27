@@ -92,7 +92,7 @@ Demostrar que el worker puede consultar, descargar, identificar y archivar de fo
 
 ---
 
-## Fase 2 — Historial de tres horas y manifiestos sin procesamiento visual
+## Fase 2 — Historial y manifiestos sin procesamiento visual
 
 ### Objetivo
 
@@ -104,12 +104,12 @@ Construir el ciclo de ingesta continuada y el modelo temporal antes de abordar l
 - Polling con timeout, reintentos limitados y backoff.
 - Ingesta de Murcia y composición nacional.
 - Retención inicial de 24 horas.
-- Selección pública de las últimas tres horas.
+- Selección pública de las últimas 3 horas y 50 minutos.
 - Detección y representación de huecos.
 - Manifiestos atómicos.
 - `health.json`.
 - CLI para reconstruir manifiestos.
-- Pruebas con 19 fotogramas y con secuencias incompletas.
+- Pruebas con 24 fotogramas y con secuencias incompletas.
 - Servicio local de archivos para inspección.
 
 ### Exclusiones
@@ -122,7 +122,7 @@ Construir el ciclo de ingesta continuada y el modelo temporal antes de abordar l
 ### Criterios de aceptación
 
 - El manifiesto ordena correctamente los fotogramas.
-- Solo publica tres horas aunque conserve más originales.
+- Solo publica 3 horas y 50 minutos aunque conserve más originales.
 - No inventa fotogramas ante huecos.
 - Un fallo temporal conserva el manifiesto válido anterior.
 - El estado identifica datos retrasados.
@@ -208,7 +208,7 @@ Superponer correctamente la capa procesada de Murcia sobre un mapa real.
 
 ---
 
-## Fase 5 — Reproducción de las últimas tres horas
+## Fase 5 — Reproducción de las últimas 3 horas y 50 minutos
 
 ### Objetivo
 
@@ -264,12 +264,14 @@ Convertir el procesador de Murcia en un pipeline configurable para el conjunto d
 ### Exclusiones
 
 - No asumir que todos comparten configuración.
-- No habilitar un radar hasta superar su validación.
+- No publicar una capa meteorológica hasta que la muestra supere la validación;
+  el emplazamiento permanece visible y consultable aunque esté sin datos.
 - No ocultar radares fallidos como si estuvieran actualizados.
 
 ### Criterios de aceptación
 
-- Todos los radares habilitados tienen manifiesto independiente.
+- Los 15 radares del contrato OpenAPI tienen manifiesto independiente, también
+  cuando está vacío.
 - Cambiar de radar no mezcla fotogramas.
 - Cada radar muestra su estado y hora.
 - La aplicación solo precarga el seleccionado.
@@ -289,7 +291,7 @@ Añadir la composición nacional como producto propio, con procesador y georrefe
 - Procesador `national-v1`.
 - Máscara y paleta propias.
 - Georreferenciación nacional.
-- Historial de tres horas según cadencia real.
+- Historial de 3 horas y 50 minutos según cadencia real.
 - Integración en el selector.
 - Tratamiento explícito de Península, Baleares y Canarias según el producto disponible.
 - Comparación visual con el visor oficial.

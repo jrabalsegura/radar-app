@@ -6,11 +6,11 @@ from aemet_radar.manifests import ManifestPublisher
 from aemet_radar.products import MURCIA, NATIONAL, RadarProduct
 
 
-def test_manifest_orders_nineteen_frames_and_only_publishes_three_hours(
+def test_manifest_orders_twenty_four_frames_and_publishes_three_hours_fifty(
     tmp_path: Path,
 ) -> None:
     latest = datetime(2026, 7, 24, 12, 0, tzinfo=UTC)
-    times = [latest - timedelta(minutes=10 * index) for index in range(18, -1, -1)]
+    times = [latest - timedelta(minutes=10 * index) for index in range(23, -1, -1)]
     for index, product_time in reversed(list(enumerate(times, start=1))):
         _archive_report(tmp_path, index=index, product_time=product_time)
     _archive_report(tmp_path, index=99, product_time=latest - timedelta(hours=4))
@@ -22,27 +22,29 @@ def test_manifest_orders_nineteen_frames_and_only_publishes_three_hours(
 
     frames = result.payload["frames"]
     assert isinstance(frames, list)
-    assert len(frames) == 19
+    assert len(frames) == 24
     assert [frame["time"] for frame in frames] == [
         _isoformat(product_time) for product_time in times
     ]
     assert result.payload["latestFrameTime"] == "2026-07-24T12:00:00Z"
     assert result.payload["window"] == {
-        "hours": 3.0,
-        "start": "2026-07-24T09:00:00Z",
+        "hours": 23 / 6,
+        "minutes": 230,
+        "start": "2026-07-24T08:10:00Z",
         "end": "2026-07-24T12:00:00Z",
         "anchor": "latest-available-frame",
     }
     assert result.payload["timeBasis"] == "productTime"
     assert result.payload["gaps"] == []
     assert result.payload["statistics"] == {
-        "archivedFrames": 20,
-        "publishedFrames": 19,
+        "archivedFrames": 25,
+        "publishedFrames": 24,
         "discardedDuplicates": 0,
         "invalidReports": 0,
     }
-    assert len(list((tmp_path / "raw").rglob("*.gif"))) == 20
+    assert len(list((tmp_path / "raw").rglob("*.gif"))) == 25
     assert all(frame["imageUrl"] is None for frame in frames)
+    assert all(frame["imageCoordinates"] is None for frame in frames)
 
 
 def test_manifest_deduplicates_and_resolves_same_time_by_latest_retrieval(
@@ -130,6 +132,41 @@ def test_manifest_represents_gap_and_late_data_fills_it(tmp_path: Path) -> None:
     assert complete.payload["gaps"] == []
     assert [frame["time"] for frame in complete_frames] == [
         _isoformat(product_time) for product_time in expected
+    ]
+
+
+def test_manifest_represents_leading_missing_viewer_observations(
+    tmp_path: Path,
+) -> None:
+    latest = datetime(2026, 7, 27, 8, 10, tzinfo=UTC)
+    times = [latest - timedelta(minutes=20), latest - timedelta(minutes=10), latest]
+    for index, product_time in enumerate(times, start=1):
+        _archive_report(
+            tmp_path,
+            index=index,
+            product_time=product_time,
+            source_provider="aemet-viewer",
+        )
+
+    result = ManifestPublisher(tmp_path).rebuild_product(
+        MURCIA,
+        generated_at=latest + timedelta(minutes=1),
+    )
+
+    gaps = result.payload["gaps"]
+    assert isinstance(gaps, list)
+    assert gaps == [
+        {
+            "after": None,
+            "before": "2026-07-27T07:50:00Z",
+            "expectedCadenceMinutes": 10,
+            "missingCount": 21,
+            "expectedTimes": [
+                _isoformat(latest - timedelta(minutes=230) + timedelta(minutes=10 * index))
+                for index in range(21)
+            ],
+            "timeBasis": "productTime",
+        }
     ]
 
 
@@ -228,6 +265,7 @@ def _archive_report(
     retrieved_at: datetime | None = None,
     bucket: tuple[str, str, str] = ("2026", "07", "24"),
     product: RadarProduct = MURCIA,
+    source_provider: str | None = None,
 ) -> str:
     retrieval = retrieved_at or product_time
     if retrieval is None:
@@ -237,7 +275,7 @@ def _archive_report(
     for part in bucket:
         directory /= part
     directory.mkdir(parents=True, exist_ok=True)
-    raw_path = directory / f"{digest}.gif"
+    raw_path = directory / f"{digest}{'.png' if source_provider else '.gif'}"
     report_path = directory / f"{digest}.json"
     raw_path.write_bytes(b"GIF89a synthetic")
     raw_relative = raw_path.relative_to(data_dir).as_posix()
@@ -260,6 +298,11 @@ def _archive_report(
             "report": report_path.relative_to(data_dir).as_posix(),
         },
     }
+    if source_provider is not None:
+        report["source"] = {
+            "provider": source_provider,
+            "observationId": f"fixture-{index}",
+        }
     report_path.write_text(json.dumps(report), encoding="utf-8")
     return digest
 

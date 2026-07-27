@@ -24,7 +24,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -35,6 +36,7 @@ a {
 
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
 a:focus-visible {
   outline: 3px solid #ff8b66;
   outline-offset: 3px;
@@ -59,6 +61,68 @@ a:focus-visible {
   justify-content: space-between;
   margin: 0 auto;
   padding: 0 0.5rem 0.9rem;
+}
+
+.radar-heading {
+  min-width: 13rem;
+}
+
+.radar-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.status-chip {
+  padding: 0.3rem 0.5rem;
+  border-radius: 999px;
+  color: #31514a;
+  background: #dceee8;
+  font-size: 0.57rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-chip--delayed {
+  color: #705313;
+  background: #f6e9bd;
+}
+
+.status-chip--no-data,
+.status-chip--error {
+  color: #813d27;
+  background: #f8ded4;
+}
+
+.radar-selector {
+  display: grid;
+  min-width: min(22rem, 38vw);
+  gap: 0.18rem;
+}
+
+.radar-selector label {
+  color: #5a716c;
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.radar-selector select {
+  width: 100%;
+  padding: 0.54rem 2.2rem 0.54rem 0.7rem;
+  border: 1px solid rgb(41 65 59 / 22%);
+  border-radius: 0.65rem;
+  color: #263c37;
+  background: rgb(255 255 255 / 72%);
+  font-weight: 740;
+  cursor: pointer;
+}
+
+.radar-selector > span {
+  color: #6d7d79;
+  font-size: 0.59rem;
 }
 
 .eyebrow {
@@ -219,6 +283,39 @@ h1 {
   margin-top: 0.35rem;
   color: #6f4a3e;
   font-weight: 650;
+}
+
+.no-data-card {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  width: min(28rem, calc(100% - 2rem));
+  padding: 1.35rem 1.5rem;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgb(255 255 255 / 78%);
+  border-radius: 1rem;
+  background: rgb(250 251 248 / 94%);
+  box-shadow: 0 0.8rem 2.2rem rgb(24 43 38 / 16%);
+  text-align: center;
+  backdrop-filter: blur(0.9rem);
+}
+
+.no-data-card h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.35rem;
+}
+
+.no-data-card > p:last-child {
+  margin: 0;
+  color: #62746f;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.no-data-card--error {
+  border-color: rgb(255 148 107 / 65%);
+  background: rgb(255 246 240 / 95%);
 }
 
 .map-tools {
@@ -548,6 +645,21 @@ h1 {
 }
 
 @media (max-width: 52rem) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 0.7rem;
+  }
+
+  .radar-selector {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .map-layout {
+    min-height: calc(100vh - 10.5rem);
+  }
+
   .map-tools {
     top: 0.75rem;
     right: 3.4rem;
@@ -581,7 +693,7 @@ h1 {
   }
 
   .topbar {
-    min-height: 4.5rem;
+    min-height: 7.7rem;
     padding: 0.75rem 1rem;
   }
 
@@ -590,8 +702,33 @@ h1 {
     display: none;
   }
 
+  .radar-heading {
+    min-width: 0;
+  }
+
+  .radar-title-row {
+    gap: 0.45rem;
+  }
+
+  .status-chip {
+    display: none;
+  }
+
+  .radar-selector {
+    order: 3;
+  }
+
+  .radar-selector label,
+  .radar-selector > span {
+    display: none;
+  }
+
+  .radar-selector select {
+    padding-block: 0.48rem;
+  }
+
   .map-layout {
-    min-height: calc(100vh - 4.5rem);
+    min-height: calc(100vh - 7.7rem);
     border-width: 1px 0 0;
     border-radius: 0;
   }

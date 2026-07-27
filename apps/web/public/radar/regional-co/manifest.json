@@ -1,0 +1,749 @@
+{
+  "frames": [
+    {
+      "id": "regional-co_20260727T042000Z_4ee07461c3a0",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/4ee07461c3a0f24e4e918246d48367ee8fefb2466ececff7709a0b4f17edc51d/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.023459Z",
+      "productTime": "2026-07-27T04:20:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T042000Z-4ee07461c3a0f24e4e918246d48367ee8fefb2466ececff7709a0b4f17edc51d.png",
+      "retrievedAt": "2026-07-27T08:35:43.023459Z",
+      "sourceHash": "sha256:4ee07461c3a0f24e4e918246d48367ee8fefb2466ececff7709a0b4f17edc51d",
+      "status": "available",
+      "time": "2026-07-27T04:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T043000Z_6358159521f9",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/6358159521f967a1475ecd96e054418456b2d791170e7fae75eb6b388a8c0f71/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.092243Z",
+      "productTime": "2026-07-27T04:30:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T043000Z-6358159521f967a1475ecd96e054418456b2d791170e7fae75eb6b388a8c0f71.png",
+      "retrievedAt": "2026-07-27T08:35:43.092243Z",
+      "sourceHash": "sha256:6358159521f967a1475ecd96e054418456b2d791170e7fae75eb6b388a8c0f71",
+      "status": "available",
+      "time": "2026-07-27T04:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T044000Z_825cebbe35a5",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/825cebbe35a5c8ff1ef18270851519fd361778c5084e33ef0b277538ed3b70e0/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.182100Z",
+      "productTime": "2026-07-27T04:40:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T044000Z-825cebbe35a5c8ff1ef18270851519fd361778c5084e33ef0b277538ed3b70e0.png",
+      "retrievedAt": "2026-07-27T08:35:43.182100Z",
+      "sourceHash": "sha256:825cebbe35a5c8ff1ef18270851519fd361778c5084e33ef0b277538ed3b70e0",
+      "status": "available",
+      "time": "2026-07-27T04:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T045000Z_9c56cedd6ef8",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/9c56cedd6ef886d23885bd3ba4a2dfa2d9f1ff4a15e3e6de613fa3fe9da68b0d/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.256119Z",
+      "productTime": "2026-07-27T04:50:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T045000Z-9c56cedd6ef886d23885bd3ba4a2dfa2d9f1ff4a15e3e6de613fa3fe9da68b0d.png",
+      "retrievedAt": "2026-07-27T08:35:43.256119Z",
+      "sourceHash": "sha256:9c56cedd6ef886d23885bd3ba4a2dfa2d9f1ff4a15e3e6de613fa3fe9da68b0d",
+      "status": "available",
+      "time": "2026-07-27T04:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T050000Z_8e3ec2bf251f",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/8e3ec2bf251f949472d23e21afd0bfab6e554581922b64d47c985e4a7bd8b96f/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.335808Z",
+      "productTime": "2026-07-27T05:00:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T050000Z-8e3ec2bf251f949472d23e21afd0bfab6e554581922b64d47c985e4a7bd8b96f.png",
+      "retrievedAt": "2026-07-27T08:35:43.335808Z",
+      "sourceHash": "sha256:8e3ec2bf251f949472d23e21afd0bfab6e554581922b64d47c985e4a7bd8b96f",
+      "status": "available",
+      "time": "2026-07-27T05:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T051000Z_98082c6d4f3d",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/98082c6d4f3dd235996ffc42373e677acd96cad5f466c038f3fa7846ae501d24/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.404925Z",
+      "productTime": "2026-07-27T05:10:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T051000Z-98082c6d4f3dd235996ffc42373e677acd96cad5f466c038f3fa7846ae501d24.png",
+      "retrievedAt": "2026-07-27T08:35:43.404925Z",
+      "sourceHash": "sha256:98082c6d4f3dd235996ffc42373e677acd96cad5f466c038f3fa7846ae501d24",
+      "status": "available",
+      "time": "2026-07-27T05:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T052000Z_df01904da383",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/df01904da38381a437669a5408ce89139b5e5501588993d59e03d42dd1878abe/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.475860Z",
+      "productTime": "2026-07-27T05:20:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T052000Z-df01904da38381a437669a5408ce89139b5e5501588993d59e03d42dd1878abe.png",
+      "retrievedAt": "2026-07-27T08:35:43.475860Z",
+      "sourceHash": "sha256:df01904da38381a437669a5408ce89139b5e5501588993d59e03d42dd1878abe",
+      "status": "available",
+      "time": "2026-07-27T05:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T053000Z_ea9971d61d56",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/ea9971d61d56358ebe10ee8f2cc4ca1edfe3101c2fffff919b81740343eca5f1/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.543160Z",
+      "productTime": "2026-07-27T05:30:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T053000Z-ea9971d61d56358ebe10ee8f2cc4ca1edfe3101c2fffff919b81740343eca5f1.png",
+      "retrievedAt": "2026-07-27T08:35:43.543160Z",
+      "sourceHash": "sha256:ea9971d61d56358ebe10ee8f2cc4ca1edfe3101c2fffff919b81740343eca5f1",
+      "status": "available",
+      "time": "2026-07-27T05:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T054000Z_be466b3eed14",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/be466b3eed140d00be3ad9db31be15a061846cb30b971b544c92d22512e6c53e/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.608757Z",
+      "productTime": "2026-07-27T05:40:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T054000Z-be466b3eed140d00be3ad9db31be15a061846cb30b971b544c92d22512e6c53e.png",
+      "retrievedAt": "2026-07-27T08:35:43.608757Z",
+      "sourceHash": "sha256:be466b3eed140d00be3ad9db31be15a061846cb30b971b544c92d22512e6c53e",
+      "status": "available",
+      "time": "2026-07-27T05:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T055000Z_da94b424eccc",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/da94b424eccc2604f3f5d3e78a21a2890fc28fe83586101610d4b23919bb2ddf/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.674010Z",
+      "productTime": "2026-07-27T05:50:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T055000Z-da94b424eccc2604f3f5d3e78a21a2890fc28fe83586101610d4b23919bb2ddf.png",
+      "retrievedAt": "2026-07-27T08:35:43.674010Z",
+      "sourceHash": "sha256:da94b424eccc2604f3f5d3e78a21a2890fc28fe83586101610d4b23919bb2ddf",
+      "status": "available",
+      "time": "2026-07-27T05:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T060000Z_8dff9f83800e",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/8dff9f83800eb99b5c2ff56f29a007762f26adb0479398b3f634c3685e2eebd3/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.739776Z",
+      "productTime": "2026-07-27T06:00:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T060000Z-8dff9f83800eb99b5c2ff56f29a007762f26adb0479398b3f634c3685e2eebd3.png",
+      "retrievedAt": "2026-07-27T08:35:43.739776Z",
+      "sourceHash": "sha256:8dff9f83800eb99b5c2ff56f29a007762f26adb0479398b3f634c3685e2eebd3",
+      "status": "available",
+      "time": "2026-07-27T06:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T061000Z_c594d7c3398d",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/c594d7c3398ddc4532389c45d630f3a354849fcd6f482b2d940b7b71f9af237e/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.811372Z",
+      "productTime": "2026-07-27T06:10:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T061000Z-c594d7c3398ddc4532389c45d630f3a354849fcd6f482b2d940b7b71f9af237e.png",
+      "retrievedAt": "2026-07-27T08:35:43.811372Z",
+      "sourceHash": "sha256:c594d7c3398ddc4532389c45d630f3a354849fcd6f482b2d940b7b71f9af237e",
+      "status": "available",
+      "time": "2026-07-27T06:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T062000Z_fe6b21a6be51",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/fe6b21a6be511260114012ce6394da4aa9fd6cf6c2eada8521096c41bf6b77f7/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.880549Z",
+      "productTime": "2026-07-27T06:20:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T062000Z-fe6b21a6be511260114012ce6394da4aa9fd6cf6c2eada8521096c41bf6b77f7.png",
+      "retrievedAt": "2026-07-27T08:35:43.880549Z",
+      "sourceHash": "sha256:fe6b21a6be511260114012ce6394da4aa9fd6cf6c2eada8521096c41bf6b77f7",
+      "status": "available",
+      "time": "2026-07-27T06:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T063000Z_c5d571647fb6",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/c5d571647fb6026805f9c0619ea79edab51f9951e44ca272ad7261a38ef16afb/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:43.951282Z",
+      "productTime": "2026-07-27T06:30:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T063000Z-c5d571647fb6026805f9c0619ea79edab51f9951e44ca272ad7261a38ef16afb.png",
+      "retrievedAt": "2026-07-27T08:35:43.951282Z",
+      "sourceHash": "sha256:c5d571647fb6026805f9c0619ea79edab51f9951e44ca272ad7261a38ef16afb",
+      "status": "available",
+      "time": "2026-07-27T06:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T064000Z_1fe3c6fcb295",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/1fe3c6fcb295734e3f18b4e07806c33932d49d3a9267e326bb40d23050060b3a/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.021692Z",
+      "productTime": "2026-07-27T06:40:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T064000Z-1fe3c6fcb295734e3f18b4e07806c33932d49d3a9267e326bb40d23050060b3a.png",
+      "retrievedAt": "2026-07-27T08:35:44.021692Z",
+      "sourceHash": "sha256:1fe3c6fcb295734e3f18b4e07806c33932d49d3a9267e326bb40d23050060b3a",
+      "status": "available",
+      "time": "2026-07-27T06:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T065000Z_8c4846891f95",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/8c4846891f95e0a4450533f2edfc14b1b09fb34f9512cc2eccf6e1a5bcf53a91/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.097219Z",
+      "productTime": "2026-07-27T06:50:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T065000Z-8c4846891f95e0a4450533f2edfc14b1b09fb34f9512cc2eccf6e1a5bcf53a91.png",
+      "retrievedAt": "2026-07-27T08:35:44.097219Z",
+      "sourceHash": "sha256:8c4846891f95e0a4450533f2edfc14b1b09fb34f9512cc2eccf6e1a5bcf53a91",
+      "status": "available",
+      "time": "2026-07-27T06:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T070000Z_095ed820bb77",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/095ed820bb779e4db01213b32a8e9925455201cb0819b6c092b35c3725b00123/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.165974Z",
+      "productTime": "2026-07-27T07:00:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T070000Z-095ed820bb779e4db01213b32a8e9925455201cb0819b6c092b35c3725b00123.png",
+      "retrievedAt": "2026-07-27T08:35:44.165974Z",
+      "sourceHash": "sha256:095ed820bb779e4db01213b32a8e9925455201cb0819b6c092b35c3725b00123",
+      "status": "available",
+      "time": "2026-07-27T07:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T071000Z_d5ed16586f1a",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/d5ed16586f1a963af624cb48b479a8115f30eb51e5d10494648ae0d8358cc9bd/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.237990Z",
+      "productTime": "2026-07-27T07:10:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T071000Z-d5ed16586f1a963af624cb48b479a8115f30eb51e5d10494648ae0d8358cc9bd.png",
+      "retrievedAt": "2026-07-27T08:35:44.237990Z",
+      "sourceHash": "sha256:d5ed16586f1a963af624cb48b479a8115f30eb51e5d10494648ae0d8358cc9bd",
+      "status": "available",
+      "time": "2026-07-27T07:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T072000Z_7c18f0ecded5",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/7c18f0ecded5f52b80f18948f5ec28e000c38792df8960e61f55bc274cc29f15/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.310624Z",
+      "productTime": "2026-07-27T07:20:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T072000Z-7c18f0ecded5f52b80f18948f5ec28e000c38792df8960e61f55bc274cc29f15.png",
+      "retrievedAt": "2026-07-27T08:35:44.310624Z",
+      "sourceHash": "sha256:7c18f0ecded5f52b80f18948f5ec28e000c38792df8960e61f55bc274cc29f15",
+      "status": "available",
+      "time": "2026-07-27T07:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T073000Z_aa31ab2dc23f",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/aa31ab2dc23fe6e541bd0725da5bab76a183800f3ffd1152b8186e3b0003e9af/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.388957Z",
+      "productTime": "2026-07-27T07:30:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T073000Z-aa31ab2dc23fe6e541bd0725da5bab76a183800f3ffd1152b8186e3b0003e9af.png",
+      "retrievedAt": "2026-07-27T08:35:44.388957Z",
+      "sourceHash": "sha256:aa31ab2dc23fe6e541bd0725da5bab76a183800f3ffd1152b8186e3b0003e9af",
+      "status": "available",
+      "time": "2026-07-27T07:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T074000Z_ebed831a64a0",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/ebed831a64a0c4ac8f9c5fc6efa91d9219c02bd21caf056b49e8d2def5c9bfea/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.459137Z",
+      "productTime": "2026-07-27T07:40:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T074000Z-ebed831a64a0c4ac8f9c5fc6efa91d9219c02bd21caf056b49e8d2def5c9bfea.png",
+      "retrievedAt": "2026-07-27T08:35:44.459137Z",
+      "sourceHash": "sha256:ebed831a64a0c4ac8f9c5fc6efa91d9219c02bd21caf056b49e8d2def5c9bfea",
+      "status": "available",
+      "time": "2026-07-27T07:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T075000Z_09d193604a2b",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/09d193604a2bc2ae754ac2f44547a4ab58f18b2bef538a63445192dbd5f054f2/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.576842Z",
+      "productTime": "2026-07-27T07:50:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T075000Z-09d193604a2bc2ae754ac2f44547a4ab58f18b2bef538a63445192dbd5f054f2.png",
+      "retrievedAt": "2026-07-27T08:35:44.576842Z",
+      "sourceHash": "sha256:09d193604a2bc2ae754ac2f44547a4ab58f18b2bef538a63445192dbd5f054f2",
+      "status": "available",
+      "time": "2026-07-27T07:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T080000Z_2d2b58a61801",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/2d2b58a61801ff00651442c7ff3c4c957bb2029a79b157d5468bf846f5149a80/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:44.653758Z",
+      "productTime": "2026-07-27T08:00:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T080000Z-2d2b58a61801ff00651442c7ff3c4c957bb2029a79b157d5468bf846f5149a80.png",
+      "retrievedAt": "2026-07-27T08:35:44.653758Z",
+      "sourceHash": "sha256:2d2b58a61801ff00651442c7ff3c4c957bb2029a79b157d5468bf846f5149a80",
+      "status": "available",
+      "time": "2026-07-27T08:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "regional-co_20260727T081000Z_70fc1dd86245",
+      "imageCoordinates": [
+        [
+          -17.586219999999997,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          51.328912700000004
+        ],
+        [
+          0.527478654805212,
+          34.97264356416013
+        ],
+        [
+          -17.586219999999997,
+          34.97264356416013
+        ]
+      ],
+      "imageUrl": "/radar/regional-co/frames/70fc1dd862457bc654678524f2abd9624dcaaa7c43b190e154313f7f61135370/overlay.png",
+      "lastRetrievedAt": "2026-07-27T08:35:42.938721Z",
+      "productTime": "2026-07-27T08:10:00Z",
+      "rawUrl": "/raw/regional-co/2026/07/27/20260727T081000Z-70fc1dd862457bc654678524f2abd9624dcaaa7c43b190e154313f7f61135370.png",
+      "retrievedAt": "2026-07-27T08:35:42.938721Z",
+      "sourceHash": "sha256:70fc1dd862457bc654678524f2abd9624dcaaa7c43b190e154313f7f61135370",
+      "status": "available",
+      "time": "2026-07-27T08:10:00Z",
+      "timeSource": "productTime"
+    }
+  ],
+  "gaps": [],
+  "generatedAt": "2026-07-27T09:01:14.764734Z",
+  "latestFrameTime": "2026-07-27T08:10:00Z",
+  "latestProductTime": "2026-07-27T08:10:00Z",
+  "radar": {
+    "cadenceMinutes": 10,
+    "id": "regional-co",
+    "kind": "regional",
+    "label": "A Coruña"
+  },
+  "schemaVersion": 1,
+  "statistics": {
+    "archivedFrames": 24,
+    "discardedDuplicates": 0,
+    "invalidReports": 0,
+    "publishedFrames": 24
+  },
+  "timeBasis": "productTime",
+  "window": {
+    "anchor": "latest-available-frame",
+    "end": "2026-07-27T08:10:00Z",
+    "hours": 3.8333333333333335,
+    "minutes": 230,
+    "start": "2026-07-27T04:20:00Z"
+  }
+}

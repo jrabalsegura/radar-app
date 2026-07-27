@@ -1,4 +1,4 @@
-"""Productos de radar incluidos en el spike y catálogo provisional oficial."""
+"""Productos publicados por AEMET OpenData."""
 
 from __future__ import annotations
 
@@ -44,13 +44,8 @@ NATIONAL = RadarProduct(
     cadence_minutes=30,
 )
 
-SPIKE_PRODUCTS: dict[str, RadarProduct] = {
-    MURCIA.id: MURCIA,
-    NATIONAL.id: NATIONAL,
-}
-
 # Catálogo publicado en AEMET_OpenData_specification.json. La disponibilidad
-# observada se documenta por separado y no habilita radares.
+# observada se documenta por separado y nunca elimina radares.
 PROVISIONAL_REGIONAL_RADARS: tuple[RegionalRadar, ...] = (
     RegionalRadar("am", "Almería"),
     RegionalRadar("sa", "Asturias"),
@@ -80,3 +75,12 @@ PROVISIONAL_REGIONAL_PRODUCTS: tuple[RadarProduct, ...] = tuple(
     )
     for radar in PROVISIONAL_REGIONAL_RADARS
 )
+
+REGIONAL_PRODUCTS: tuple[RadarProduct, ...] = PROVISIONAL_REGIONAL_PRODUCTS
+PRODUCTS: dict[str, RadarProduct] = {
+    **{product.id: product for product in REGIONAL_PRODUCTS},
+    NATIONAL.id: NATIONAL,
+}
+
+# Alias conservado para no romper integraciones anteriores a la Fase 6.
+SPIKE_PRODUCTS = PRODUCTS

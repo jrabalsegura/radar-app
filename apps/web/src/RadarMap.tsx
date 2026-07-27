@@ -11,21 +11,18 @@ import { useEffect, useRef, useState } from 'react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { preloadFrame } from './framePreloader';
-import type { RadarFrameReport } from './radarFrame';
+import type { RegionalRadarIndexEntry } from './radarIndex';
 import type { RadarTimelineFrame } from './radarManifest';
 
 const DEFAULT_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
-const RADAR_SOURCE_IDS = [
-  'regional-mu-frame-a',
-  'regional-mu-frame-b',
-] as const;
-const RADAR_LAYER_IDS = ['regional-mu-frame-a', 'regional-mu-frame-b'] as const;
+const RADAR_SOURCE_IDS = ['regional-frame-a', 'regional-frame-b'] as const;
+const RADAR_LAYER_IDS = ['regional-frame-a', 'regional-frame-b'] as const;
 const DEBUG_SOURCE_ID = 'calibration-debug';
 const DEBUG_LAYER_ID = 'coverage-debug';
 const CROSSFADE_MILLISECONDS = 180;
 
 interface RadarMapProps {
-  calibration: RadarFrameReport;
+  radar: RegionalRadarIndexEntry;
   selectedFrame: RadarTimelineFrame | null;
   opacity: number;
   showDebug: boolean;
@@ -33,7 +30,7 @@ interface RadarMapProps {
 }
 
 export function RadarMap({
-  calibration,
+  radar,
   selectedFrame,
   opacity,
   showDebug,
@@ -41,13 +38,10 @@ export function RadarMap({
 }: RadarMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
-  const debugMarkersRef = useRef<Marker[]>([]);
+  const debugMarkerRef = useRef<Marker | null>(null);
   const activeLayerRef = useRef<0 | 1>(0);
-  const activeUrlRef = useRef(selectedFrame?.imageUrl ?? null);
-  const initialUrlRef = useRef(
-    selectedFrame?.imageUrl ?? '/radar/regional-mu/overlay-3857.png',
-  );
-  const initialFramePresentRef = useRef(selectedFrame !== null);
+  const activeUrlRef = useRef<string | null>(null);
+  const initialFrameRef = useRef(selectedFrame);
   const transitionSequenceRef = useRef(0);
   const initialOpacityRef = useRef(opacity);
   const initialDebugRef = useRef(showDebug);
@@ -59,13 +53,15 @@ export function RadarMap({
       return;
     }
 
+    activeLayerRef.current = 0;
+    activeUrlRef.current = initialFrameRef.current?.imageUrl ?? null;
     const configuredStyle = import.meta.env.VITE_MAP_STYLE_URL?.trim();
     const map = new MapLibreMap({
       container: containerRef.current,
       style: configuredStyle || DEFAULT_STYLE_URL,
-      center: calibration.radar.coordinates,
-      zoom: 6.1,
-      minZoom: 4.5,
+      center: radar.coordinates,
+      zoom: radar.mapZoom,
+      minZoom: 4,
       maxZoom: 12,
       bearing: 0,
       pitch: 0,
@@ -86,30 +82,11 @@ export function RadarMap({
     );
 
     map.once('style.load', () => {
-      for (const sourceId of RADAR_SOURCE_IDS) {
-        map.addSource(sourceId, {
-          type: 'image',
-          url: initialUrlRef.current,
-          coordinates: calibration.output.maplibreCoordinates,
-        });
+      const initialFrame = initialFrameRef.current;
+      if (initialFrame) {
+        ensureRadarLayers(map, initialFrame, initialOpacityRef.current);
       }
-      for (const [index, layerId] of RADAR_LAYER_IDS.entries()) {
-        map.addLayer({
-          id: layerId,
-          type: 'raster',
-          source: RADAR_SOURCE_IDS[index]!,
-          paint: {
-            'raster-opacity':
-              initialFramePresentRef.current && index === 0
-                ? initialOpacityRef.current
-                : 0,
-            'raster-fade-duration': 0,
-            'raster-resampling': 'nearest',
-          },
-        });
-      }
-
-      map.addSource(DEBUG_SOURCE_ID, debugSource(calibration));
+      map.addSource(DEBUG_SOURCE_ID, debugSource(radar));
       map.addLayer({
         id: DEBUG_LAYER_ID,
         type: 'line',
@@ -123,9 +100,9 @@ export function RadarMap({
           'line-dasharray': [2, 2],
         },
       });
-      debugMarkersRef.current = createDebugMarkers(
+      debugMarkerRef.current = createDebugMarker(
         map,
-        calibration,
+        radar,
         initialDebugRef.current,
       );
       setMapReady(true);
@@ -134,11 +111,11 @@ export function RadarMap({
     return () => {
       transitionSequenceRef.current += 1;
       setMapReady(false);
-      debugMarkersRef.current = [];
+      debugMarkerRef.current = null;
       mapRef.current = null;
       map.remove();
     };
-  }, [calibration]);
+  }, [radar]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -151,8 +128,15 @@ export function RadarMap({
       setLayerOpacities(map, 0, 0, reducedMotion);
       return;
     }
+    if (!map.getSource(RADAR_SOURCE_IDS[0])) {
+      ensureRadarLayers(map, selectedFrame, opacity);
+      activeLayerRef.current = 0;
+      activeUrlRef.current = selectedFrame.imageUrl;
+      return;
+    }
     if (activeUrlRef.current === selectedFrame.imageUrl) {
       const active = activeLayerRef.current;
+      updateActiveCoordinates(map, active, selectedFrame);
       setLayerOpacities(
         map,
         active === 0 ? opacity : 0,
@@ -176,7 +160,7 @@ export function RadarMap({
         ) as ImageSource | null;
         source?.updateImage({
           url: selectedFrame.imageUrl,
-          coordinates: calibration.output.maplibreCoordinates,
+          coordinates: selectedFrame.imageCoordinates,
         });
         setLayerOpacities(
           map,
@@ -193,7 +177,7 @@ export function RadarMap({
           setFailedImageUrl(selectedFrame.imageUrl);
         }
       });
-  }, [calibration, mapReady, opacity, reducedMotion, selectedFrame]);
+  }, [mapReady, opacity, reducedMotion, selectedFrame]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -220,7 +204,8 @@ export function RadarMap({
         showDebug ? 'visible' : 'none',
       );
     }
-    for (const marker of debugMarkersRef.current) {
+    const marker = debugMarkerRef.current;
+    if (marker) {
       marker.getElement().hidden = !showDebug;
     }
   }, [mapReady, showDebug]);
@@ -230,7 +215,7 @@ export function RadarMap({
       <div
         ref={containerRef}
         className="map-canvas"
-        aria-label="Mapa animado del radar de Murcia"
+        aria-label={`Mapa del radar de ${radar.label}`}
       />
       {!mapReady && (
         <p className="map-loading" role="status">
@@ -244,6 +229,44 @@ export function RadarMap({
       )}
     </div>
   );
+}
+
+function ensureRadarLayers(
+  map: MapLibreMap,
+  frame: RadarTimelineFrame,
+  opacity: number,
+) {
+  for (const sourceId of RADAR_SOURCE_IDS) {
+    map.addSource(sourceId, {
+      type: 'image',
+      url: frame.imageUrl,
+      coordinates: frame.imageCoordinates,
+    });
+  }
+  for (const [index, layerId] of RADAR_LAYER_IDS.entries()) {
+    map.addLayer({
+      id: layerId,
+      type: 'raster',
+      source: RADAR_SOURCE_IDS[index]!,
+      paint: {
+        'raster-opacity': index === 0 ? opacity : 0,
+        'raster-fade-duration': 0,
+        'raster-resampling': 'nearest',
+      },
+    });
+  }
+}
+
+function updateActiveCoordinates(
+  map: MapLibreMap,
+  active: 0 | 1,
+  frame: RadarTimelineFrame,
+) {
+  const source = map.getSource(RADAR_SOURCE_IDS[active]) as ImageSource | null;
+  source?.updateImage({
+    url: frame.imageUrl,
+    coordinates: frame.imageCoordinates,
+  });
 }
 
 function setLayerOpacities(
@@ -269,45 +292,33 @@ function setLayerOpacities(
   }
 }
 
-function createDebugMarkers(
+function createDebugMarker(
   map: MapLibreMap,
-  frame: RadarFrameReport,
+  radar: RegionalRadarIndexEntry,
   visible: boolean,
 ) {
-  const points = [
-    {
-      coordinates: frame.radar.coordinates,
-      label: 'Radar Murcia–Fortuna',
-      kind: 'radar',
-    },
-    ...frame.calibration.controlPoints.map((point) => ({
-      coordinates: point.coordinates,
-      label: `${point.label} · ${point.errorKilometres.toFixed(2)} km`,
-      kind: 'control',
-    })),
-  ];
-  return points.map((point) => {
-    const element = document.createElement('div');
-    element.className = `debug-marker debug-marker--${point.kind}`;
-    element.setAttribute('aria-label', point.label);
-    element.title = point.label;
-    element.hidden = !visible;
-    return new Marker({ element }).setLngLat(point.coordinates).addTo(map);
-  });
+  const element = document.createElement('div');
+  element.className = 'debug-marker debug-marker--radar';
+  element.setAttribute('aria-label', `Radar ${radar.siteName}`);
+  element.title = `Radar ${radar.siteName}`;
+  element.hidden = !visible;
+  return new Marker({ element }).setLngLat(radar.coordinates).addTo(map);
 }
 
-function debugSource(frame: RadarFrameReport): GeoJSONSourceSpecification {
+function debugSource(
+  radar: RegionalRadarIndexEntry,
+): GeoJSONSourceSpecification {
   return {
     type: 'geojson',
     data: {
       type: 'Feature',
       properties: {
         kind: 'coverage',
-        label: `Cobertura nominal ${frame.radar.rangeKilometres} km`,
+        label: `Cobertura nominal ${radar.rangeKilometres} km`,
       },
       geometry: {
         type: 'LineString',
-        coordinates: frame.debug.coverageRing,
+        coordinates: radar.coverageRing,
       },
     },
   };

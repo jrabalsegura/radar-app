@@ -1,13 +1,70 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
 
 import pytest
 
 from aemet_radar.cli import main
+from aemet_radar.errors import AemetApiStatusError, AemetResponseError
 
 REFLECTIVITY_FIXTURES = Path(__file__).parent / "fixtures" / "reflectivity"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 GEOREFERENCING_CONFIG = REPOSITORY_ROOT / "config" / "georeferencing" / "regional-mu-v1.json"
+
+
+def test_fetch_once_reports_aemet_404_as_no_data(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    class NoDataClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> NoDataClient:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            pass
+
+        def fetch_product(self, _product: object) -> None:
+            raise AemetApiStatusError(404)
+
+    class NoTimelineClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def __enter__(self) -> NoTimelineClient:
+            return self
+
+        def __exit__(self, *_args: object) -> None:
+            pass
+
+        def fetch_timeline(self) -> None:
+            raise AemetResponseError("fixture sin cronología")
+
+    monkeypatch.setenv("AEMET_API_KEY", "safe-test-key")
+    monkeypatch.setattr("aemet_radar.cli.AemetClient", NoDataClient)
+    monkeypatch.setattr("aemet_radar.cli.AemetViewerClient", NoTimelineClient)
+
+    exit_code = main(
+        [
+            "fetch-once",
+            "--data-dir",
+            str(tmp_path),
+            "--product",
+            "regional-mu",
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(capfd.readouterr().out)
+    assert payload == {
+        "comparisonReport": None,
+        "results": [{"productId": "regional-mu", "status": "no-data"}],
+        "status": "ok",
+    }
 
 
 def test_rebuild_manifests_does_not_require_api_key(

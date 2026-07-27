@@ -1,0 +1,28 @@
+{
+  "frames": [],
+  "gaps": [],
+  "generatedAt": "2026-07-27T09:01:14.764734Z",
+  "latestFrameTime": null,
+  "latestProductTime": null,
+  "radar": {
+    "cadenceMinutes": 10,
+    "id": "regional-va",
+    "kind": "regional",
+    "label": "Valencia"
+  },
+  "schemaVersion": 1,
+  "statistics": {
+    "archivedFrames": 0,
+    "discardedDuplicates": 0,
+    "invalidReports": 0,
+    "publishedFrames": 0
+  },
+  "timeBasis": null,
+  "window": {
+    "anchor": "latest-available-frame",
+    "end": null,
+    "hours": 3.8333333333333335,
+    "minutes": 230,
+    "start": null
+  }
+}

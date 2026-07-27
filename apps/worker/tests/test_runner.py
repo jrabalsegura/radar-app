@@ -9,7 +9,7 @@ import httpx
 
 from aemet_radar.client import DEFAULT_BASE_URL, AemetClient
 from aemet_radar.manifests import ManifestPublisher
-from aemet_radar.products import MURCIA
+from aemet_radar.products import MURCIA, PRODUCTS
 from aemet_radar.retry import RetryPolicy
 from aemet_radar.runner import HistoryWorker
 from aemet_radar.service import IngestionService
@@ -115,10 +115,13 @@ def test_successful_cycle_archives_and_publishes(
     assert (tmp_path / "status" / "health.json").is_file()
 
 
-def test_first_failed_cycle_still_publishes_empty_manifest(tmp_path: Path) -> None:
+def test_first_no_data_cycle_publishes_empty_manifest_without_error(tmp_path: Path) -> None:
     cycle_time = datetime(2026, 7, 24, 12, 0, tzinfo=UTC)
+    request_count = 0
 
     def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal request_count
+        request_count += 1
         return httpx.Response(
             200,
             json={"estado": 404, "descripcion": "sin datos"},
@@ -138,13 +141,113 @@ def test_first_failed_cycle_still_publishes_empty_manifest(tmp_path: Path) -> No
     finally:
         client.close()
 
-    assert result.successful is False
+    assert result.successful is True
+    assert result.products[0].status == "no-data"
+    assert result.products[0].attempts == 1
+    assert result.products[0].published_frames == 0
+    assert result.products[0].error_code is None
+    assert request_count == 1
     manifest_path = tmp_path / "radar" / MURCIA.id / "manifest.json"
     manifest = json.loads(manifest_path.read_text())
     assert manifest["frames"] == []
     health = json.loads((tmp_path / "status" / "health.json").read_text())
-    assert health["products"][0]["status"] == "error"
+    assert health["status"] == "no-data"
+    assert health["products"][0]["status"] == "no-data"
     assert health["products"][0]["dataStatus"] == "no-data"
+    assert health["products"][0]["lastOutcome"] == "no-data"
+    assert health["products"][0]["lastError"] is None
+
+
+def test_no_data_product_does_not_degrade_a_healthy_cycle(
+    tmp_path: Path,
+    make_synthetic_gif: Callable[[bytes], bytes],
+) -> None:
+    almeria = PRODUCTS["regional-am"]
+    cycle_time = datetime.now(UTC)
+    gif = make_synthetic_gif(b"healthy regional product")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith(MURCIA.endpoint):
+            return httpx.Response(
+                200,
+                json={"estado": 404, "descripcion": "sin datos"},
+                request=request,
+            )
+        if request.url.path.endswith(almeria.endpoint):
+            return httpx.Response(
+                200,
+                json={
+                    "estado": 200,
+                    "datos": DATA_URL,
+                    "metadatos": METADATA_URL,
+                },
+                request=request,
+            )
+        if request.url == httpx.URL(DATA_URL):
+            return httpx.Response(
+                200,
+                content=gif,
+                headers={
+                    "Content-Type": "image/gif",
+                    "Last-Modified": format_datetime(cycle_time),
+                },
+                request=request,
+            )
+        return httpx.Response(200, json={"formato": "image/gif"}, request=request)
+
+    client = _client(handler)
+    worker = HistoryWorker(
+        IngestionService(client, ArchiveStore(tmp_path)),
+        data_dir=tmp_path,
+        products=(MURCIA, almeria),
+        retry_policy=RetryPolicy(max_attempts=2, initial_backoff_seconds=0),
+        product_delay_seconds=0,
+        sleeper=lambda delay: None,
+    )
+    try:
+        result = worker.run_cycle(generated_at=cycle_time)
+    finally:
+        client.close()
+
+    assert result.successful is True
+    assert [item.status for item in result.products] == ["no-data", "stored"]
+    health = json.loads((tmp_path / "status" / "health.json").read_text())
+    assert health["status"] == "ok"
+    assert [item["status"] for item in health["products"]] == ["no-data", "current"]
+
+
+def test_no_data_cycle_keeps_previous_valid_frame(tmp_path: Path) -> None:
+    cycle_time = datetime(2026, 7, 24, 12, 0, tzinfo=UTC)
+    _archive_report(tmp_path, product_time=cycle_time - timedelta(minutes=10))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"estado": 404, "descripcion": "sin datos"},
+            request=request,
+        )
+
+    client = _client(handler)
+    worker = HistoryWorker(
+        IngestionService(client, ArchiveStore(tmp_path)),
+        data_dir=tmp_path,
+        products=(MURCIA,),
+        retry_policy=RetryPolicy(max_attempts=3, initial_backoff_seconds=0),
+        sleeper=lambda delay: None,
+    )
+    try:
+        result = worker.run_cycle(generated_at=cycle_time)
+    finally:
+        client.close()
+
+    assert result.products[0].status == "no-data"
+    assert result.products[0].attempts == 1
+    assert result.products[0].published_frames == 1
+    manifest = json.loads((tmp_path / "radar" / MURCIA.id / "manifest.json").read_text())
+    assert len(manifest["frames"]) == 1
+    health = json.loads((tmp_path / "status" / "health.json").read_text())
+    assert health["products"][0]["status"] == "no-data"
+    assert health["products"][0]["dataStatus"] == "current"
 
 
 def test_invalid_download_writes_only_safe_diagnostics(tmp_path: Path) -> None:
@@ -221,6 +324,51 @@ def test_invalid_download_writes_only_safe_diagnostics(tmp_path: Path) -> None:
     assert (
         health["products"][0]["lastError"]["diagnosticReport"] == product_result.diagnostic_report
     )
+
+
+def test_products_are_staggered_without_waiting_after_the_last_one(
+    tmp_path: Path,
+) -> None:
+    almeria = PRODUCTS["regional-am"]
+    cycle_time = datetime(2026, 7, 24, 12, 0, tzinfo=UTC)
+    pauses: list[float] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith((MURCIA.endpoint, almeria.endpoint)):
+            return httpx.Response(
+                200,
+                json={
+                    "estado": 200,
+                    "datos": DATA_URL,
+                    "metadatos": METADATA_URL,
+                },
+                request=request,
+            )
+        if request.url == httpx.URL(DATA_URL):
+            return httpx.Response(
+                200,
+                content=b"GIF89a synthetic",
+                headers={"Content-Type": "image/gif"},
+                request=request,
+            )
+        return httpx.Response(200, json={"formato": "image/gif"}, request=request)
+
+    client = _client(handler)
+    worker = HistoryWorker(
+        IngestionService(client, ArchiveStore(tmp_path)),
+        data_dir=tmp_path,
+        products=(MURCIA, almeria),
+        retry_policy=RetryPolicy(max_attempts=1, initial_backoff_seconds=0),
+        product_delay_seconds=0.75,
+        sleeper=pauses.append,
+    )
+    try:
+        result = worker.run_cycle(generated_at=cycle_time)
+    finally:
+        client.close()
+
+    assert len(result.products) == 2
+    assert pauses == [0.75]
 
 
 def _client(handler: Callable[[httpx.Request], httpx.Response]) -> AemetClient:

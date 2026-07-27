@@ -19,6 +19,8 @@ _SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 @dataclass(frozen=True, slots=True)
 class ArchivedFrame:
     product_id: str
+    source_id: str
+    source_provider: str | None
     source_hash: str
     product_time: datetime | None
     retrieved_at: datetime
@@ -51,19 +53,19 @@ def scan_product_history(data_dir: Path, product: RadarProduct) -> HistoryScan:
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             issues.append(report_path.relative_to(resolved_data_dir).as_posix())
 
-    by_hash: dict[str, ArchivedFrame] = {}
+    by_source: dict[str, ArchivedFrame] = {}
     discarded = 0
     for frame in candidates:
-        previous = by_hash.get(frame.source_hash)
+        previous = by_source.get(frame.source_id)
         if previous is None or frame.last_retrieved_at > previous.last_retrieved_at:
             if previous is not None:
                 discarded += 1
-            by_hash[frame.source_hash] = frame
+            by_source[frame.source_id] = frame
         else:
             discarded += 1
 
     by_time: dict[datetime, ArchivedFrame] = {}
-    for frame in by_hash.values():
+    for frame in by_source.values():
         previous = by_time.get(frame.timeline_time)
         if previous is None or frame.last_retrieved_at > previous.last_retrieved_at:
             if previous is not None:
@@ -124,11 +126,24 @@ def _load_frame(data_dir: Path, product: RadarProduct, report_path: Path) -> Arc
         raw_path.relative_to(expected_root)
     except ValueError as exc:
         raise ValueError("La ruta del original sale del producto permitido.") from exc
-    if raw_path.suffix.lower() != ".gif" or not raw_path.is_file():
-        raise ValueError("El original asociado no existe o no es GIF.")
+    if raw_path.suffix.lower() not in {".gif", ".png"} or not raw_path.is_file():
+        raise ValueError("El original asociado no existe o no es una imagen admitida.")
+
+    source_payload = report.get("source")
+    source_id = source_hash
+    source_provider: str | None = None
+    if isinstance(source_payload, dict):
+        candidate = source_payload.get("observationId")
+        if isinstance(candidate, str) and candidate:
+            source_id = candidate
+        provider = source_payload.get("provider")
+        if isinstance(provider, str) and provider:
+            source_provider = provider
 
     return ArchivedFrame(
         product_id=product.id,
+        source_id=source_id,
+        source_provider=source_provider,
         source_hash=source_hash,
         product_time=product_time,
         retrieved_at=retrieved_at,

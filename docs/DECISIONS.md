@@ -235,7 +235,7 @@ valores meteorológicos intermedios.
 
 ## ADR-016 — Ventana visible de tres horas
 
-**Estado:** aceptada; sustituye la duración de dos horas prevista inicialmente.
+**Estado:** sustituida por ADR-024.
 
 El backend y el frontend publican y reproducen las tres horas anteriores al
 último fotograma disponible. Con una cadencia exacta de 10 minutos, Murcia puede
@@ -273,3 +273,165 @@ cero milisegundos.
 capas suavizan el cambio visual sin interpolar reflectividad, de acuerdo con
 ADR-005. Mantener la última imagen mejora la continuidad al seguir una tormenta
 sin alterar el contrato del manifiesto.
+
+---
+
+## ADR-018 — Catálogo completo y estado sin datos
+
+**Estado:** aceptada para la red regional.
+
+Los 15 códigos regionales publicados en OpenAPI forman parte del catálogo, del
+worker, del índice y del selector. La ausencia temporal de una imagen produce
+un manifiesto vacío y estado `no-data`; no elimina ni deshabilita el
+emplazamiento. Solo se dibuja reflectividad cuando un GIF supera la validación
+estricta del perfil asignado.
+
+Los emplazamientos oficiales sin endpoint OpenAPI no se consultan mediante
+códigos inferidos. Se incorporarán cuando exista un contrato oficial.
+
+**Motivo:** una indisponibilidad por mantenimiento no debe exigir desplegar
+código ni hacer desaparecer un radar que volverá a publicar datos. A la vez, un
+estado explícito evita presentar el servicio como actualizado.
+
+---
+
+## ADR-019 — Perfil regional conservador y georreferenciación por centro
+
+**Estado:** aceptada con limitación documentada.
+
+Las 12 muestras disponibles comparten plantilla indexada `480×530` y paleta de
+64 entradas. `regional-safe-v1` las valida de forma exacta y reproyecta cada
+rejilla desde una proyección azimutal equidistante centrada en su emplazamiento
+oficial. Un cambio de plantilla o paleta interrumpe la publicación.
+
+Murcia conserva su máscara temporal y la clase amarilla de 48 dBZ fuera de
+elementos fijos. Los demás radares descartan ese amarillo, ambiguo con límites
+administrativos, hasta contar con máscaras específicas construidas con varias
+muestras.
+
+**Motivo:** compartir un contrato observado reduce configuración duplicada sin
+asumir silenciosamente que AEMET nunca lo cambiará. Descartar la clase ambigua
+es una pérdida conocida y preferible a publicar fronteras como precipitación.
+
+---
+
+## ADR-020 — Ingesta regional secuencial y escalonada
+
+**Estado:** aceptada.
+
+Los productos se consultan secuencialmente con una pausa configurable de un
+segundo entre ellos y sin espera después del último. Cada producto mantiene
+reintentos y estado independientes; un error no interrumpe el resto del ciclo.
+
+**Motivo:** evita ráfagas innecesarias contra AEMET OpenData y conserva un
+comportamiento determinista y observable.
+
+---
+
+## ADR-021 — Máscara temporal específica por radar
+
+**Estado:** aceptada; sustituye la limitación amarilla de ADR-019 cuando existe
+evidencia suficiente.
+
+Cada radar calibrado referencia un PNG binario propio en su cuadrícula
+`480×480`. `ambiguous-temporal-invariance-v2` deduplica los originales por
+SHA-256 y exige al menos tres imágenes distintas con dos horas entre la primera
+y la última. Solo una clase marcada como ambigua puede convertirse en
+exclusión fija; una clase inequívoca nunca se enmascara aunque permanezca
+inmóvil.
+
+El informe adyacente registra radar, algoritmo, hashes, horas, ventana,
+configuración y número de píxeles por clase. Un producto 404, congelado o con
+menos de tres hashes mantiene `discard` y no hereda la máscara de otro radar.
+El catálogo propaga explícitamente `static-mask` al clasificador y un cambio de
+política invalida los derivados anteriores.
+
+**Motivo:** los límites dibujados difieren entre emplazamientos. Compartir una
+máscara produciría falsos huecos o fronteras meteorológicas; forzar una
+calibración sin diversidad temporal podría borrar un eco amarillo real.
+
+---
+
+## ADR-022 — Estado AEMET 404 como ausencia de datos
+
+**Estado:** aceptada.
+
+La pasarela de AEMET responde HTTP 200 y declara `estado: 404` cuando un
+producto válido no tiene datos. El worker lo representa como `no-data`: ejecuta
+un único intento, conserva y reconstruye cualquier manifiesto previo, aplica
+retención, no crea `lastError` y vuelve a consultar en el siguiente ciclo.
+
+Una combinación de productos `current` y `no-data` mantiene el estado global
+`ok`. La presencia de `delayed` o `error` lo deja `degraded`; si todos están sin
+datos, el estado global es `no-data`. Los HTTP 5xx, fallos de transporte,
+contratos inválidos y descargas no válidas continúan siendo errores.
+
+**Motivo:** OpenAPI define 404 como “petición sin datos” y mantiene publicados
+los códigos regionales. Tratar una ausencia funcional como una avería produce
+alarmas falsas sin aportar capacidad de recuperación.
+
+---
+
+## ADR-023 — Excepción de máscara con referencia PPI seca
+
+**Estado:** aceptada como excepción revisada a ADR-021.
+
+Un único GIF regional puede generar una máscara si se coteja con el PNG PPI
+original del visor AEMET para el mismo radar y hora. La herramienta exige
+formato RGBA, transparencia y exactamente un color visible, conserva ambos
+SHA-256 y solo excluye la clase ambigua presente en el GIF.
+
+Málaga cumple estas condiciones a las 10:50 UTC del 26 de julio de 2026. A
+Coruña y Vizcaya no las cumplen porque sus PPI contienen ecos; Valencia y la
+captura actual de Málaga muestran un aviso de producto no disponible. Estas
+salidas se conservan como evidencia, pero no se convierten en máscaras.
+
+**Motivo:** una referencia PPI verdaderamente vacía permite distinguir la
+cartografía amarilla sin esperar diversidad temporal, manteniendo una prueba
+reproducible. Una capa distinta, aproximada o con ecos no demuestra qué píxeles
+amarillos del GIF son fijos.
+
+---
+
+## ADR-024 — PPI del visor como fuente primaria y ventana de 3 h 50 min
+
+**Estado:** aceptada; sustituye ADR-016 para la ventana y convierte el pipeline
+GIF de ADR-018 a ADR-023 en respaldo.
+
+La API web empleada por el visor oficial de AEMET es la fuente regional
+primaria. El worker consulta una vez por ciclo
+`/es/api-eltiempo/radar/timeline/PPI/PB`, cruza la fecha ISO con la fecha UTC
+del nombre de fichero y archiva las 24 observaciones reales de cada
+emplazamiento configurado. Son 3 horas y 50 minutos a cadencia de 10 minutos,
+contando ambos extremos. El manifiesto declara `window.minutes: 230` y
+`window.hours: 230 / 60`.
+
+Cada PNG debe ser RGBA, respetar la geometría y la paleta PPI observadas y
+contener solo fondo, transparencia y los once colores exactos de
+reflectividad. Un PPI seco es válido. Una lámina con texto, colores ajenos o
+“Producto no disponible” no lo es. El derivado elimina fondo y no-dato
+conservando únicamente píxeles de reflectividad; usa directamente las cuatro
+esquinas oficiales de `bounds-radar`, sin máscara ni georreferenciación
+inferida.
+
+Si falla la cronología, falta el emplazamiento o la observación más reciente no
+es un PPI válido, se consulta OpenData con la API key y se aplica el pipeline
+GIF anterior. Si tampoco hay GIF, el producto queda `no-data` y conserva
+cualquier historial válido previo. No se mezclan imágenes aproximadas ni se
+generan observaciones.
+
+La identidad primaria es el nombre de observación oficial. Dos horas distintas
+se conservan aunque su contenido y SHA-256 coincidan —caso posible en un radar
+seco—; repetir la misma observación no crea otro archivo. El SHA-256 sigue
+protegiendo la integridad y permite reutilizar el derivado visual.
+
+La API del visor es pública y oficial, pero no aparece en el OpenAPI de
+OpenData. Por ello el parser es estricto, las URLs se mantienen centralizadas,
+una deriva de contrato activa el fallback y las pruebas se complementan con una
+validación real controlada.
+
+**Motivo:** el visor ofrece la cronología exacta, hora de producto, PNG de
+reflectividad ya separado y límites oficiales. Esto recupera A Coruña y
+Vizcaya, reduce el procesamiento destructivo de cartografía y permite mostrar
+el bucle completo que AEMET publica, manteniendo OpenData como vía de
+continuidad independiente.

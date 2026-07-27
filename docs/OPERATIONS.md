@@ -1,8 +1,8 @@
 # Operación local
 
 La operación de producción con Podman, systemd y Nginx sigue pendiente de la
-Fase 9. Esta guía cubre el worker, la publicación local de la Fase 2 y la
-extracción reproducible de Murcia de la Fase 3.
+Fase 9. Esta guía cubre el worker, la publicación local y el pipeline regional
+configurable de la Fase 6.
 
 ## Comprobar el estado
 
@@ -14,6 +14,13 @@ jq . data/radar/index.json
 Por producto, `status` refleja el último ciclo (`current`, `delayed`,
 `no-data` o `error`) y `dataStatus` refleja solo la edad del último fotograma.
 El umbral de retraso es dos veces la cadencia declarada del producto.
+
+Un estado AEMET 404 se interpreta como `no-data`: no se reintenta dentro del
+mismo ciclo, no genera `lastError` y se vuelve a consultar en el ciclo
+siguiente. Una mezcla de productos `current` y `no-data` mantiene el estado
+global `ok`; un producto `delayed` o `error` sí lo degrada. Si el radar conserva
+fotogramas válidos anteriores, el manifiesto se reconstruye normalmente hasta
+que salgan de la ventana, sin fabricar sustitutos.
 
 Los fallos de validación de descarga dejan informes seguros bajo:
 
@@ -32,15 +39,21 @@ done
 Estos informes contienen tamaño, MIME declarado y SHA-256, pero nunca el cuerpo
 inválido, la API key o la URL efímera.
 
+La fuente primaria no usa key: consulta la cronología PPI pública una vez por
+ciclo. Si el PPI más reciente no cumple el contrato o aparece como producto no
+disponible, el worker usa OpenData. Un fallo de un PPI histórico deja un hueco
+real; no invalida las demás observaciones.
+
 ## Forzar un ciclo completo
 
 ```bash
 make poll-once
 ```
 
-Este comando consulta Murcia y nacional, aplica reintentos limitados, conserva
-24 horas y publica los JSON. Devuelve código 1 si al menos un producto falla,
-aunque los productos correctos sí quedan actualizados.
+Este comando consulta los 15 radares regionales de forma secuencial, aplica
+reintentos limitados, conserva 24 horas y publica los JSON. Devuelve código 1 si
+al menos un producto falla, aunque los productos correctos sí quedan
+actualizados. Un 404 funcional `no-data` no hace fallar el ciclo.
 
 ## Ejecutar el scheduler
 
@@ -55,7 +68,8 @@ AEMET_POLL_INTERVAL_SECONDS=300
 AEMET_RETRY_ATTEMPTS=3
 AEMET_RETRY_BACKOFF_SECONDS=1
 AEMET_RETENTION_HOURS=24
-AEMET_HISTORY_HOURS=3
+AEMET_HISTORY_HOURS=3.8333333333333335
+AEMET_PRODUCT_DELAY_SECONDS=1
 ```
 
 Los ciclos se programan respecto a su hora de inicio para no acumular la
@@ -68,9 +82,9 @@ make rebuild-manifests
 ```
 
 No consulta AEMET y no requiere `AEMET_API_KEY`. Relee los informes adyacentes a
-los GIF, descarta informes inválidos, ordena y deduplica el historial, genera
-los derivados de Murcia que falten y vuelve a publicar manifiestos, índice y
-health. La ventana predeterminada es de tres horas.
+PNG y GIF, descarta informes inválidos, ordena y deduplica el historial, genera
+los derivados regionales que falten y vuelve a publicar manifiestos, índice y
+health. La ventana predeterminada es de 3 horas y 50 minutos.
 
 ## Inspeccionar por HTTP
 
@@ -85,11 +99,27 @@ En otra:
 ```bash
 curl http://127.0.0.1:8000/radar/index.json
 curl http://127.0.0.1:8000/radar/regional-mu/manifest.json
+curl http://127.0.0.1:8000/radar/regional-co/manifest.json
 curl http://127.0.0.1:8000/status/health.json
 ```
 
 El servidor es solo local, no permite listar directorios y no sustituye a
 Nginx.
+
+## Validar una muestra regional
+
+No consulta AEMET ni requiere API key:
+
+```bash
+make validate-radar \
+  PRODUCT=regional-am \
+  SAMPLE=data/raw/regional-am/AAAA/MM/DD/<sha256>.gif
+```
+
+Revisar `reflectivity/preview.png`,
+`georeferenced/overlay-3857.png`, `calibration/overlay-3857.png` y
+`validation.json`. Si cambian dimensiones o paleta, la validación se detiene y
+el perfil debe estudiarse antes de habilitar la capa.
 
 ## Regenerar la reflectividad de Murcia
 
@@ -141,5 +171,4 @@ originales:
 make rebuild-manifests
 ```
 
-La publicación de derivados georreferenciados, habilitación de otros radares y
-rollback de contenedores pertenecen a fases posteriores.
+El rollback de contenedores pertenece a fases posteriores.

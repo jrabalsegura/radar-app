@@ -1,0 +1,70 @@
+{
+  "algorithm": "ambiguous-reviewed-dry-reference-v1",
+  "configurationSha256": "sha256:72fe8a60c92e39625217e98e0145422a0ed755334775a6c361bfb84772afe337",
+  "coverage": {
+    "centerX": 240,
+    "centerY": 240,
+    "radius": 240,
+    "shape": "circle"
+  },
+  "crop": {
+    "height": 480,
+    "left": 0,
+    "top": 0,
+    "width": 480
+  },
+  "distinctSamples": 1,
+  "dryReference": {
+    "fileName": "AHR260726105000.PPI.Z_005_240.png",
+    "format": "PNG",
+    "height": 3646,
+    "mode": "RGBA",
+    "observedAt": "2026-07-26T10:50:00Z",
+    "sha256": "sha256:8336234a119ee841686b9e377351eec6d2a1d141c1944666018ced8e741f45a7",
+    "transparentPixels": 764294,
+    "url": "https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/AHR260726105000.PPI.Z_005_240.png",
+    "visibleColor": [
+      239,
+      242,
+      249,
+      179
+    ],
+    "visiblePixels": 10589350,
+    "width": 3114
+  },
+  "excludedByClass": [
+    {
+      "ambiguous": true,
+      "legendDbz": 48,
+      "name": "dbz-48-yellow",
+      "paletteIndex": 10,
+      "pixels": 3207,
+      "rgb": [
+        255,
+        255,
+        0
+      ]
+    }
+  ],
+  "excludedPixels": 3207,
+  "knownRisk": "La excepción depende de que radar, producto y hora hayan sido revisados como equivalentes. No debe reutilizarse con otra captura ni sustituye la calibración temporal cuando el PPI contiene ecos.",
+  "maskSha256": "sha256:fdcce769973adb135a09bd9e351106f58280f31a0fa7976105a5a9a619b240cf",
+  "method": "Se coteja el GIF indexado con la imagen PPI del mismo radar y hora publicada por el visor oficial. La referencia debe ser un PNG RGBA vacío con un único color visible y transparencia; solo entonces se excluyen los píxeles de la clase ambigua presentes en el GIF.",
+  "observationWindowHours": 0.0,
+  "processor": "regional-v1",
+  "productId": "regional-ml",
+  "schemaVersion": 1,
+  "semantics": {
+    "0": "reviewed-fixed-classified-pixel-excluded",
+    "255": "eligible-for-reflectivity-classification"
+  },
+  "sourceEvidence": [
+    {
+      "observedAt": "2026-07-26T10:50:00Z",
+      "sha256": "sha256:ddeda4d5f83b45bc5553921858a66713bdb3af91247b66208a2d59cea5f0b831"
+    }
+  ],
+  "sourceHashes": [
+    "sha256:ddeda4d5f83b45bc5553921858a66713bdb3af91247b66208a2d59cea5f0b831"
+  ]
+}

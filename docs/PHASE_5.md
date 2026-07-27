@@ -1,4 +1,4 @@
-# Fase 5 — Reproducción de las últimas tres horas
+# Fase 5 — Reproducción temporal
 
 Estado: implementación y validación con historial real completadas el 26 de
 julio de 2026.
@@ -8,13 +8,13 @@ julio de 2026.
 La fase convierte el visor estático de Murcia en un reproductor temporal que:
 
 - consume `radar/regional-mu/manifest.json`;
-- publica tres horas ancladas en la última observación;
+- publica 3 horas y 50 minutos anclados en la última observación;
 - muestra un botón por observación y por hueco declarado;
 - mantiene sincronizados botones, slider, hora, estado y mapa;
 - reproduce en bucle con velocidades lenta, normal y rápida;
 - mantiene una pausa mayor en el último fotograma;
 - permite navegar con las flechas izquierda y derecha;
-- usa hora local `Europe/Madrid`;
+- usa hora local `Europe/Madrid` y muestra `CET` o `CEST` según la fecha;
 - conserva la última reflectividad real durante los huecos;
 - precarga primero la observación más reciente y reutiliza cada URL;
 - alterna dos capas MapLibre con un crossfade corto;
@@ -23,18 +23,18 @@ La fase convierte el visor estático de Murcia en un reproductor temporal que:
 No se han añadido otros radares, composición nacional, selector de producto,
 PWA ni despliegue. Pertenecen a fases posteriores.
 
-## Ventana de tres horas
+## Ventana de 3 horas y 50 minutos
 
-ADR-016 sustituye la propuesta inicial de dos horas en toda la aplicación. El
-valor predeterminado es:
+ADR-024 amplía la ventana de ADR-016 para reproducir las 24 observaciones que
+publica la cronología PPI. El valor predeterminado es:
 
 ```text
-AEMET_HISTORY_HOURS=3
+AEMET_HISTORY_HOURS=3.8333333333333335
 ```
 
 La ventana sigue anclada en el último fotograma real, no en la hora de
 generación del manifiesto. Una secuencia de Murcia exactamente alineada a su
-cadencia nominal de 10 minutos puede contener 19 observaciones contando ambos
+cadencia nominal de 10 minutos puede contener 24 observaciones contando ambos
 extremos.
 
 `frames` contiene únicamente observaciones archivadas. Los intervalos ausentes
@@ -70,7 +70,8 @@ y los demás radares no usan la calibración de Murcia.
 
 ## Contrato y huecos
 
-El frontend exige `window.hours: 3`, observaciones ordenadas, hashes completos,
+El frontend exige `window.minutes: 230`, `window.hours: 230 / 60`,
+observaciones ordenadas, hashes completos,
 URLs locales de imagen y estadísticas coherentes. Combina `frames` con
 `gaps[].expectedTimes` para construir las posiciones visibles.
 
@@ -106,7 +107,7 @@ documenta esa actualización de URL y coordenadas.
 ## Muestra real versionada
 
 La muestra de desarrollo procede de la ejecución manual de la Fase 2 del 24 de
-julio de 2026. Al reconstruirla con tres horas:
+julio de 2026. Al reconstruirla con la ventana actual:
 
 | Métrica | Resultado |
 | --- | ---: |
@@ -143,20 +144,20 @@ make dev-web
 Abrir `http://127.0.0.1:5173/`. La muestra incluida no necesita API key. El mapa
 base sí necesita acceso a Internet con el estilo predeterminado.
 
-Para reconstruir tres horas desde un archivo local real:
+Para reconstruir 3 horas y 50 minutos desde un archivo local real:
 
 ```bash
 .venv/bin/aemet-radar rebuild-manifests \
   --product regional-mu \
   --data-dir data \
-  --history-hours 3
+  --history-hours 3.8333333333333335
 ```
 
 ## Validación automatizada
 
 Las pruebas cubren:
 
-- selección inclusiva de 19 observaciones en tres horas;
+- selección inclusiva de 24 observaciones en 3 horas y 50 minutos;
 - derivados deterministas y reutilización de la caché;
 - `imageUrl` nulo cuando un producto no tiene procesador;
 - validación defensiva del manifiesto de Murcia;
@@ -177,8 +178,8 @@ la preferencia de movimiento reducido se verificó de forma automatizada.
 - La muestra histórica usa hora de obtención y contiene intervalos de cinco y
   quince minutos; no debe presentarse como una cuadrícula exacta de hora de
   producto.
-- La precarga de tres horas es adecuada para un radar regional. La Fase 6 deberá
-  medir memoria antes de mantener texturas de varios radares.
+- La precarga se limita al radar seleccionado. La muestra regional completa
+  confirmó que 24 texturas por radar no obliga a cargar los demás productos.
 - Las velocidades controlan el ritmo visual, no alteran los timestamps.
 - El estilo de OpenFreeMap sigue siendo configurable y no ofrece SLA.
 

@@ -7,7 +7,8 @@
 > Estado: borrador inicial
 > Producto: aplicación web personal de visualización de radar AEMET
 > Idioma de la interfaz: español
-> Zona horaria de presentación: `Europe/Madrid`
+> Zona horaria de presentación: `Europe/Madrid`, con ajuste automático
+> `CET`/`CEST` según la fecha.
 
 ---
 
@@ -18,7 +19,7 @@ Construir una aplicación web rápida, minimalista e instalable como PWA para vi
 La aplicación debe permitir comprender de un vistazo:
 
 - dónde está lloviendo;
-- cómo se ha desplazado la precipitación durante las últimas tres horas;
+- cómo se ha desplazado la precipitación durante las últimas 3 horas y 50 minutos;
 - qué fotograma se está viendo y a qué hora corresponde;
 - qué radar regional o composición nacional está seleccionado.
 
@@ -146,9 +147,11 @@ No se utilizará OCR general como dependencia central. La hora del producto se i
 
 #### Historial
 
-- Visualización de las últimas **tres horas**.
-- Para productos regionales con cadencia de 10 minutos, objetivo de 19 posiciones contando ambos extremos cuando estén disponibles.
-- El backend conservará margen adicional para soportar retrasos y reconstrucción del manifiesto; la interfaz mostrará tres horas.
+- Visualización de las últimas **3 horas y 50 minutos**.
+- Para productos regionales con cadencia de 10 minutos, objetivo de 24
+  posiciones contando ambos extremos cuando estén disponibles.
+- El backend conservará margen adicional para soportar retrasos y
+  reconstrucción del manifiesto; la interfaz mostrará 230 minutos.
 - Ausencias de fotogramas representadas como huecos, no como datos inventados.
 - Durante un hueco, la interfaz conservará visible la última reflectividad real
   para facilitar el seguimiento, mostrando su hora original y el estado `Sin dato`.
@@ -447,9 +450,11 @@ El worker consultará con una frecuencia superior a la de publicación, pero sin
 
 ### 10.2 Deduplicación
 
-Cada descarga se identificará mediante SHA-256 del contenido original.
+Cada descarga se identificará mediante SHA-256 del contenido original. Cuando
+la fuente aporta identidad y hora de observación, esa identidad distingue dos
+observaciones reales aunque el contenido sea idéntico.
 
-Si el hash coincide con el último fotograma del mismo radar:
+Si la identidad de observación y el hash coinciden con un fotograma archivado:
 
 - no se reprocesará;
 - se actualizará la métrica de consulta;
@@ -457,7 +462,7 @@ Si el hash coincide con el último fotograma del mismo radar:
 
 ### 10.3 Conservación
 
-- Interfaz: últimas 3 horas.
+- Interfaz: últimas 3 horas y 50 minutos.
 - Almacenamiento inicial: 24 horas para facilitar diagnóstico.
 - Retención configurable.
 - Los originales y derivados se eliminarán de forma coordinada.
@@ -471,7 +476,7 @@ Si el hash coincide con el último fotograma del mismo radar:
 
 Durante el desarrollo, el procesador generará:
 
-1. `raw.gif`: original.
+1. `raw.png` PPI primario o `raw.gif` de fallback: original.
 2. `normalized.png`: raster normalizado.
 3. `crop.png`: zona útil.
 4. `classified.png`: píxeles clasificados como reflectividad.
@@ -484,21 +489,28 @@ En producción solo serán públicos los derivados necesarios.
 
 ### 11.2 Máscara estática
 
-Cada radar podrá tener una máscara versionada:
+Cada radar regional deberá usar una máscara propia cuando exista evidencia
+temporal suficiente:
 
 ```text
-config/masks/regional-mu-v1.png
+config/masks/regional-<código>-v1.png
 ```
 
-La máscara eliminará:
+La generación deberá deduplicar por contenido, usar varias muestras separadas
+en el tiempo y limitar las exclusiones a clases declaradas ambiguas. Un eco de
+una clase inequívoca no podrá enmascararse por invariancia temporal. El
+resultado será reproducible y revisable visualmente; no se aceptará una edición
+manual opaca sin documentación ni una máscara compartida entre radares.
 
-- límites administrativos;
-- logotipo;
-- textos;
-- leyenda;
-- elementos que permanecen fijos.
+Como excepción revisada, un único GIF podrá generar máscara si existe una
+imagen PPI del visor oficial para el mismo radar y la misma hora que sea
+verificablemente vacía: PNG RGBA original, transparencia y un solo color
+visible. El informe deberá conservar URL, SHA-256, hora, color y recuentos. Una
+capa con ecos, texto o el aviso de producto no disponible no constituye esa
+evidencia.
 
-La generación de una máscara deberá ser reproducible desde varias muestras y revisable visualmente. No se aceptará una edición manual opaca sin documentación.
+Mientras un producto no tenga evidencia suficiente, conservará una política
+explícita y conservadora que descarte la clase ambigua completa.
 
 ### 11.3 Paleta
 
@@ -667,7 +679,7 @@ Debe documentarse en `OPERATIONS.md`:
 
 ### Integración
 
-- fixture de tres horas;
+- fixture de 3 horas y 50 minutos;
 - worker genera manifiesto;
 - Nginx sirve recursos;
 - navegador reproduce todos los fotogramas;
@@ -681,7 +693,7 @@ El MVP estará terminado cuando:
 
 1. la composición nacional y los radares regionales validados sean seleccionables;
 2. la reflectividad se muestre sobre MapLibre sin el mapa gráfico original de AEMET;
-3. se puedan recorrer las últimas tres horas con slider y botones individuales;
+3. se puedan recorrer las últimas 3 horas y 50 minutos con slider y botones individuales;
 4. la reproducción sea fluida y no invente observaciones;
 5. la hora y antigüedad sean claras;
 6. la aplicación funcione correctamente en móvil y escritorio;
