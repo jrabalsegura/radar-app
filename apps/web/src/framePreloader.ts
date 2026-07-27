@@ -1,6 +1,8 @@
 import type { RadarTimelineFrame, TimelineSlot } from './radarManifest';
 
 const frameLoads = new Map<string, Promise<void>>();
+export const MAX_PRELOADED_FRAMES = 8;
+const MAX_TRACKED_LOADS = 12;
 
 export function preloadFrame(url: string): Promise<void> {
   const existing = frameLoads.get(url);
@@ -18,6 +20,7 @@ export function preloadFrame(url: string): Promise<void> {
     throw error;
   });
   frameLoads.set(url, pending);
+  pruneTrackedLoads(url);
   return pending;
 }
 
@@ -45,7 +48,8 @@ export function prioritizedFrameUrls(
         right.index - left.index
       );
     })
-    .map(({ frame }) => frame.imageUrl);
+    .map(({ frame }) => frame.imageUrl)
+    .slice(0, MAX_PRELOADED_FRAMES);
 }
 
 export function preloadInPriorityOrder(
@@ -69,4 +73,21 @@ export function preloadInPriorityOrder(
   return () => {
     cancelled = true;
   };
+}
+
+export function resetFramePreloaderForTests(): void {
+  frameLoads.clear();
+}
+
+function pruneTrackedLoads(preservedUrl: string): void {
+  while (frameLoads.size > MAX_TRACKED_LOADS) {
+    const oldestUrl = frameLoads.keys().next().value as string | undefined;
+    if (!oldestUrl) {
+      return;
+    }
+    if (oldestUrl === preservedUrl && frameLoads.size === 1) {
+      return;
+    }
+    frameLoads.delete(oldestUrl);
+  }
 }

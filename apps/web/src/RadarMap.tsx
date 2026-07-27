@@ -12,6 +12,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { preloadFrame } from './framePreloader';
 import type { RadarIndexEntry, RegionalRadarIndexEntry } from './radarIndex';
+import type { LongitudeLatitude } from './radarLocation';
 import type { RadarTimelineFrame } from './radarManifest';
 
 const DEFAULT_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
@@ -27,6 +28,7 @@ interface RadarMapProps {
   opacity: number;
   showDebug: boolean;
   reducedMotion: boolean;
+  userCoordinates: LongitudeLatitude | null;
 }
 
 export function RadarMap({
@@ -35,10 +37,12 @@ export function RadarMap({
   opacity,
   showDebug,
   reducedMotion,
+  userCoordinates,
 }: RadarMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const debugMarkerRef = useRef<Marker | null>(null);
+  const userMarkerRef = useRef<Marker | null>(null);
   const activeLayerRef = useRef<0 | 1>(0);
   const activeUrlRef = useRef<string | null>(null);
   const initialFrameRef = useRef(selectedFrame);
@@ -111,6 +115,7 @@ export function RadarMap({
       transitionSequenceRef.current += 1;
       setMapReady(false);
       debugMarkerRef.current = null;
+      userMarkerRef.current = null;
       mapRef.current = null;
       map.remove();
     };
@@ -209,11 +214,32 @@ export function RadarMap({
     }
   }, [mapReady, showDebug]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    userMarkerRef.current?.remove();
+    userMarkerRef.current = null;
+    if (!mapReady || !map || !userCoordinates) {
+      return;
+    }
+    const element = document.createElement('div');
+    element.className = 'user-location-marker';
+    element.setAttribute('aria-label', 'Tu ubicación aproximada');
+    element.title = 'Tu ubicación aproximada';
+    userMarkerRef.current = new Marker({ element })
+      .setLngLat(userCoordinates)
+      .addTo(map);
+    return () => {
+      userMarkerRef.current?.remove();
+      userMarkerRef.current = null;
+    };
+  }, [mapReady, userCoordinates]);
+
   return (
-    <div className="map-stage">
+    <div className="map-stage" data-map-ready={mapReady ? 'true' : 'false'}>
       <div
         ref={containerRef}
         className="map-canvas"
+        role="region"
         aria-label={`Mapa del radar de ${radar.label}`}
       />
       {!mapReady && (

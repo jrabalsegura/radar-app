@@ -9,8 +9,10 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
+import { formatDataAge } from './dataFreshness';
 import type { RadarIndexEntry } from './radarIndex';
 import type { RadarTimelineFrame, TimelineSlot } from './radarManifest';
+import { cacheKey } from './resilientData';
 
 const { preloadSpy } = vi.hoisted(() => ({
   preloadSpy: vi.fn((slots: TimelineSlot[], selectedIndex: number) => {
@@ -185,6 +187,25 @@ const murciaManifest = manifestFor(
     },
   ],
 );
+const refreshedMurciaManifest = manifestFor(
+  'mu',
+  [
+    timelineFrame('mu-one', '2026-07-24T17:00:00Z', '1', 'mu'),
+    timelineFrame('mu-two', '2026-07-24T17:10:00Z', '2', 'mu'),
+    timelineFrame('mu-three', '2026-07-24T17:30:00Z', '3', 'mu'),
+    timelineFrame('mu-four', '2026-07-24T17:40:00Z', '4', 'mu'),
+  ],
+  [
+    {
+      after: '2026-07-24T17:10:00Z',
+      before: '2026-07-24T17:30:00Z',
+      expectedCadenceMinutes: 10,
+      missingCount: 1,
+      expectedTimes: ['2026-07-24T17:20:00Z'],
+      timeBasis: 'retrievedAt',
+    },
+  ],
+);
 const almeriaManifest = manifestFor('am', [
   timelineFrame('am-only', '2026-07-24T17:30:00Z', 'a', 'am'),
 ]);
@@ -204,8 +225,10 @@ const nationalManifest = {
 describe('App radar', () => {
   afterEach(() => {
     cleanup();
+    window.localStorage.clear();
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
     preloadSpy.mockClear();
   });
 
@@ -220,6 +243,9 @@ describe('App radar', () => {
     expect(screen.getByLabelText('Fuente radar')).toHaveValue('regional-mu');
     expect(screen.getAllByRole('option')).toHaveLength(16);
     expect(screen.getByText('Últimas 3 h 50 min')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Último dato 19:30 · hace/),
+    ).toBeInTheDocument();
     expect(
       await screen.findByText(/hora de Madrid \(CEST\)/),
     ).toBeInTheDocument();
@@ -418,6 +444,117 @@ describe('App radar', () => {
     ).toBeInTheDocument();
   });
 
+  it('busca nuevos datos cada diez minutos sin interrumpir la exploración', async () => {
+    vi.useFakeTimers();
+    const fetchMock = mockRadarFetches([
+      murciaManifest,
+      refreshedMurciaManifest,
+      refreshedMurciaManifest,
+    ]);
+    render(<App />);
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    expect(screen.getByTestId('radar-map')).toHaveAttribute(
+      'data-frame',
+      'mu-three',
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(10 * 60 * 1000);
+      await flushMicrotasks();
+    });
+    expect(screen.getByTestId('radar-map')).toHaveAttribute(
+      'data-frame',
+      'mu-four',
+    );
+
+    fireEvent.change(screen.getByLabelText('Instante del radar'), {
+      target: { value: '1' },
+    });
+    expect(screen.getByTestId('radar-map')).toHaveAttribute(
+      'data-frame',
+      'mu-two',
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(10 * 60 * 1000);
+      await flushMicrotasks();
+    });
+    expect(screen.getByTestId('radar-map')).toHaveAttribute(
+      'data-frame',
+      'mu-two',
+    );
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url]) => url === '/radar/regional-mu/manifest.json',
+      ),
+    ).toHaveLength(3);
+  });
+
+  it('elige localmente el radar regional más cercano', async () => {
+    mockRadarFetches();
+    const getCurrentPosition = vi
+      .fn()
+      .mockImplementation((onSuccess: PositionCallback) => {
+        onSuccess({
+          coords: {
+            latitude: 36,
+            longitude: -6,
+            accuracy: 100,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+            toJSON: () => ({}),
+          },
+          timestamp: Date.now(),
+          toJSON: () => ({}),
+        });
+      });
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: { getCurrentPosition },
+    });
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Radar Murcia' });
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Usar mi ubicación para elegir el radar más cercano',
+      }),
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Radar Almería' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Radar más cercano: Almería.')).toBeInTheDocument();
+  });
+
+  it('mantiene la interfaz con el último manifiesto válido sin red', async () => {
+    seedCache('catalog', radarIndex);
+    seedCache('health', health);
+    seedCache('manifest:regional-mu', murciaManifest);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')));
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Radar Murcia' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/mostrando la última copia válida guardada/),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('radar-map')).toHaveAttribute(
+        'data-frame',
+        'mu-three',
+      ),
+    );
+    expect(screen.getByText('Retrasado')).toBeInTheDocument();
+  });
+
   it('explica el fallo del catálogo', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
     render(<App />);
@@ -427,6 +564,17 @@ describe('App radar', () => {
         'No se pudo abrir el catálogo',
       );
     });
+  });
+});
+
+describe('formatDataAge', () => {
+  it('expresa minutos, horas y días sin ocultar la antigüedad', () => {
+    const now = Date.parse('2026-07-27T12:00:00Z');
+    expect(formatDataAge('2026-07-27T11:59:40Z', now)).toBe(
+      'hace menos de 1 min',
+    );
+    expect(formatDataAge('2026-07-27T09:45:00Z', now)).toBe('hace 2 h 15 min');
+    expect(formatDataAge('2026-07-25T10:00:00Z', now)).toBe('hace 2 días 2 h');
   });
 });
 
@@ -503,7 +651,8 @@ function timelineFrame(
   };
 }
 
-function mockRadarFetches() {
+function mockRadarFetches(murciaManifests: unknown[] = [murciaManifest]) {
+  let murciaManifestIndex = 0;
   const fetchMock = vi.fn().mockImplementation((input: string) => {
     let payload: unknown;
     if (input === '/radar/index.json') {
@@ -511,7 +660,11 @@ function mockRadarFetches() {
     } else if (input === '/status/health.json') {
       payload = health;
     } else if (input === '/radar/regional-mu/manifest.json') {
-      payload = murciaManifest;
+      payload =
+        murciaManifests[
+          Math.min(murciaManifestIndex, murciaManifests.length - 1)
+        ];
+      murciaManifestIndex += 1;
     } else if (input === '/radar/regional-am/manifest.json') {
       payload = almeriaManifest;
     } else if (input === '/radar/regional-co/manifest.json') {
@@ -528,4 +681,21 @@ function mockRadarFetches() {
   });
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
+}
+
+async function flushMicrotasks() {
+  for (let iteration = 0; iteration < 8; iteration += 1) {
+    await Promise.resolve();
+  }
+}
+
+function seedCache(cacheId: string, value: unknown) {
+  window.localStorage.setItem(
+    cacheKey(cacheId),
+    JSON.stringify({
+      schemaVersion: 1,
+      savedAt: '2026-07-27T12:00:00Z',
+      value,
+    }),
+  );
 }
