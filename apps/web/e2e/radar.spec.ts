@@ -60,6 +60,11 @@ test('recorre el radar con controles accesibles y conserva la edad visible', asy
   await expect(page.locator('.data-freshness')).toContainText(
     /Último dato .* · hace /,
   );
+  const timeline = page.getByLabel('Instante del radar');
+  await expect(timeline).toBeFocused();
+  const initialTimelineValue = Number(await timeline.inputValue());
+  await page.keyboard.press('ArrowLeft');
+  await expect(timeline).toHaveValue(String(initialTimelineValue - 1));
 
   await page.getByLabel('Fuente radar').selectOption('national');
   await expect(

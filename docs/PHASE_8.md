@@ -60,6 +60,9 @@ se sustituye por cartografía de otra fuente.
 - La hora y la antigüedad relativa del último dato están siempre presentes. En
   pantalla completa cada tarjeta conserva también la antigüedad del instante
   seleccionado.
+- Al abrir la aplicación o cambiar de radar, el foco pasa al deslizador temporal
+  para recorrer inmediatamente el historial con `←` y `→`. Las actualizaciones
+  automáticas no roban el foco del control que esté usando la persona.
 - La pestaña vuelve a consultar el índice, la salud y el manifiesto seleccionado
   cada diez minutos. Si estaba mostrando el último fotograma, avanza al nuevo;
   si el usuario estaba explorando el historial, conserva ese instante mientras

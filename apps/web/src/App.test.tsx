@@ -253,12 +253,22 @@ describe('App radar', () => {
       'data-radar',
       'regional-mu',
     );
+    await waitFor(() =>
+      expect(screen.getByLabelText('Instante del radar')).toHaveFocus(),
+    );
     await waitFor(() => {
       expect(screen.getByTestId('radar-map')).toHaveAttribute(
         'data-frame',
         'mu-three',
       );
     });
+    fireEvent.keyDown(screen.getByLabelText('Instante del radar'), {
+      key: 'ArrowLeft',
+    });
+    expect(screen.getByTestId('radar-map')).toHaveAttribute(
+      'data-frame',
+      'mu-two',
+    );
   });
 
   it('conserva la última imagen real al recorrer un hueco', async () => {
@@ -301,6 +311,9 @@ describe('App radar', () => {
     expect(screen.getByTestId('radar-map')).toHaveAttribute(
       'data-radar',
       'regional-am',
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText('Instante del radar')).toHaveFocus(),
     );
     expect(
       screen.queryByText('3 observaciones reales'),
@@ -460,6 +473,8 @@ describe('App radar', () => {
       'data-frame',
       'mu-three',
     );
+    const opacitySlider = screen.getByLabelText('Opacidad del radar');
+    opacitySlider.focus();
 
     await act(async () => {
       vi.advanceTimersByTime(10 * 60 * 1000);
@@ -491,6 +506,7 @@ describe('App radar', () => {
         ([url]) => url === '/radar/regional-mu/manifest.json',
       ),
     ).toHaveLength(3);
+    expect(opacitySlider).toHaveFocus();
   });
 
   it('elige localmente el radar regional más cercano', async () => {

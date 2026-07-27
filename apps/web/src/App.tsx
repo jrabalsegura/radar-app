@@ -91,6 +91,8 @@ export function App() {
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const selectedButtonRef = useRef<HTMLButtonElement | null>(null);
+  const timelineSliderRef = useRef<HTMLInputElement | null>(null);
+  const focusedTimelineRadarRef = useRef<string | null>(null);
   const mapLayoutRef = useRef<HTMLElement | null>(null);
   const mapTopOverlayRef = useRef<HTMLDivElement | null>(null);
   const timelinePanelRef = useRef<HTMLElement | null>(null);
@@ -335,6 +337,23 @@ export function App() {
     }
     return preloadInPriorityOrder(slots, selectedIndex);
   }, [selectedIndex, slots]);
+
+  useEffect(() => {
+    if (
+      !manifest ||
+      manifest.radar.id !== selectedRadarId ||
+      focusedTimelineRadarRef.current === selectedRadarId ||
+      slots.length === 0
+    ) {
+      return;
+    }
+    const slider = timelineSliderRef.current;
+    if (!slider) {
+      return;
+    }
+    focusedTimelineRadarRef.current = selectedRadarId;
+    slider.focus({ preventScroll: true });
+  }, [manifest, selectedRadarId, slots.length]);
 
   useEffect(() => {
     const button = selectedButtonRef.current;
@@ -757,6 +776,7 @@ export function App() {
             playing={playing}
             speed={speed}
             panelRef={timelinePanelRef}
+            sliderRef={timelineSliderRef}
             selectedButtonRef={selectedButtonRef}
             onSelect={selectSlot}
             onTogglePlaying={() => setPlaying((active) => !active)}
@@ -843,6 +863,7 @@ interface TimelineProps {
   playing: boolean;
   speed: PlaybackSpeed;
   panelRef: RefObject<HTMLElement | null>;
+  sliderRef: RefObject<HTMLInputElement | null>;
   selectedButtonRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
   onTogglePlaying: () => void;
@@ -858,6 +879,7 @@ function Timeline({
   playing,
   speed,
   panelRef,
+  sliderRef,
   selectedButtonRef,
   onSelect,
   onTogglePlaying,
@@ -888,6 +910,7 @@ function Timeline({
         <label className="timeline-slider">
           <span className="visually-hidden">Instante del radar</span>
           <input
+            ref={sliderRef}
             aria-label="Instante del radar"
             aria-valuetext={slotAnnouncement(selectedSlot, mapFrame)}
             type="range"
@@ -895,6 +918,19 @@ function Timeline({
             max={slots.length - 1}
             step="1"
             value={selectedIndex}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+                return;
+              }
+              event.preventDefault();
+              const direction = event.key === 'ArrowLeft' ? -1 : 1;
+              onSelect(
+                Math.min(
+                  slots.length - 1,
+                  Math.max(0, selectedIndex + direction),
+                ),
+              );
+            }}
             onChange={(event) => onSelect(Number(event.currentTarget.value))}
           />
           <span className="timeline-range">
