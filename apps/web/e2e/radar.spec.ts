@@ -39,6 +39,11 @@ test('recorre el radar con controles accesibles y conserva la edad visible', asy
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
   await expect
     .poll(async () =>
+      Number(await page.locator('.map-stage').getAttribute('data-top-inset')),
+    )
+    .toBeGreaterThan(100);
+  await expect
+    .poll(async () =>
       Number(
         await page.locator('.map-stage').getAttribute('data-bottom-inset'),
       ),

@@ -84,6 +84,8 @@ radars:
     siteName: Madrid - Torrejón de Velasco
     longitude: -3.71368328333333
     latitude: 40.1759238222222
+    mapCenterLongitude: -3.70379
+    mapCenterLatitude: 40.41678
     sampleValidation: verified
     staticMask: masks/regional-ma-v1.png
     ambiguousClassPolicy: static-mask
@@ -104,6 +106,8 @@ radars:
     siteName: Murcia - Fortuna
     longitude: -1.18970006
     latitude: 38.26438295
+    mapCenterLongitude: -1.35
+    mapCenterLatitude: 37.84
     sampleValidation: control-points
     reflectivityConfig: palettes/regional-mu-v1.json
     staticMask: masks/regional-mu-v1.png

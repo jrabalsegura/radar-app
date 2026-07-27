@@ -40,6 +40,8 @@ class RadarDefinition:
     site_name: str
     longitude: float
     latitude: float
+    map_center_longitude: float
+    map_center_latitude: float
     range_kilometres: float
     map_zoom: float
     sample_validation: str
@@ -148,6 +150,8 @@ def _parse_radar(
         sort_keys=True,
         separators=(",", ":"),
     )
+    longitude = _number(row, "longitude")
+    latitude = _number(row, "latitude")
     definition = RadarDefinition(
         product=RadarProduct(
             id=product_id,
@@ -159,8 +163,14 @@ def _parse_radar(
         ),
         site_code=_string(row, "siteCode"),
         site_name=_string(row, "siteName"),
-        longitude=_number(row, "longitude"),
-        latitude=_number(row, "latitude"),
+        longitude=longitude,
+        latitude=latitude,
+        map_center_longitude=(
+            _number(row, "mapCenterLongitude") if "mapCenterLongitude" in row else longitude
+        ),
+        map_center_latitude=(
+            _number(row, "mapCenterLatitude") if "mapCenterLatitude" in row else latitude
+        ),
         range_kilometres=_number_with_default(row, defaults, "rangeKilometres"),
         map_zoom=_number_with_default(row, defaults, "mapZoom"),
         sample_validation=sample_validation,
@@ -214,6 +224,10 @@ def _validate_catalog(definitions: tuple[RadarDefinition, ...]) -> None:
         raise ValueError("Hay una longitud de radar fuera de rango.")
     if any(not -90 <= item.latitude <= 90 for item in definitions):
         raise ValueError("Hay una latitud de radar fuera de rango.")
+    if any(not -180 <= item.map_center_longitude <= 180 for item in definitions):
+        raise ValueError("Hay una longitud de centro de mapa fuera de rango.")
+    if any(not -90 <= item.map_center_latitude <= 90 for item in definitions):
+        raise ValueError("Hay una latitud de centro de mapa fuera de rango.")
     if any(item.range_kilometres <= 0 or item.map_zoom <= 0 for item in definitions):
         raise ValueError("Alcance y zoom deben ser positivos.")
 

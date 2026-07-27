@@ -2247,6 +2247,10 @@
       "label": "Madrid",
       "latestFrameTime": "2026-07-27T08:10:00Z",
       "manifestUrl": "/radar/regional-ma/manifest.json",
+      "mapCenter": [
+        -3.70379,
+        40.41678
+      ],
       "mapZoom": 7.3,
       "rangeKilometres": 240.0,
       "siteCode": "TJV",
@@ -2879,6 +2883,10 @@
       "label": "Murcia",
       "latestFrameTime": "2026-07-27T08:10:00Z",
       "manifestUrl": "/radar/regional-mu/manifest.json",
+      "mapCenter": [
+        -1.35,
+        37.84
+      ],
       "mapZoom": 7.3,
       "rangeKilometres": 240.0,
       "siteCode": "FTN",

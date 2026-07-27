@@ -12,6 +12,7 @@ import {
 import { formatDataAge } from './dataFreshness';
 import { preloadInPriorityOrder } from './framePreloader';
 import { recordAppReady } from './performanceMetrics';
+import type { RadarCameraInsets } from './radarCamera';
 import {
   isRadarHealth,
   RADAR_HEALTH_URL,
@@ -50,7 +51,6 @@ const OPACITY_KEY = 'aemet-radar:opacity';
 const CATALOG_CACHE_ID = 'catalog';
 const HEALTH_CACHE_ID = 'health';
 const AUTO_REFRESH_MILLISECONDS = 10 * 60 * 1000;
-const SOUTHERN_MAP_CONTEXT_PIXELS = 112;
 
 type PlaybackSpeed = keyof typeof SPEEDS;
 type LocationStatus = 'idle' | 'locating' | 'located' | 'error';
@@ -92,10 +92,14 @@ export function App() {
     useState<BeforeInstallPromptEvent | null>(null);
   const selectedButtonRef = useRef<HTMLButtonElement | null>(null);
   const mapLayoutRef = useRef<HTMLElement | null>(null);
+  const mapTopOverlayRef = useRef<HTMLDivElement | null>(null);
   const timelinePanelRef = useRef<HTMLElement | null>(null);
   const manifestRef = useRef<RadarManifest | null>(null);
   const selectedIndexRef = useRef(0);
-  const [mapBottomInset, setMapBottomInset] = useState(0);
+  const [mapInsets, setMapInsets] = useState<RadarCameraInsets>({
+    top: 0,
+    bottom: 0,
+  });
   const reducedMotion = useReducedMotion();
   const now = useMinuteClock();
   const selectedRadar =
@@ -235,38 +239,63 @@ export function App() {
   }, [selectedIndex]);
 
   useEffect(() => {
+    const layout = mapLayoutRef.current;
+    const topOverlay = mapTopOverlayRef.current;
     const panel = timelinePanelRef.current;
-    if (!panel) {
-      setMapBottomInset(0);
+    if (!layout) {
       return;
     }
+    const layoutElement = layout;
+    const topOverlayElement = topOverlay;
     const panelElement = panel;
 
-    function measurePanel() {
-      const bottomOffset = Number.parseFloat(
-        window.getComputedStyle(panelElement).bottom,
-      );
-      setMapBottomInset(
-        Math.ceil(
-          panelElement.getBoundingClientRect().height +
-            2 * (Number.isFinite(bottomOffset) ? bottomOffset : 0) +
-            SOUTHERN_MAP_CONTEXT_PIXELS,
-        ),
+    function measureOverlays() {
+      const layoutRect = layoutElement.getBoundingClientRect();
+      const topOffset = topOverlayElement
+        ? Number.parseFloat(window.getComputedStyle(topOverlayElement).top)
+        : 0;
+      const bottomOffset = panelElement
+        ? Number.parseFloat(window.getComputedStyle(panelElement).bottom)
+        : 0;
+      const top = topOverlayElement
+        ? Math.ceil(
+            topOverlayElement.getBoundingClientRect().bottom -
+              layoutRect.top +
+              (Number.isFinite(topOffset) ? topOffset : 0),
+          )
+        : 0;
+      const bottom = panelElement
+        ? Math.ceil(
+            layoutRect.bottom -
+              panelElement.getBoundingClientRect().top +
+              (Number.isFinite(bottomOffset) ? bottomOffset : 0),
+          )
+        : 0;
+      setMapInsets((current) =>
+        current.top === top && current.bottom === bottom
+          ? current
+          : { top, bottom },
       );
     }
 
-    measurePanel();
+    measureOverlays();
     const observer =
       typeof ResizeObserver === 'undefined'
         ? null
-        : new ResizeObserver(measurePanel);
-    observer?.observe(panelElement);
-    window.addEventListener('resize', measurePanel);
+        : new ResizeObserver(measureOverlays);
+    observer?.observe(layoutElement);
+    if (topOverlayElement) {
+      observer?.observe(topOverlayElement);
+    }
+    if (panelElement) {
+      observer?.observe(panelElement);
+    }
+    window.addEventListener('resize', measureOverlays);
     return () => {
       observer?.disconnect();
-      window.removeEventListener('resize', measurePanel);
+      window.removeEventListener('resize', measureOverlays);
     };
-  }, [fullscreen, manifest, selectedRadarId]);
+  }, [fullscreen, manifest, manifestError, selectedRadarId]);
 
   useEffect(() => {
     function updateConnection() {
@@ -617,7 +646,7 @@ export function App() {
             showDebug={showDebug}
             reducedMotion={reducedMotion}
             userCoordinates={userCoordinates}
-            bottomInset={mapBottomInset}
+            cameraInsets={mapInsets}
           />
         </Suspense>
 
@@ -635,9 +664,11 @@ export function App() {
             selectedFrame={selectedFrame}
             mapFrame={mapFrame}
             now={now}
+            cardRef={mapTopOverlayRef}
           />
         ) : (
           <div
+            ref={mapTopOverlayRef}
             className={`no-data-card${manifestError ? ' no-data-card--error' : ''}`}
             role={manifestError ? 'alert' : 'status'}
           >
@@ -743,6 +774,7 @@ interface FrameCardProps {
   selectedFrame: RadarTimelineFrame | null;
   mapFrame: RadarTimelineFrame | null;
   now: number;
+  cardRef: RefObject<HTMLDivElement | null>;
 }
 
 function FrameCard({
@@ -751,12 +783,14 @@ function FrameCard({
   selectedFrame,
   mapFrame,
   now,
+  cardRef,
 }: FrameCardProps) {
   const isLatest =
     selectedSlot.kind === 'frame' &&
     selectedSlot.time === manifest.latestFrameTime;
   return (
     <div
+      ref={cardRef}
       className={`frame-card${selectedSlot.kind === 'gap' ? ' frame-card--gap' : ''}`}
     >
       <p className="frame-card__label">

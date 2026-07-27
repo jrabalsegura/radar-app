@@ -144,6 +144,10 @@ class RegionalTimelineProcessor:
             "siteCode": definition.site_code,
             "siteName": definition.site_name,
             "coordinates": [definition.longitude, definition.latitude],
+            "mapCenter": [
+                definition.map_center_longitude,
+                definition.map_center_latitude,
+            ],
             "rangeKilometres": definition.range_kilometres,
             "mapZoom": definition.map_zoom,
             "coverageRing": coverage_ring(radar),

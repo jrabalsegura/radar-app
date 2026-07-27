@@ -4,6 +4,17 @@ const REGIONAL_REFERENCE_VIEWPORT_WIDTH = 768;
 const MINIMUM_ZOOM = 4;
 const MAXIMUM_ZOOM = 12;
 
+export interface RadarCameraInsets {
+  top: number;
+  bottom: number;
+}
+
+export function radarCameraCenter(radar: RadarIndexEntry): [number, number] {
+  return radar.kind === 'regional' && radar.mapCenter
+    ? radar.mapCenter
+    : radar.coordinates;
+}
+
 export function initialRadarZoom(
   radar: RadarIndexEntry,
   viewportWidth: number,
@@ -22,12 +33,12 @@ export function initialRadarZoom(
 
 export function radarCameraPadding(
   radar: RadarIndexEntry,
-  bottomInset: number,
+  insets: RadarCameraInsets,
 ) {
   return {
-    top: 0,
+    top: radar.kind === 'regional' ? Math.max(0, insets.top) : 0,
     right: 0,
-    bottom: radar.kind === 'regional' ? Math.max(0, bottomInset) : 0,
+    bottom: radar.kind === 'regional' ? Math.max(0, insets.bottom) : 0,
     left: 0,
   };
 }
