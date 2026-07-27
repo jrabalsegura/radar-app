@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  formatMadridTime,
-  formatMadridTimeZoneName,
-} from './radarManifest';
+import { formatMadridTime, formatMadridTimeZoneName } from './radarManifest';
 
 describe('formato horario de Madrid', () => {
   it('aplica CET en invierno', () => {
