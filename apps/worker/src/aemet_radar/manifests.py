@@ -140,7 +140,19 @@ def build_product_manifest(
     history_hours: float,
     image_resolver: Callable[[RadarProduct, ArchivedFrame], FrameImage | None] | None = None,
 ) -> dict[str, object]:
-    frames = scan.frames
+    archived_frames = scan.frames
+    resolved_images: dict[Path, FrameImage] = {}
+    if image_resolver is None:
+        frames = archived_frames
+    else:
+        publishable: list[ArchivedFrame] = []
+        for frame in archived_frames:
+            image = image_resolver(product, frame)
+            if image is None:
+                continue
+            publishable.append(frame)
+            resolved_images[frame.report_path] = image
+        frames = tuple(publishable)
     selected: tuple[ArchivedFrame, ...] = ()
     window_start: datetime | None = None
     window_end: datetime | None = None
@@ -151,7 +163,12 @@ def build_product_manifest(
         selected = select_history_frames(frames, history_hours)
 
     public_frames = [
-        _public_frame(frame, product, image_resolver=image_resolver) for frame in selected
+        _public_frame(
+            frame,
+            product,
+            image=resolved_images.get(frame.report_path),
+        )
+        for frame in selected
     ]
     product_times = [frame.product_time for frame in selected if frame.product_time is not None]
     latest_product_time = max(product_times) if product_times else None
@@ -182,12 +199,17 @@ def build_product_manifest(
             product.cadence_minutes,
             window_start=(
                 window_start
-                if selected and all(frame.source_provider == "aemet-viewer" for frame in selected)
+                if selected
+                and all(
+                    frame.source_provider is not None
+                    and frame.source_provider.startswith("aemet-viewer")
+                    for frame in selected
+                )
                 else None
             ),
         ),
         "statistics": {
-            "archivedFrames": len(frames),
+            "archivedFrames": len(archived_frames),
             "publishedFrames": len(selected),
             "discardedDuplicates": scan.discarded_duplicates,
             "invalidReports": len(scan.issues),
@@ -209,10 +231,9 @@ def _public_frame(
     frame: ArchivedFrame,
     product: RadarProduct,
     *,
-    image_resolver: Callable[[RadarProduct, ArchivedFrame], FrameImage | None] | None,
+    image: FrameImage | None,
 ) -> dict[str, object]:
     raw_url = "/" + "/".join(quote(part) for part in frame.raw_relative_path.split("/"))
-    image = image_resolver(product, frame) if image_resolver is not None else None
     return {
         "id": (
             f"{product.id}_{frame.timeline_time.strftime('%Y%m%dT%H%M%SZ')}"

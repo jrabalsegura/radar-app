@@ -12,7 +12,7 @@ import {
   isRadarIndex,
   RADAR_INDEX_URL,
   type RadarIndex,
-  type RegionalRadarIndexEntry,
+  type RadarIndexEntry,
 } from './radarIndex';
 import {
   buildTimelineSlots,
@@ -70,12 +70,12 @@ export function App() {
           fetch(RADAR_HEALTH_URL, { signal: controller.signal }),
         ]);
         if (!indexResponse.ok || !healthResponse.ok) {
-          throw new Error('No se pudo cargar el catálogo regional.');
+          throw new Error('No se pudo cargar el catálogo de radar.');
         }
         const [indexPayload, healthPayload]: [unknown, unknown] =
           await Promise.all([indexResponse.json(), healthResponse.json()]);
         if (!isRadarIndex(indexPayload) || !isRadarHealth(healthPayload)) {
-          throw new Error('El catálogo regional no cumple el contrato.');
+          throw new Error('El catálogo de radar no cumple el contrato.');
         }
         setIndex(indexPayload);
         setHealth(healthPayload);
@@ -100,7 +100,7 @@ export function App() {
     }
     const controller = new AbortController();
 
-    async function loadManifest(radar: RegionalRadarIndexEntry) {
+    async function loadManifest(radar: RadarIndexEntry) {
       try {
         const response = await fetch(radar.manifestUrl, {
           signal: controller.signal,
@@ -110,7 +110,7 @@ export function App() {
         }
         const payload: unknown = await response.json();
         if (!isRadarManifest(payload) || payload.radar.id !== radar.id) {
-          throw new Error('El historial no cumple el contrato regional.');
+          throw new Error('El historial no cumple el contrato del radar.');
         }
         setManifest(payload);
         setSelectedIndex(Math.max(0, buildTimelineSlots(payload).length - 1));
@@ -190,16 +190,16 @@ export function App() {
     return (
       <main className="radar-app radar-app--initial">
         <div className="initial-state" role={catalogError ? 'alert' : 'status'}>
-          <p className="eyebrow">Red regional AEMET</p>
+          <p className="eyebrow">Red radar AEMET</p>
           <h1>
             {catalogError
               ? 'No se pudo abrir el catálogo'
-              : 'Preparando los radares regionales…'}
+              : 'Preparando las fuentes de radar…'}
           </h1>
           <p>
             {catalogError
               ? 'Comprueba que el índice y el estado operativo estén publicados.'
-              : 'Cargando los 15 emplazamientos y su estado actual.'}
+              : 'Cargando la composición nacional y los 15 emplazamientos regionales.'}
           </p>
         </div>
       </main>
@@ -222,7 +222,11 @@ export function App() {
         <div className="radar-heading">
           <p className="eyebrow">Últimas {HISTORY_LABEL}</p>
           <div className="radar-title-row">
-            <h1>Radar {selectedRadar.label}</h1>
+            <h1>
+              {selectedRadar.kind === 'national'
+                ? selectedRadar.label
+                : `Radar ${selectedRadar.label}`}
+            </h1>
             <span className={`status-chip status-chip--${status}`}>
               {statusLabel(status)}
             </span>
@@ -230,9 +234,9 @@ export function App() {
         </div>
 
         <div className="radar-selector">
-          <label htmlFor="regional-radar">Radar regional</label>
+          <label htmlFor="radar-source">Fuente radar</label>
           <select
-            id="regional-radar"
+            id="radar-source"
             value={selectedRadar.id}
             onChange={(event) => {
               setManifest(null);
@@ -242,14 +246,32 @@ export function App() {
               setSelectedRadarId(event.currentTarget.value);
             }}
           >
-            {index.radars.map((radar) => (
-              <option key={radar.id} value={radar.id}>
-                {radar.label}
-                {radar.available ? '' : ' · sin datos'}
-              </option>
-            ))}
+            <optgroup label="Composición nacional">
+              {index.radars
+                .filter((radar) => radar.kind === 'national')
+                .map((radar) => (
+                  <option key={radar.id} value={radar.id}>
+                    {radar.label}
+                    {radar.available ? '' : ' · sin datos'}
+                  </option>
+                ))}
+            </optgroup>
+            <optgroup label="Radares regionales">
+              {index.radars
+                .filter((radar) => radar.kind === 'regional')
+                .map((radar) => (
+                  <option key={radar.id} value={radar.id}>
+                    {radar.label}
+                    {radar.available ? '' : ' · sin datos'}
+                  </option>
+                ))}
+            </optgroup>
           </select>
-          <span>{selectedRadar.siteName}</span>
+          <span>
+            {selectedRadar.kind === 'national'
+              ? `${selectedRadar.coverageLabel} · Canarias usa el radar regional de Las Palmas`
+              : selectedRadar.siteName}
+          </span>
         </div>
 
         <div className="header-meta">
@@ -275,7 +297,7 @@ export function App() {
 
       <section
         className="map-layout"
-        aria-label={`Reproductor del radar de ${selectedRadar.label}`}
+        aria-label={`Reproductor de ${selectedRadar.label}`}
       >
         <RadarMap
           key={selectedRadar.id}
@@ -298,7 +320,11 @@ export function App() {
             className={`no-data-card${manifestError ? ' no-data-card--error' : ''}`}
             role={manifestError ? 'alert' : 'status'}
           >
-            <p className="frame-card__label">{selectedRadar.siteCode}</p>
+            <p className="frame-card__label">
+              {selectedRadar.kind === 'national'
+                ? selectedRadar.regionCode
+                : selectedRadar.siteCode}
+            </p>
             <h2>
               {manifestError
                 ? 'No se pudo abrir este historial'
@@ -308,10 +334,10 @@ export function App() {
             </h2>
             <p>
               {manifestError
-                ? 'El resto de radares sigue disponible. Puedes seleccionar otro emplazamiento.'
+                ? 'El resto de fuentes sigue disponible. Puedes seleccionar otra.'
                 : manifest
-                  ? 'Este radar permanece configurado y seguirá consultándose. Las imágenes aparecerán automáticamente cuando AEMET vuelva a publicarlas.'
-                  : 'El mapa ya está centrado en el emplazamiento seleccionado.'}
+                  ? 'Esta fuente permanece configurada y seguirá consultándose. Las imágenes aparecerán automáticamente cuando AEMET vuelva a publicarlas.'
+                  : 'El mapa ya está centrado en la fuente seleccionada.'}
             </p>
           </div>
         )}
@@ -547,7 +573,7 @@ function Timeline({
   );
 }
 
-function radarAvailability(radar: RegionalRadarIndexEntry): RadarHealthStatus {
+function radarAvailability(radar: RadarIndexEntry): RadarHealthStatus {
   return radar.available ? 'current' : 'no-data';
 }
 

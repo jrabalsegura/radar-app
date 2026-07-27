@@ -38,7 +38,7 @@ export interface RadarManifest {
   radar: {
     id: string;
     label: string;
-    kind: 'regional';
+    kind: 'national' | 'regional';
     cadenceMinutes: number;
   };
   generatedAt: string;
@@ -87,9 +87,8 @@ export function isRadarManifest(value: unknown): value is RadarManifest {
     value.schemaVersion !== 1 ||
     !isRecord(radar) ||
     typeof radar.id !== 'string' ||
-    !radar.id.startsWith('regional-') ||
+    !isRadarIdentity(radar.id, radar.kind) ||
     typeof radar.label !== 'string' ||
-    radar.kind !== 'regional' ||
     !isPositiveNumber(radar.cadenceMinutes) ||
     !isDateTime(value.generatedAt) ||
     !isRecord(window) ||
@@ -128,6 +127,15 @@ export function isRadarManifest(value: unknown): value is RadarManifest {
     (value.latestProductTime === null || isDateTime(value.latestProductTime)) &&
     isTimeBasis(value.timeBasis) &&
     value.latestFrameTime === value.frames.at(-1)?.time
+  );
+}
+
+function isRadarIdentity(value: unknown, kind: unknown): boolean {
+  return (
+    (kind === 'national' && value === 'national') ||
+    (kind === 'regional' &&
+      typeof value === 'string' &&
+      value.startsWith('regional-'))
   );
 }
 

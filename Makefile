@@ -3,7 +3,7 @@ VENV := .venv
 WEB_DIR := apps/web
 WORKER_DIR := apps/worker
 
-.PHONY: install web-install worker-install dev-web fetch-once check-inventory poll-once run-worker rebuild-manifests serve-files analyze-reflectivity validate-radar georeference-murcia build-reflectivity-mask build-radar-masks lint format format-check typecheck test build check clean
+.PHONY: install web-install worker-install dev-web fetch-once check-inventory poll-once run-worker rebuild-manifests serve-files analyze-reflectivity validate-radar validate-national georeference-murcia build-reflectivity-mask build-radar-masks lint format format-check typecheck test build check clean
 
 install: web-install worker-install
 
@@ -46,6 +46,10 @@ validate-radar:
 	@test -n "$(PRODUCT)" || (echo "Uso: make validate-radar PRODUCT=regional-am SAMPLE=ruta/al/original.gif" && exit 2)
 	@test -n "$(SAMPLE)" || (echo "Uso: make validate-radar PRODUCT=regional-am SAMPLE=ruta/al/original.gif" && exit 2)
 	$(VENV)/bin/aemet-radar validate-radar --product "$(PRODUCT)" "$(SAMPLE)"
+
+validate-national:
+	@test -n "$(SAMPLE)" || (echo "Uso: make validate-national SAMPLE=ruta/al/original.png" && exit 2)
+	$(VENV)/bin/aemet-radar validate-national "$(SAMPLE)"
 
 georeference-murcia:
 	@test -n "$(OVERLAY)" || (echo "Uso: make georeference-murcia OVERLAY=ruta/al/overlay.png" && exit 2)

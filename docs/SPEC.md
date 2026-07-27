@@ -41,13 +41,20 @@ La inspiración funcional es LiteRadar: abrir la aplicación y llegar inmediatam
 
 ## 3. Fuente de datos
 
-### 3.1 AEMET OpenData
+### 3.1 Visor oficial y AEMET OpenData
 
-La aplicación utilizará los productos públicos de radar de AEMET OpenData:
+La fuente primaria es la API web pública del visor oficial de AEMET:
 
-- composición nacional;
-- imágenes de los radares regionales;
-- periodicidad declarada para los radares regionales: cada 10 minutos.
+- composición nacional `compo/PB` de Península y Baleares;
+- imágenes PPI de los radares regionales;
+- cronologías, horas y límites geográficos oficiales;
+- cadencia observada y validada de 10 minutos.
+
+La composición nacional no incluye Canarias. El visor usa para ese territorio
+el PPI regional de Las Palmas, que permanece como producto independiente.
+
+AEMET OpenData se mantiene como fallback autenticado para la composición y las
+imágenes regionales.
 
 La primera llamada autenticada devuelve un JSON similar a:
 
@@ -90,7 +97,9 @@ La reflectividad no debe alterarse de forma que cambie su significado meteoroló
 
 ## 4. Problema técnico central
 
-AEMET entrega una imagen gráfica ya compuesta, no una cuadrícula georreferenciada de reflectividad.
+AEMET OpenData entrega una imagen gráfica ya compuesta, no una cuadrícula
+georreferenciada de reflectividad. El visor oficial aporta además PNG PPI
+regionales y una composición nacional Web Mercator con límites explícitos.
 
 La imagen regional observada contiene, en un mismo raster:
 
@@ -148,8 +157,8 @@ No se utilizará OCR general como dependencia central. La hora del producto se i
 #### Historial
 
 - Visualización de las últimas **3 horas y 50 minutos**.
-- Para productos regionales con cadencia de 10 minutos, objetivo de 24
-  posiciones contando ambos extremos cuando estén disponibles.
+- Para productos nacionales o regionales con cadencia de 10 minutos, objetivo
+  de 24 posiciones contando ambos extremos cuando estén disponibles.
 - El backend conservará margen adicional para soportar retrasos y
   reconstrucción del manifiesto; la interfaz mostrará 230 minutos.
 - Ausencias de fotogramas representadas como huecos, no como datos inventados.
@@ -543,7 +552,11 @@ Métodos posibles, por orden de preferencia:
 2. georreferenciación mediante puntos de control y transformación documentada;
 3. ajuste por cuatro esquinas solo si el error medido es aceptable.
 
-La composición nacional tendrá su propia estrategia y no debe forzarse a utilizar el procesador regional.
+La composición nacional usa el procesador independiente `national-v1`. Valida
+PNG indexado `962×1079` de 4 bits, conserva solo los RGB exactos de
+reflectividad mediante una máscara por fotograma y usa directamente los límites
+EPSG:3857 oficiales reordenados a NW, NE, SE, SW. No reutiliza la proyección,
+alcance ni máscaras de un radar regional.
 
 ### 11.5 Validación
 
@@ -713,7 +726,6 @@ El MVP estará terminado cuando:
 - Forma fiable de obtener la hora del producto.
 - Centro geográfico, alcance y proyección de cada radar.
 - Si todos los radares regionales comparten plantilla y geometría.
-- Formato y geometría de la composición nacional.
 - Calidad de WebP sin pérdida frente a PNG.
 - Error de georreferenciación aceptable.
 - Mejor técnica de renderizado para transiciones con MapLibre.

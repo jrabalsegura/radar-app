@@ -9,7 +9,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
-import type { RegionalRadarIndexEntry } from './radarIndex';
+import type { RadarIndexEntry } from './radarIndex';
 import type { RadarTimelineFrame, TimelineSlot } from './radarManifest';
 
 const { preloadSpy } = vi.hoisted(() => ({
@@ -32,7 +32,7 @@ vi.mock('./RadarMap', () => ({
     showDebug,
     reducedMotion,
   }: {
-    radar: RegionalRadarIndexEntry;
+    radar: RadarIndexEntry;
     selectedFrame: RadarTimelineFrame | null;
     opacity: number;
     showDebug: boolean;
@@ -85,7 +85,7 @@ const radarLabels: Record<(typeof regionalCodes)[number], string> = {
   za: 'Zaragoza',
 };
 
-const radars = regionalCodes.map((code, index) => {
+const regionalRadars = regionalCodes.map((code, index) => {
   const available = code !== 'co' && code !== 'va' && code !== 'ss';
   return {
     id: `regional-${code}`,
@@ -118,6 +118,34 @@ const radars = regionalCodes.map((code, index) => {
     },
   };
 });
+
+const nationalRadar = {
+  id: 'national',
+  label: 'Composición nacional',
+  kind: 'national',
+  cadenceMinutes: 10,
+  manifestUrl: '/radar/national/manifest.json',
+  available: true,
+  latestFrameTime: '2026-07-24T17:30:00Z',
+  regionCode: 'PB',
+  coverageLabel: 'Península y Baleares',
+  includesCanaryIslands: false,
+  coordinates: [-3.97, 39.25],
+  mapZoom: 4.4,
+  coverageRing: [
+    [-16.08, 51.3],
+    [12.14, 51.3],
+    [12.14, 27.22],
+    [-16.08, 27.22],
+    [-16.08, 51.3],
+  ],
+  validation: {
+    status: 'verified',
+    sampleVerified: true,
+  },
+} as const;
+
+const radars = [nationalRadar, ...regionalRadars];
 
 const radarIndex = {
   schemaVersion: 1,
@@ -161,8 +189,19 @@ const almeriaManifest = manifestFor('am', [
   timelineFrame('am-only', '2026-07-24T17:30:00Z', 'a', 'am'),
 ]);
 const emptyCorunaManifest = emptyManifestFor('co');
+const nationalManifest = {
+  ...manifestFor('mu', [
+    timelineFrame('national-only', '2026-07-24T17:30:00Z', 'b', 'national'),
+  ]),
+  radar: {
+    id: 'national',
+    label: 'Composición nacional',
+    kind: 'national',
+    cadenceMinutes: 10,
+  },
+};
 
-describe('App regional', () => {
+describe('App radar', () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
@@ -170,7 +209,7 @@ describe('App regional', () => {
     preloadSpy.mockClear();
   });
 
-  it('carga los 15 radares y abre Murcia por defecto', async () => {
+  it('carga la composición y los 15 radares, y abre Murcia por defecto', async () => {
     mockRadarFetches();
 
     render(<App />);
@@ -178,8 +217,8 @@ describe('App regional', () => {
     expect(
       await screen.findByRole('heading', { name: 'Radar Murcia' }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Radar regional')).toHaveValue('regional-mu');
-    expect(screen.getAllByRole('option')).toHaveLength(15);
+    expect(screen.getByLabelText('Fuente radar')).toHaveValue('regional-mu');
+    expect(screen.getAllByRole('option')).toHaveLength(16);
     expect(screen.getByText('Últimas 3 h 50 min')).toBeInTheDocument();
     expect(
       await screen.findByText(/hora de Madrid \(CEST\)/),
@@ -220,7 +259,7 @@ describe('App regional', () => {
     render(<App />);
     await screen.findByRole('heading', { name: 'Radar Murcia' });
 
-    fireEvent.change(screen.getByLabelText('Radar regional'), {
+    fireEvent.change(screen.getByLabelText('Fuente radar'), {
       target: { value: 'regional-am' },
     });
 
@@ -252,7 +291,7 @@ describe('App regional', () => {
     await screen.findByRole('heading', { name: 'Radar Murcia' });
     await waitFor(() => expect(preloadSpy).toHaveBeenCalled());
 
-    fireEvent.change(screen.getByLabelText('Radar regional'), {
+    fireEvent.change(screen.getByLabelText('Fuente radar'), {
       target: { value: 'regional-am' },
     });
     await screen.findByRole('heading', { name: 'Radar Almería' });
@@ -268,7 +307,7 @@ describe('App regional', () => {
     });
 
     const callsWithData = preloadSpy.mock.calls.length;
-    fireEvent.change(screen.getByLabelText('Radar regional'), {
+    fireEvent.change(screen.getByLabelText('Fuente radar'), {
       target: { value: 'regional-co' },
     });
     await screen.findByText('Sin imágenes disponibles ahora');
@@ -280,7 +319,7 @@ describe('App regional', () => {
     render(<App />);
     await screen.findByRole('heading', { name: 'Radar Murcia' });
 
-    fireEvent.change(screen.getByLabelText('Radar regional'), {
+    fireEvent.change(screen.getByLabelText('Fuente radar'), {
       target: { value: 'regional-co' },
     });
 
@@ -301,6 +340,47 @@ describe('App regional', () => {
     expect(screen.getByTestId('radar-map')).toHaveAttribute(
       'data-frame',
       'none',
+    );
+  });
+
+  it('cambia a la composición nacional sin mezclar productos', async () => {
+    const fetchMock = mockRadarFetches();
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Radar Murcia' });
+
+    fireEvent.change(screen.getByLabelText('Fuente radar'), {
+      target: { value: 'national' },
+    });
+
+    expect(
+      await screen.findByRole('heading', { name: 'Composición nacional' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Península y Baleares · Canarias usa el radar regional de Las Palmas',
+      ),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('radar-map')).toHaveAttribute(
+        'data-frame',
+        'national-only',
+      );
+    });
+    expect(screen.getByTestId('radar-map')).toHaveAttribute(
+      'data-radar',
+      'national',
+    );
+    expect(preloadSpy.mock.calls.at(-1)?.[0]).toSatisfy(
+      (slots: TimelineSlot[]) =>
+        slots.every(
+          (slot) =>
+            slot.kind === 'gap' ||
+            slot.frame.imageUrl.includes('/radar/national/'),
+        ),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/radar/national/manifest.json',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 
@@ -405,8 +485,14 @@ function timelineFrame(
     retrievedAt: time,
     lastRetrievedAt: time,
     sourceHash: `sha256:${hash}`,
-    rawUrl: `/raw/regional-${code}/${hash}.gif`,
-    imageUrl: `/radar/regional-${code}/frames/${hash}/overlay-3857.png`,
+    rawUrl:
+      code === 'national'
+        ? `/raw/national/${hash}.png`
+        : `/raw/regional-${code}/${hash}.gif`,
+    imageUrl:
+      code === 'national'
+        ? `/radar/national/frames/${hash}/overlay.png`
+        : `/radar/regional-${code}/frames/${hash}/overlay-3857.png`,
     imageCoordinates: [
       [-4, 40],
       [1, 40],
@@ -430,6 +516,8 @@ function mockRadarFetches() {
       payload = almeriaManifest;
     } else if (input === '/radar/regional-co/manifest.json') {
       payload = emptyCorunaManifest;
+    } else if (input === '/radar/national/manifest.json') {
+      payload = nationalManifest;
     } else {
       throw new Error(`URL inesperada: ${input}`);
     }

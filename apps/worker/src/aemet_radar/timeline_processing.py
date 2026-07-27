@@ -1,4 +1,4 @@
-"""Publicación incremental de derivados para radares regionales."""
+"""Publicación incremental de derivados nacionales y regionales."""
 
 from __future__ import annotations
 
@@ -27,7 +27,8 @@ from aemet_radar.georeferencing import (
 )
 from aemet_radar.history import ArchivedFrame
 from aemet_radar.manifests import FrameImage, MapCoordinates
-from aemet_radar.products import RadarProduct
+from aemet_radar.national_timeline_processing import NationalTimelineProcessor
+from aemet_radar.products import ProductKind, RadarProduct
 from aemet_radar.radar_catalog import RadarCatalog, RadarDefinition
 from aemet_radar.reflectivity import (
     load_reflectivity_config,
@@ -425,3 +426,34 @@ def _write_boundary_layer(
 
 # Nombre conservado para consumidores de la Fase 5.
 MurciaTimelineProcessor = RegionalTimelineProcessor
+
+
+class RadarTimelineProcessor(RegionalTimelineProcessor):
+    """Despacha procesadores regional y nacional manteniéndolos independientes."""
+
+    def __init__(self, data_dir: Path, *, catalog: RadarCatalog) -> None:
+        super().__init__(data_dir, catalog=catalog)
+        self.national = NationalTimelineProcessor(data_dir)
+
+    def ensure_frames(
+        self,
+        product: RadarProduct,
+        frames: Iterable[ArchivedFrame],
+    ) -> int:
+        if product.kind is ProductKind.NATIONAL:
+            return self.national.ensure_frames(product, frames)
+        return super().ensure_frames(product, frames)
+
+    def frame_image(
+        self,
+        product: RadarProduct,
+        frame: ArchivedFrame,
+    ) -> FrameImage | None:
+        if product.kind is ProductKind.NATIONAL:
+            return self.national.frame_image(product, frame)
+        return super().frame_image(product, frame)
+
+    def radar_metadata(self, product: RadarProduct) -> dict[str, object]:
+        if product.kind is ProductKind.NATIONAL:
+            return self.national.radar_metadata(product)
+        return super().radar_metadata(product)

@@ -1,8 +1,8 @@
 # Operación local
 
 La operación de producción con Podman, systemd y Nginx sigue pendiente de la
-Fase 9. Esta guía cubre el worker, la publicación local y el pipeline regional
-configurable de la Fase 6.
+Fase 9. Esta guía cubre el worker, la publicación local y los pipelines nacional
+y regional disponibles tras la Fase 7.
 
 ## Comprobar el estado
 
@@ -39,10 +39,10 @@ done
 Estos informes contienen tamaño, MIME declarado y SHA-256, pero nunca el cuerpo
 inválido, la API key o la URL efímera.
 
-La fuente primaria no usa key: consulta la cronología PPI pública una vez por
-ciclo. Si el PPI más reciente no cumple el contrato o aparece como producto no
-disponible, el worker usa OpenData. Un fallo de un PPI histórico deja un hueco
-real; no invalida las demás observaciones.
+La fuente primaria no usa key: consulta una vez por ciclo las cronologías
+`compo/PB` nacional y PPI regional. Si la observación más reciente no cumple el
+contrato o aparece como producto no disponible, el worker usa OpenData. Un
+fallo histórico deja un hueco real; no invalida las demás observaciones.
 
 ## Forzar un ciclo completo
 
@@ -50,10 +50,11 @@ real; no invalida las demás observaciones.
 make poll-once
 ```
 
-Este comando consulta los 15 radares regionales de forma secuencial, aplica
-reintentos limitados, conserva 24 horas y publica los JSON. Devuelve código 1 si
-al menos un producto falla, aunque los productos correctos sí quedan
-actualizados. Un 404 funcional `no-data` no hace fallar el ciclo.
+Este comando consulta la composición nacional y los 15 radares regionales de
+forma secuencial, aplica reintentos limitados, conserva 24 horas y publica los
+JSON. Devuelve código 1 si al menos un producto falla, aunque los productos
+correctos sí quedan actualizados. Un 404 funcional `no-data` no hace fallar el
+ciclo.
 
 ## Ejecutar el scheduler
 
@@ -83,8 +84,9 @@ make rebuild-manifests
 
 No consulta AEMET y no requiere `AEMET_API_KEY`. Relee los informes adyacentes a
 PNG y GIF, descarta informes inválidos, ordena y deduplica el historial, genera
-los derivados regionales que falten y vuelve a publicar manifiestos, índice y
-health. La ventana predeterminada es de 3 horas y 50 minutos.
+los derivados nacionales o regionales que falten y vuelve a publicar
+manifiestos, índice y health. La ventana predeterminada es de 3 horas y 50
+minutos.
 
 ## Inspeccionar por HTTP
 
@@ -98,6 +100,7 @@ En otra:
 
 ```bash
 curl http://127.0.0.1:8000/radar/index.json
+curl http://127.0.0.1:8000/radar/national/manifest.json
 curl http://127.0.0.1:8000/radar/regional-mu/manifest.json
 curl http://127.0.0.1:8000/radar/regional-co/manifest.json
 curl http://127.0.0.1:8000/status/health.json
@@ -105,6 +108,20 @@ curl http://127.0.0.1:8000/status/health.json
 
 El servidor es solo local, no permite listar directorios y no sustituye a
 Nginx.
+
+## Validar una muestra nacional
+
+No consulta AEMET ni requiere API key:
+
+```bash
+.venv/bin/aemet-radar validate-national \
+  data/raw/national/AAAA/MM/DD/<observación>-<sha256>.png \
+  --output-dir data/debug/phase-7/national
+```
+
+Revisar `mask.png`, `overlay.png` y `national-processing.json`. El informe debe
+declarar `national-v1`, `962×1079`, 4 bits, los tres hashes de configuración y
+las esquinas NW, NE, SE, SW oficiales.
 
 ## Validar una muestra regional
 

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "productId": "national",
+  "processor": "national-v1",
+  "regionCode": "PB",
+  "coverageLabel": "Península y Baleares",
+  "includesCanaryIslands": false,
+  "source": {
+    "crs": "EPSG:3857",
+    "width": 962,
+    "height": 1079,
+    "filenameSuffix": "_3857.png"
+  },
+  "expectedMaplibreCoordinates": [
+    [-16.08, 51.3],
+    [12.14, 51.3],
+    [12.14, 27.22],
+    [-16.08, 27.22]
+  ],
+  "coordinateToleranceDegrees": 0.000001,
+  "pixelSizeMetres": {
+    "x": 3265.526019,
+    "y": 3265.568087,
+    "maximumDifference": 0.1
+  },
+  "map": {
+    "center": [-3.97, 39.25],
+    "zoom": 4.4
+  },
+  "validationReference": "https://www.aemet.es/es/eltiempo/observacion/radar.html"
+}

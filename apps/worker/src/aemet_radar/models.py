@@ -159,7 +159,7 @@ class BatchFetchOutcome:
 
     product_id: str
     status: Literal["stored", "duplicate"]
-    source: Literal["aemet-viewer"]
+    source: Literal["aemet-viewer", "aemet-viewer-national"]
     stored_frames: int
     duplicate_frames: int
     skipped_frames: int

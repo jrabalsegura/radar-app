@@ -1,18 +1,13 @@
 export const RADAR_INDEX_URL = '/radar/index.json';
 
-export interface RegionalRadarIndexEntry {
+interface BaseRadarIndexEntry {
   id: string;
   label: string;
-  kind: 'regional';
   cadenceMinutes: number;
   manifestUrl: string;
   available: boolean;
   latestFrameTime: string | null;
-  apiCode: string;
-  siteCode: string;
-  siteName: string;
   coordinates: [number, number];
-  rangeKilometres: number;
   mapZoom: number;
   coverageRing: [number, number][];
   validation: {
@@ -21,10 +16,28 @@ export interface RegionalRadarIndexEntry {
   };
 }
 
+export interface RegionalRadarIndexEntry extends BaseRadarIndexEntry {
+  kind: 'regional';
+  apiCode: string;
+  siteCode: string;
+  siteName: string;
+  rangeKilometres: number;
+}
+
+export interface NationalRadarIndexEntry extends BaseRadarIndexEntry {
+  id: 'national';
+  kind: 'national';
+  regionCode: 'PB';
+  coverageLabel: string;
+  includesCanaryIslands: false;
+}
+
+export type RadarIndexEntry = NationalRadarIndexEntry | RegionalRadarIndexEntry;
+
 export interface RadarIndex {
   schemaVersion: 1;
   generatedAt: string;
-  radars: RegionalRadarIndexEntry[];
+  radars: RadarIndexEntry[];
 }
 
 export function isRadarIndex(value: unknown): value is RadarIndex {
@@ -35,34 +48,27 @@ export function isRadarIndex(value: unknown): value is RadarIndex {
   return (
     value.schemaVersion === 1 &&
     isDateTime(value.generatedAt) &&
-    radars.length === 15 &&
-    radars.every(isRegionalRadarIndexEntry) &&
+    radars.length === 16 &&
+    radars.filter(isNationalRadarIndexEntry).length === 1 &&
+    radars.filter(isRegionalRadarIndexEntry).length === 15 &&
     new Set(radars.map((radar) => radar.id)).size === radars.length
   );
 }
 
-function isRegionalRadarIndexEntry(
-  value: unknown,
-): value is RegionalRadarIndexEntry {
+function isBaseRadarIndexEntry(value: unknown): value is BaseRadarIndexEntry {
   if (!isRecord(value) || !isRecord(value.validation)) {
     return false;
   }
   const validation = value.validation;
   return (
     typeof value.id === 'string' &&
-    value.id.startsWith('regional-') &&
     typeof value.label === 'string' &&
-    value.kind === 'regional' &&
     isPositiveNumber(value.cadenceMinutes) &&
     typeof value.manifestUrl === 'string' &&
     value.manifestUrl.startsWith('/radar/') &&
     typeof value.available === 'boolean' &&
     (value.latestFrameTime === null || isDateTime(value.latestFrameTime)) &&
-    typeof value.apiCode === 'string' &&
-    typeof value.siteCode === 'string' &&
-    typeof value.siteName === 'string' &&
     isCoordinate(value.coordinates) &&
-    isPositiveNumber(value.rangeKilometres) &&
     isPositiveNumber(value.mapZoom) &&
     Array.isArray(value.coverageRing) &&
     value.coverageRing.length >= 4 &&
@@ -71,6 +77,35 @@ function isRegionalRadarIndexEntry(
       validation.status === 'control-points' ||
       validation.status === 'awaiting-data') &&
     typeof validation.sampleVerified === 'boolean'
+  );
+}
+
+function isNationalRadarIndexEntry(
+  value: unknown,
+): value is NationalRadarIndexEntry {
+  return (
+    isBaseRadarIndexEntry(value) &&
+    isRecord(value) &&
+    value.id === 'national' &&
+    value.kind === 'national' &&
+    value.regionCode === 'PB' &&
+    typeof value.coverageLabel === 'string' &&
+    value.includesCanaryIslands === false
+  );
+}
+
+function isRegionalRadarIndexEntry(
+  value: unknown,
+): value is RegionalRadarIndexEntry {
+  return (
+    isBaseRadarIndexEntry(value) &&
+    isRecord(value) &&
+    value.id.startsWith('regional-') &&
+    value.kind === 'regional' &&
+    typeof value.apiCode === 'string' &&
+    typeof value.siteCode === 'string' &&
+    typeof value.siteName === 'string' &&
+    isPositiveNumber(value.rangeKilometres)
   );
 }
 

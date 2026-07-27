@@ -1,6 +1,49 @@
 {
-  "generatedAt": "2026-07-27T09:01:14.764734Z",
+  "generatedAt": "2026-07-27T12:08:00.359675Z",
   "radars": [
+    {
+      "available": true,
+      "cadenceMinutes": 10,
+      "coordinates": [
+        -3.97,
+        39.25
+      ],
+      "coverageLabel": "Península y Baleares",
+      "coverageRing": [
+        [
+          -16.08,
+          51.3
+        ],
+        [
+          12.14,
+          51.3
+        ],
+        [
+          12.14,
+          27.22
+        ],
+        [
+          -16.08,
+          27.22
+        ],
+        [
+          -16.08,
+          51.3
+        ]
+      ],
+      "id": "national",
+      "includesCanaryIslands": false,
+      "kind": "national",
+      "label": "Composición nacional",
+      "latestFrameTime": "2026-07-27T11:50:00Z",
+      "manifestUrl": "/radar/national/manifest.json",
+      "mapZoom": 4.4,
+      "regionCode": "PB",
+      "validation": {
+        "sampleVerified": true,
+        "status": "verified"
+      }
+    },
     {
       "apiCode": "am",
       "available": true,

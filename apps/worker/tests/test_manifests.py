@@ -227,11 +227,11 @@ def test_gap_detection_tolerates_real_polling_jitter(tmp_path: Path) -> None:
     ]
 
 
-def test_national_manifest_uses_its_own_thirty_minute_cadence(
+def test_national_manifest_uses_its_verified_ten_minute_cadence(
     tmp_path: Path,
 ) -> None:
     start = datetime(2026, 7, 24, 10, 0, tzinfo=UTC)
-    times = [start + timedelta(minutes=30 * index) for index in range(5)]
+    times = [start + timedelta(minutes=10 * index) for index in range(5)]
     for index, product_time in enumerate(times, start=1):
         _archive_report(
             tmp_path,
@@ -252,7 +252,7 @@ def test_national_manifest_uses_its_own_thirty_minute_cadence(
         "id": "national",
         "label": "Composición nacional",
         "kind": "national",
-        "cadenceMinutes": 30,
+        "cadenceMinutes": 10,
     }
     assert result.payload["gaps"] == []
 
