@@ -22,6 +22,7 @@ export interface RegionalRadarIndexEntry extends BaseRadarIndexEntry {
   siteCode: string;
   siteName: string;
   rangeKilometres: number;
+  mapCenter?: [number, number];
 }
 
 export interface NationalRadarIndexEntry extends BaseRadarIndexEntry {
@@ -105,6 +106,7 @@ function isRegionalRadarIndexEntry(
     typeof value.apiCode === 'string' &&
     typeof value.siteCode === 'string' &&
     typeof value.siteName === 'string' &&
+    (value.mapCenter === undefined || isCoordinate(value.mapCenter)) &&
     isPositiveNumber(value.rangeKilometres)
   );
 }

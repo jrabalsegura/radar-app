@@ -4,15 +4,26 @@ import {
   Map as MapLibreMap,
   Marker,
   NavigationControl,
+  setWorkerUrl,
   type GeoJSONSourceSpecification,
 } from 'maplibre-gl';
+import mapLibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { useEffect, useRef, useState } from 'react';
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { preloadFrame } from './framePreloader';
+import {
+  initialRadarZoom,
+  radarCameraCenter,
+  radarCameraPadding,
+  type RadarCameraInsets,
+} from './radarCamera';
 import type { RadarIndexEntry, RegionalRadarIndexEntry } from './radarIndex';
+import type { LongitudeLatitude } from './radarLocation';
 import type { RadarTimelineFrame } from './radarManifest';
+
+setWorkerUrl(mapLibreWorkerUrl);
 
 const DEFAULT_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 const RADAR_SOURCE_IDS = ['regional-frame-a', 'regional-frame-b'] as const;
@@ -27,6 +38,8 @@ interface RadarMapProps {
   opacity: number;
   showDebug: boolean;
   reducedMotion: boolean;
+  userCoordinates: LongitudeLatitude | null;
+  cameraInsets: RadarCameraInsets;
 }
 
 export function RadarMap({
@@ -35,16 +48,20 @@ export function RadarMap({
   opacity,
   showDebug,
   reducedMotion,
+  userCoordinates,
+  cameraInsets,
 }: RadarMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const debugMarkerRef = useRef<Marker | null>(null);
+  const userMarkerRef = useRef<Marker | null>(null);
   const activeLayerRef = useRef<0 | 1>(0);
   const activeUrlRef = useRef<string | null>(null);
   const initialFrameRef = useRef(selectedFrame);
   const transitionSequenceRef = useRef(0);
   const initialOpacityRef = useRef(opacity);
   const initialDebugRef = useRef(showDebug);
+  const initialCameraInsetsRef = useRef(cameraInsets);
   const [mapReady, setMapReady] = useState(false);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
 
@@ -56,16 +73,26 @@ export function RadarMap({
     activeLayerRef.current = 0;
     activeUrlRef.current = initialFrameRef.current?.imageUrl ?? null;
     const configuredStyle = import.meta.env.VITE_MAP_STYLE_URL?.trim();
+    const initialZoom = initialRadarZoom(
+      radar,
+      containerRef.current.clientWidth,
+    );
+    const initialCenter = radarCameraCenter(radar);
     const map = new MapLibreMap({
       container: containerRef.current,
       style: configuredStyle || DEFAULT_STYLE_URL,
-      center: radar.coordinates,
-      zoom: radar.mapZoom,
+      center: initialCenter,
+      zoom: initialZoom,
       minZoom: 4,
       maxZoom: 12,
       bearing: 0,
       pitch: 0,
       attributionControl: false,
+    });
+    map.jumpTo({
+      center: initialCenter,
+      zoom: initialZoom,
+      padding: radarCameraPadding(radar, initialCameraInsetsRef.current),
     });
     mapRef.current = map;
     map.addControl(
@@ -111,10 +138,19 @@ export function RadarMap({
       transitionSequenceRef.current += 1;
       setMapReady(false);
       debugMarkerRef.current = null;
+      userMarkerRef.current = null;
       mapRef.current = null;
       map.remove();
     };
   }, [radar]);
+
+  useEffect(() => {
+    mapRef.current?.jumpTo({
+      center: radarCameraCenter(radar),
+      zoom: initialRadarZoom(radar, containerRef.current?.clientWidth ?? 0),
+      padding: radarCameraPadding(radar, cameraInsets),
+    });
+  }, [cameraInsets, radar]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -209,11 +245,37 @@ export function RadarMap({
     }
   }, [mapReady, showDebug]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    userMarkerRef.current?.remove();
+    userMarkerRef.current = null;
+    if (!mapReady || !map || !userCoordinates) {
+      return;
+    }
+    const element = document.createElement('div');
+    element.className = 'user-location-marker';
+    element.setAttribute('aria-label', 'Tu ubicación aproximada');
+    element.title = 'Tu ubicación aproximada';
+    userMarkerRef.current = new Marker({ element })
+      .setLngLat(userCoordinates)
+      .addTo(map);
+    return () => {
+      userMarkerRef.current?.remove();
+      userMarkerRef.current = null;
+    };
+  }, [mapReady, userCoordinates]);
+
   return (
-    <div className="map-stage">
+    <div
+      className="map-stage"
+      data-map-ready={mapReady ? 'true' : 'false'}
+      data-top-inset={cameraInsets.top}
+      data-bottom-inset={cameraInsets.bottom}
+    >
       <div
         ref={containerRef}
         className="map-canvas"
+        role="region"
         aria-label={`Mapa del radar de ${radar.label}`}
       />
       {!mapReady && (

@@ -1,7 +1,18 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react';
 
+import { formatDataAge } from './dataFreshness';
 import { preloadInPriorityOrder } from './framePreloader';
-import { RadarMap } from './RadarMap';
+import { recordAppReady } from './performanceMetrics';
+import type { RadarCameraInsets } from './radarCamera';
 import {
   isRadarHealth,
   RADAR_HEALTH_URL,
@@ -14,6 +25,7 @@ import {
   type RadarIndex,
   type RadarIndexEntry,
 } from './radarIndex';
+import { closestRegionalRadar, type LongitudeLatitude } from './radarLocation';
 import {
   buildTimelineSlots,
   formatMadridDate,
@@ -25,6 +37,7 @@ import {
   type RadarTimelineFrame,
   type TimelineSlot,
 } from './radarManifest';
+import { loadResilientJson, type DataSource } from './resilientData';
 
 const SPEEDS = {
   slow: { label: 'Lenta', milliseconds: 1500 },
@@ -33,8 +46,24 @@ const SPEEDS = {
 } as const;
 const LAST_FRAME_PAUSE_FACTOR = 2.4;
 const PREFERRED_RADAR_ID = 'regional-mu';
+const SELECTED_RADAR_KEY = 'aemet-radar:selected-radar';
+const OPACITY_KEY = 'aemet-radar:opacity';
+const CATALOG_CACHE_ID = 'catalog';
+const HEALTH_CACHE_ID = 'health';
+const AUTO_REFRESH_MILLISECONDS = 10 * 60 * 1000;
 
 type PlaybackSpeed = keyof typeof SPEEDS;
+type LocationStatus = 'idle' | 'locating' | 'located' | 'error';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+const LazyRadarMap = lazy(async () => {
+  const module = await import('./RadarMap');
+  return { default: module.RadarMap };
+});
 
 export function App() {
   const [index, setIndex] = useState<RadarIndex | null>(null);
@@ -43,13 +72,38 @@ export function App() {
   const [manifest, setManifest] = useState<RadarManifest | null>(null);
   const [catalogError, setCatalogError] = useState(false);
   const [manifestError, setManifestError] = useState(false);
+  const [catalogSource, setCatalogSource] = useState<DataSource>('network');
+  const [manifestSource, setManifestSource] = useState<DataSource>('network');
+  const [reloadVersion, setReloadVersion] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<PlaybackSpeed>('normal');
-  const [opacity, setOpacity] = useState(0.72);
+  const [opacity, setOpacity] = useState(() =>
+    readStoredNumber(OPACITY_KEY, 0.72, 0, 1),
+  );
   const [showDebug, setShowDebug] = useState(false);
+  const [online, setOnline] = useState(() => navigator.onLine);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
+  const [locationMessage, setLocationMessage] = useState('');
+  const [userCoordinates, setUserCoordinates] =
+    useState<LongitudeLatitude | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const selectedButtonRef = useRef<HTMLButtonElement | null>(null);
+  const timelineSliderRef = useRef<HTMLInputElement | null>(null);
+  const focusedTimelineRadarRef = useRef<string | null>(null);
+  const mapLayoutRef = useRef<HTMLElement | null>(null);
+  const mapTopOverlayRef = useRef<HTMLDivElement | null>(null);
+  const timelinePanelRef = useRef<HTMLElement | null>(null);
+  const manifestRef = useRef<RadarManifest | null>(null);
+  const selectedIndexRef = useRef(0);
+  const [mapInsets, setMapInsets] = useState<RadarCameraInsets>({
+    top: 0,
+    bottom: 0,
+  });
   const reducedMotion = useReducedMotion();
+  const now = useMinuteClock();
   const selectedRadar =
     index?.radars.find((radar) => radar.id === selectedRadarId) ?? null;
   const selectedHealth =
@@ -64,27 +118,44 @@ export function App() {
     const controller = new AbortController();
 
     async function loadCatalog() {
+      setCatalogError(false);
       try {
-        const [indexResponse, healthResponse] = await Promise.all([
-          fetch(RADAR_INDEX_URL, { signal: controller.signal }),
-          fetch(RADAR_HEALTH_URL, { signal: controller.signal }),
+        const [indexResult, healthResult] = await Promise.all([
+          loadResilientJson(
+            RADAR_INDEX_URL,
+            CATALOG_CACHE_ID,
+            isRadarIndex,
+            controller.signal,
+          ),
+          loadResilientJson(
+            RADAR_HEALTH_URL,
+            HEALTH_CACHE_ID,
+            isRadarHealth,
+            controller.signal,
+          ).catch(() => null),
         ]);
-        if (!indexResponse.ok || !healthResponse.ok) {
-          throw new Error('No se pudo cargar el catálogo de radar.');
-        }
-        const [indexPayload, healthPayload]: [unknown, unknown] =
-          await Promise.all([indexResponse.json(), healthResponse.json()]);
-        if (!isRadarIndex(indexPayload) || !isRadarHealth(healthPayload)) {
-          throw new Error('El catálogo de radar no cumple el contrato.');
-        }
-        setIndex(indexPayload);
-        setHealth(healthPayload);
-        const preferred = indexPayload.radars.find(
-          (radar) => radar.id === PREFERRED_RADAR_ID,
+        setIndex(indexResult.data);
+        setHealth(healthResult?.data ?? null);
+        setCatalogSource(
+          indexResult.source === 'cache' || healthResult?.source === 'cache'
+            ? 'cache'
+            : 'network',
         );
-        setSelectedRadarId(preferred?.id ?? indexPayload.radars[0]?.id ?? '');
+        const storedRadarId = readStoredString(SELECTED_RADAR_KEY);
+        const preferred =
+          indexResult.data.radars.find((radar) => radar.id === storedRadarId) ??
+          indexResult.data.radars.find(
+            (radar) => radar.id === PREFERRED_RADAR_ID,
+          );
+        setSelectedRadarId(
+          (current) =>
+            indexResult.data.radars.find((radar) => radar.id === current)?.id ??
+            preferred?.id ??
+            indexResult.data.radars[0]?.id ??
+            '',
+        );
       } catch (error) {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        if (!isAbortError(error)) {
           setCatalogError(true);
         }
       }
@@ -92,38 +163,173 @@ export function App() {
 
     void loadCatalog();
     return () => controller.abort();
-  }, []);
+  }, [reloadVersion]);
+
+  const manifestRadarId = selectedRadar?.id;
+  const selectedManifestUrl = selectedRadar?.manifestUrl;
 
   useEffect(() => {
-    if (!selectedRadar) {
+    if (!manifestRadarId || !selectedManifestUrl) {
       return;
     }
     const controller = new AbortController();
+    const radarId = manifestRadarId;
+    const manifestUrl = selectedManifestUrl;
 
-    async function loadManifest(radar: RadarIndexEntry) {
+    async function loadManifest() {
+      setManifestError(false);
       try {
-        const response = await fetch(radar.manifestUrl, {
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          throw new Error('No se pudo cargar el historial seleccionado.');
-        }
-        const payload: unknown = await response.json();
-        if (!isRadarManifest(payload) || payload.radar.id !== radar.id) {
-          throw new Error('El historial no cumple el contrato del radar.');
-        }
-        setManifest(payload);
-        setSelectedIndex(Math.max(0, buildTimelineSlots(payload).length - 1));
+        const result = await loadResilientJson(
+          manifestUrl,
+          `manifest:${radarId}`,
+          (value): value is RadarManifest =>
+            isRadarManifest(value) && value.radar.id === radarId,
+          controller.signal,
+        );
+        const previousSlots = manifestRef.current
+          ? buildTimelineSlots(manifestRef.current)
+          : [];
+        const currentIndex = selectedIndexRef.current;
+        const selectedTime = previousSlots[currentIndex]?.time;
+        const wasFollowingLatest =
+          previousSlots.length === 0 ||
+          currentIndex >= previousSlots.length - 1;
+        const nextSlots = buildTimelineSlots(result.data);
+        const matchingIndex = selectedTime
+          ? nextSlots.findIndex((slot) => slot.time === selectedTime)
+          : -1;
+        const nextIndex = wasFollowingLatest
+          ? Math.max(0, nextSlots.length - 1)
+          : matchingIndex >= 0
+            ? matchingIndex
+            : Math.min(currentIndex, Math.max(0, nextSlots.length - 1));
+        manifestRef.current = result.data;
+        selectedIndexRef.current = nextIndex;
+        setManifest(result.data);
+        setManifestSource(result.source);
+        setSelectedIndex(nextIndex);
       } catch (error) {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        if (!isAbortError(error)) {
           setManifestError(true);
         }
       }
     }
 
-    void loadManifest(selectedRadar);
+    void loadManifest();
     return () => controller.abort();
-  }, [selectedRadar]);
+  }, [manifestRadarId, reloadVersion, selectedManifestUrl]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setReloadVersion((current) => current + 1);
+    }, AUTO_REFRESH_MILLISECONDS);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    writeStoredValue(OPACITY_KEY, String(opacity));
+  }, [opacity]);
+
+  useEffect(() => {
+    if (selectedRadarId) {
+      writeStoredValue(SELECTED_RADAR_KEY, selectedRadarId);
+    }
+  }, [selectedRadarId]);
+
+  useEffect(() => {
+    selectedIndexRef.current = selectedIndex;
+  }, [selectedIndex]);
+
+  useEffect(() => {
+    const layout = mapLayoutRef.current;
+    const topOverlay = mapTopOverlayRef.current;
+    const panel = timelinePanelRef.current;
+    if (!layout) {
+      return;
+    }
+    const layoutElement = layout;
+    const topOverlayElement = topOverlay;
+    const panelElement = panel;
+
+    function measureOverlays() {
+      const layoutRect = layoutElement.getBoundingClientRect();
+      const topOffset = topOverlayElement
+        ? Number.parseFloat(window.getComputedStyle(topOverlayElement).top)
+        : 0;
+      const bottomOffset = panelElement
+        ? Number.parseFloat(window.getComputedStyle(panelElement).bottom)
+        : 0;
+      const top = topOverlayElement
+        ? Math.ceil(
+            topOverlayElement.getBoundingClientRect().bottom -
+              layoutRect.top +
+              (Number.isFinite(topOffset) ? topOffset : 0),
+          )
+        : 0;
+      const bottom = panelElement
+        ? Math.ceil(
+            layoutRect.bottom -
+              panelElement.getBoundingClientRect().top +
+              (Number.isFinite(bottomOffset) ? bottomOffset : 0),
+          )
+        : 0;
+      setMapInsets((current) =>
+        current.top === top && current.bottom === bottom
+          ? current
+          : { top, bottom },
+      );
+    }
+
+    measureOverlays();
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(measureOverlays);
+    observer?.observe(layoutElement);
+    if (topOverlayElement) {
+      observer?.observe(topOverlayElement);
+    }
+    if (panelElement) {
+      observer?.observe(panelElement);
+    }
+    window.addEventListener('resize', measureOverlays);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measureOverlays);
+    };
+  }, [fullscreen, manifest, manifestError, selectedRadarId]);
+
+  useEffect(() => {
+    function updateConnection() {
+      const connected = navigator.onLine;
+      setOnline(connected);
+      if (connected) {
+        setReloadVersion((current) => current + 1);
+      }
+    }
+    window.addEventListener('online', updateConnection);
+    window.addEventListener('offline', updateConnection);
+    return () => {
+      window.removeEventListener('online', updateConnection);
+      window.removeEventListener('offline', updateConnection);
+    };
+  }, []);
+
+  useEffect(() => {
+    function updateFullscreen() {
+      setFullscreen(document.fullscreenElement === mapLayoutRef.current);
+    }
+    function captureInstallPrompt(event: Event) {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    }
+    document.addEventListener('fullscreenchange', updateFullscreen);
+    window.addEventListener('beforeinstallprompt', captureInstallPrompt);
+    return () => {
+      document.removeEventListener('fullscreenchange', updateFullscreen);
+      window.removeEventListener('beforeinstallprompt', captureInstallPrompt);
+    };
+  }, []);
 
   useEffect(() => {
     if (slots.length === 0) {
@@ -131,6 +337,23 @@ export function App() {
     }
     return preloadInPriorityOrder(slots, selectedIndex);
   }, [selectedIndex, slots]);
+
+  useEffect(() => {
+    if (
+      !manifest ||
+      manifest.radar.id !== selectedRadarId ||
+      focusedTimelineRadarRef.current === selectedRadarId ||
+      slots.length === 0
+    ) {
+      return;
+    }
+    const slider = timelineSliderRef.current;
+    if (!slider) {
+      return;
+    }
+    focusedTimelineRadarRef.current = selectedRadarId;
+    slider.focus({ preventScroll: true });
+  }, [manifest, selectedRadarId, slots.length]);
 
   useEffect(() => {
     const button = selectedButtonRef.current;
@@ -186,6 +409,96 @@ export function App() {
     return () => document.removeEventListener('keydown', navigateWithKeyboard);
   }, [slots.length]);
 
+  useEffect(() => {
+    function pauseWhenHidden() {
+      if (document.hidden) {
+        setPlaying(false);
+      }
+    }
+    document.addEventListener('visibilitychange', pauseWhenHidden);
+    return () =>
+      document.removeEventListener('visibilitychange', pauseWhenHidden);
+  }, []);
+
+  useEffect(() => {
+    if (manifest) {
+      recordAppReady();
+    }
+  }, [manifest]);
+
+  const selectRadar = useCallback((radarId: string) => {
+    manifestRef.current = null;
+    selectedIndexRef.current = 0;
+    setManifest(null);
+    setManifestError(false);
+    setManifestSource('network');
+    setPlaying(false);
+    setLocationStatus('idle');
+    setLocationMessage('');
+    setSelectedIndex(0);
+    setSelectedRadarId(radarId);
+  }, []);
+
+  function locateNearestRadar() {
+    if (!index || !('geolocation' in navigator)) {
+      setLocationStatus('error');
+      setLocationMessage('La geolocalización no está disponible.');
+      return;
+    }
+    setLocationStatus('locating');
+    setLocationMessage('Buscando el radar más cercano…');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coordinates: LongitudeLatitude = [
+          position.coords.longitude,
+          position.coords.latitude,
+        ];
+        const nearest = closestRegionalRadar(index.radars, coordinates);
+        if (!nearest) {
+          setLocationStatus('error');
+          setLocationMessage('No hay radares regionales configurados.');
+          return;
+        }
+        setUserCoordinates(coordinates);
+        selectRadar(nearest.id);
+        setLocationStatus('located');
+        setLocationMessage(`Radar más cercano: ${nearest.label}.`);
+      },
+      () => {
+        setLocationStatus('error');
+        setLocationMessage(
+          'No se pudo obtener tu ubicación. Puedes elegir el radar manualmente.',
+        );
+      },
+      {
+        enableHighAccuracy: false,
+        maximumAge: 10 * 60 * 1000,
+        timeout: 10_000,
+      },
+    );
+  }
+
+  async function toggleFullscreen() {
+    const target = mapLayoutRef.current;
+    if (!target || !document.fullscreenEnabled) {
+      return;
+    }
+    if (document.fullscreenElement === target) {
+      await document.exitFullscreen();
+    } else {
+      await target.requestFullscreen();
+    }
+  }
+
+  async function installApplication() {
+    if (!installPrompt) {
+      return;
+    }
+    await installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+  }
+
   if (!index || !selectedRadar) {
     return (
       <main className="radar-app radar-app--initial">
@@ -198,9 +511,18 @@ export function App() {
           </h1>
           <p>
             {catalogError
-              ? 'Comprueba que el índice y el estado operativo estén publicados.'
+              ? 'No hay una copia válida guardada. Comprueba la conexión y vuelve a intentarlo.'
               : 'Cargando la composición nacional y los 15 emplazamientos regionales.'}
           </p>
+          {catalogError && (
+            <button
+              className="retry-button"
+              type="button"
+              onClick={() => setReloadVersion((current) => current + 1)}
+            >
+              Reintentar
+            </button>
+          )}
         </div>
       </main>
     );
@@ -209,9 +531,20 @@ export function App() {
   const selectedFrame =
     selectedSlot?.kind === 'frame' ? selectedSlot.frame : null;
   const mapFrame = selectedSlot ? mostRecentFrame(slots, selectedIndex) : null;
-  const status = selectedHealth?.status ?? radarAvailability(selectedRadar);
+  const baseStatus = selectedHealth?.status ?? radarAvailability(selectedRadar);
+  const status: RadarHealthStatus = manifestError
+    ? 'error'
+    : manifestSource === 'cache' && baseStatus === 'current'
+      ? 'delayed'
+      : baseStatus;
+  const freshness = manifest?.latestFrameTime
+    ? `Último dato ${formatMadridTime(manifest.latestFrameTime)} · ${formatDataAge(manifest.latestFrameTime, now)}`
+    : 'Sin dato publicado';
+  const showingCachedData =
+    catalogSource === 'cache' || manifestSource === 'cache';
 
   function selectSlot(indexValue: number) {
+    selectedIndexRef.current = indexValue;
     setPlaying(false);
     setSelectedIndex(indexValue);
   }
@@ -221,56 +554,64 @@ export function App() {
       <header className="topbar">
         <div className="radar-heading">
           <p className="eyebrow">Últimas {HISTORY_LABEL}</p>
-          <div className="radar-title-row">
-            <h1>
-              {selectedRadar.kind === 'national'
-                ? selectedRadar.label
-                : `Radar ${selectedRadar.label}`}
-            </h1>
+          <h1>
+            {selectedRadar.kind === 'national'
+              ? selectedRadar.label
+              : `Radar ${selectedRadar.label}`}
+          </h1>
+          <div className="radar-status-line" role="status" aria-live="polite">
             <span className={`status-chip status-chip--${status}`}>
               {statusLabel(status)}
             </span>
+            <span className="data-freshness">{freshness}</span>
           </div>
         </div>
 
         <div className="radar-selector">
           <label htmlFor="radar-source">Fuente radar</label>
-          <select
-            id="radar-source"
-            value={selectedRadar.id}
-            onChange={(event) => {
-              setManifest(null);
-              setManifestError(false);
-              setPlaying(false);
-              setSelectedIndex(0);
-              setSelectedRadarId(event.currentTarget.value);
-            }}
-          >
-            <optgroup label="Composición nacional">
-              {index.radars
-                .filter((radar) => radar.kind === 'national')
-                .map((radar) => (
-                  <option key={radar.id} value={radar.id}>
-                    {radar.label}
-                    {radar.available ? '' : ' · sin datos'}
-                  </option>
-                ))}
-            </optgroup>
-            <optgroup label="Radares regionales">
-              {index.radars
-                .filter((radar) => radar.kind === 'regional')
-                .map((radar) => (
-                  <option key={radar.id} value={radar.id}>
-                    {radar.label}
-                    {radar.available ? '' : ' · sin datos'}
-                  </option>
-                ))}
-            </optgroup>
-          </select>
-          <span>
-            {selectedRadar.kind === 'national'
-              ? `${selectedRadar.coverageLabel} · Canarias usa el radar regional de Las Palmas`
-              : selectedRadar.siteName}
+          <div className="radar-selector__row">
+            <select
+              id="radar-source"
+              value={selectedRadar.id}
+              onChange={(event) => selectRadar(event.currentTarget.value)}
+            >
+              <optgroup label="Composición nacional">
+                {index.radars
+                  .filter((radar) => radar.kind === 'national')
+                  .map((radar) => (
+                    <option key={radar.id} value={radar.id}>
+                      {radar.label}
+                      {radar.available ? '' : ' · sin datos'}
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Radares regionales">
+                {index.radars
+                  .filter((radar) => radar.kind === 'regional')
+                  .map((radar) => (
+                    <option key={radar.id} value={radar.id}>
+                      {radar.label}
+                      {radar.available ? '' : ' · sin datos'}
+                    </option>
+                  ))}
+              </optgroup>
+            </select>
+            <button
+              className="location-button"
+              type="button"
+              disabled={locationStatus === 'locating'}
+              aria-label="Usar mi ubicación para elegir el radar más cercano"
+              title="La ubicación se procesa solo en este dispositivo"
+              onClick={locateNearestRadar}
+            >
+              {locationStatus === 'locating' ? 'Localizando…' : 'Cerca de mí'}
+            </button>
+          </div>
+          <span aria-live="polite">
+            {locationMessage ||
+              (selectedRadar.kind === 'national'
+                ? `${selectedRadar.coverageLabel} · Canarias usa el radar regional de Las Palmas`
+                : selectedRadar.siteName)}
           </span>
         </div>
 
@@ -292,21 +633,48 @@ export function App() {
           >
             Datos radar © AEMET
           </a>
+          {installPrompt && (
+            <button
+              className="install-button"
+              type="button"
+              onClick={() => void installApplication()}
+            >
+              Instalar
+            </button>
+          )}
         </div>
       </header>
 
       <section
+        ref={mapLayoutRef}
         className="map-layout"
         aria-label={`Reproductor de ${selectedRadar.label}`}
       >
-        <RadarMap
-          key={selectedRadar.id}
-          radar={selectedRadar}
-          selectedFrame={mapFrame}
-          opacity={opacity}
-          showDebug={showDebug}
-          reducedMotion={reducedMotion}
-        />
+        <Suspense
+          fallback={
+            <p className="map-loading" role="status">
+              Preparando cartografía…
+            </p>
+          }
+        >
+          <LazyRadarMap
+            key={selectedRadar.id}
+            radar={selectedRadar}
+            selectedFrame={mapFrame}
+            opacity={opacity}
+            showDebug={showDebug}
+            reducedMotion={reducedMotion}
+            userCoordinates={userCoordinates}
+            cameraInsets={mapInsets}
+          />
+        </Suspense>
+
+        {(!online || showingCachedData) && (
+          <p className="connection-banner" role="status">
+            {!online ? 'Sin conexión' : 'Conexión inestable'} · mostrando la
+            última copia válida guardada
+          </p>
+        )}
 
         {selectedSlot && manifest ? (
           <FrameCard
@@ -314,9 +682,12 @@ export function App() {
             selectedSlot={selectedSlot}
             selectedFrame={selectedFrame}
             mapFrame={mapFrame}
+            now={now}
+            cardRef={mapTopOverlayRef}
           />
         ) : (
           <div
+            ref={mapTopOverlayRef}
             className={`no-data-card${manifestError ? ' no-data-card--error' : ''}`}
             role={manifestError ? 'alert' : 'status'}
           >
@@ -334,11 +705,20 @@ export function App() {
             </h2>
             <p>
               {manifestError
-                ? 'El resto de fuentes sigue disponible. Puedes seleccionar otra.'
+                ? 'No hay una copia válida guardada para esta fuente. Puedes reintentar o seleccionar otra.'
                 : manifest
                   ? 'Esta fuente permanece configurada y seguirá consultándose. Las imágenes aparecerán automáticamente cuando AEMET vuelva a publicarlas.'
                   : 'El mapa ya está centrado en la fuente seleccionada.'}
             </p>
+            {manifestError && (
+              <button
+                className="retry-button"
+                type="button"
+                onClick={() => setReloadVersion((current) => current + 1)}
+              >
+                Reintentar
+              </button>
+            )}
           </div>
         )}
 
@@ -360,11 +740,29 @@ export function App() {
             <output>{Math.round(opacity * 100)}%</output>
           </label>
           <button
+            className="coverage-button"
             type="button"
             aria-pressed={showDebug}
             onClick={() => setShowDebug((visible) => !visible)}
           >
             {showDebug ? 'Ocultar cobertura' : 'Ver cobertura'}
+          </button>
+          <button
+            className="fullscreen-button"
+            type="button"
+            aria-label={
+              fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'
+            }
+            aria-pressed={fullscreen}
+            disabled={!document.fullscreenEnabled}
+            title={
+              document.fullscreenEnabled
+                ? undefined
+                : 'Pantalla completa no disponible en este navegador'
+            }
+            onClick={() => void toggleFullscreen()}
+          >
+            {fullscreen ? 'Salir' : 'Ampliar'}
           </button>
         </div>
 
@@ -377,6 +775,8 @@ export function App() {
             mapFrame={mapFrame}
             playing={playing}
             speed={speed}
+            panelRef={timelinePanelRef}
+            sliderRef={timelineSliderRef}
             selectedButtonRef={selectedButtonRef}
             onSelect={selectSlot}
             onTogglePlaying={() => setPlaying((active) => !active)}
@@ -393,6 +793,8 @@ interface FrameCardProps {
   selectedSlot: TimelineSlot;
   selectedFrame: RadarTimelineFrame | null;
   mapFrame: RadarTimelineFrame | null;
+  now: number;
+  cardRef: RefObject<HTMLDivElement | null>;
 }
 
 function FrameCard({
@@ -400,12 +802,15 @@ function FrameCard({
   selectedSlot,
   selectedFrame,
   mapFrame,
+  now,
+  cardRef,
 }: FrameCardProps) {
   const isLatest =
     selectedSlot.kind === 'frame' &&
     selectedSlot.time === manifest.latestFrameTime;
   return (
     <div
+      ref={cardRef}
       className={`frame-card${selectedSlot.kind === 'gap' ? ' frame-card--gap' : ''}`}
     >
       <p className="frame-card__label">
@@ -427,6 +832,9 @@ function FrameCard({
         {selectedFrame?.timeSource === 'retrievedAt'
           ? ' · producto sin hora verificable'
           : ''}
+      </p>
+      <p className="frame-card__age">
+        Antigüedad: {formatDataAge(selectedSlot.time, now)}
       </p>
       {!selectedFrame && (
         <>
@@ -454,6 +862,8 @@ interface TimelineProps {
   mapFrame: RadarTimelineFrame | null;
   playing: boolean;
   speed: PlaybackSpeed;
+  panelRef: RefObject<HTMLElement | null>;
+  sliderRef: RefObject<HTMLInputElement | null>;
   selectedButtonRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
   onTogglePlaying: () => void;
@@ -468,6 +878,8 @@ function Timeline({
   mapFrame,
   playing,
   speed,
+  panelRef,
+  sliderRef,
   selectedButtonRef,
   onSelect,
   onTogglePlaying,
@@ -479,7 +891,11 @@ function Timeline({
     ? `Reproduciendo a velocidad ${SPEEDS[speed].label.toLowerCase()}. ${slotAnnouncement(selectedSlot, mapFrame)}`
     : `En pausa. ${slotAnnouncement(selectedSlot, mapFrame)}`;
   return (
-    <section className="timeline-panel" aria-label="Controles temporales">
+    <section
+      ref={panelRef}
+      className="timeline-panel"
+      aria-label="Controles temporales"
+    >
       <div className="playback-row">
         <button
           className="play-button"
@@ -494,6 +910,7 @@ function Timeline({
         <label className="timeline-slider">
           <span className="visually-hidden">Instante del radar</span>
           <input
+            ref={sliderRef}
             aria-label="Instante del radar"
             aria-valuetext={slotAnnouncement(selectedSlot, mapFrame)}
             type="range"
@@ -501,6 +918,19 @@ function Timeline({
             max={slots.length - 1}
             step="1"
             value={selectedIndex}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+                return;
+              }
+              event.preventDefault();
+              const direction = event.key === 'ArrowLeft' ? -1 : 1;
+              onSelect(
+                Math.min(
+                  slots.length - 1,
+                  Math.max(0, selectedIndex + direction),
+                ),
+              );
+            }}
             onChange={(event) => onSelect(Number(event.currentTarget.value))}
           />
           <span className="timeline-range">
@@ -628,4 +1058,51 @@ function useReducedMotion(): boolean {
   }, []);
 
   return reduced;
+}
+
+function useMinuteClock(): number {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return now;
+}
+
+function readStoredString(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function readStoredNumber(
+  key: string,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+): number {
+  const stored = readStoredString(key);
+  if (stored === null) {
+    return fallback;
+  }
+  const value = Number(stored);
+  return Number.isFinite(value) && value >= minimum && value <= maximum
+    ? value
+    : fallback;
+}
+
+function writeStoredValue(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Las preferencias son opcionales en contextos con almacenamiento bloqueado.
+  }
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
 }

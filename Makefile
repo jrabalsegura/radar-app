@@ -2,8 +2,10 @@ PYTHON ?= python3
 VENV := .venv
 WEB_DIR := apps/web
 WORKER_DIR := apps/worker
+LIVE_PREVIEW_DIR := tmp/live-preview
+LIVE_PREVIEW_PORT ?= 4173
 
-.PHONY: install web-install worker-install dev-web fetch-once check-inventory poll-once run-worker rebuild-manifests serve-files analyze-reflectivity validate-radar validate-national georeference-murcia build-reflectivity-mask build-radar-masks lint format format-check typecheck test build check clean
+.PHONY: install web-install worker-install dev-web prepare-live-preview preview-live fetch-once check-inventory poll-once run-worker rebuild-manifests serve-files analyze-reflectivity validate-radar validate-national georeference-murcia build-reflectivity-mask build-radar-masks lint format format-check typecheck test test-e2e build check clean
 
 install: web-install worker-install
 
@@ -19,6 +21,22 @@ $(VENV)/bin/python:
 
 dev-web:
 	npm --prefix $(WEB_DIR) run dev
+
+prepare-live-preview: build
+	@test -f $(WEB_DIR)/dist/index.html || (echo "El build no contiene dist/index.html" && exit 2)
+	@test -f data/radar/index.json || (echo "Falta data/radar/index.json; ejecuta make poll-once primero" && exit 2)
+	@test -f data/status/health.json || (echo "Falta data/status/health.json; ejecuta make poll-once primero" && exit 2)
+	mkdir -p $(LIVE_PREVIEW_DIR)
+	rsync -a --delete $(WEB_DIR)/dist/ $(LIVE_PREVIEW_DIR)/
+	rm -rf $(LIVE_PREVIEW_DIR)/radar $(LIVE_PREVIEW_DIR)/status
+	ln -s ../../data/radar $(LIVE_PREVIEW_DIR)/radar
+	ln -s ../../data/status $(LIVE_PREVIEW_DIR)/status
+	@test -f $(LIVE_PREVIEW_DIR)/index.html
+	@test -f $(LIVE_PREVIEW_DIR)/radar/index.json
+	@test -f $(LIVE_PREVIEW_DIR)/status/health.json
+
+preview-live: prepare-live-preview
+	$(PYTHON) -m http.server $(LIVE_PREVIEW_PORT) --bind 127.0.0.1 --directory $(LIVE_PREVIEW_DIR)
 
 fetch-once:
 	$(VENV)/bin/aemet-radar fetch-once
@@ -84,6 +102,9 @@ typecheck:
 test:
 	npm --prefix $(WEB_DIR) test
 	$(VENV)/bin/pytest
+
+test-e2e:
+	npm --prefix $(WEB_DIR) run test:e2e
 
 build:
 	npm --prefix $(WEB_DIR) run build

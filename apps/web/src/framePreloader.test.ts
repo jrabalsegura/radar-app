@@ -1,10 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { preloadFrame, prioritizedFrameUrls } from './framePreloader';
+import {
+  MAX_PRELOADED_FRAMES,
+  preloadFrame,
+  prioritizedFrameUrls,
+  resetFramePreloaderForTests,
+} from './framePreloader';
 import type { TimelineSlot } from './radarManifest';
 
 describe('framePreloader', () => {
   afterEach(() => {
+    resetFramePreloaderForTests();
     vi.unstubAllGlobals();
   });
 
@@ -55,6 +61,21 @@ describe('framePreloader', () => {
       '/two.png',
       '/one.png',
     ]);
+  });
+
+  it('limita la precarga para no retener historiales completos en memoria', () => {
+    const slots = Array.from({ length: 24 }, (_, index) =>
+      frameSlot(
+        `frame-${index}`,
+        `/frame-${index}.png`,
+        new Date(Date.UTC(2026, 6, 27, 8, index * 10)).toISOString(),
+      ),
+    );
+
+    const urls = prioritizedFrameUrls(slots, 12);
+
+    expect(urls).toHaveLength(MAX_PRELOADED_FRAMES);
+    expect(urls[0]).toBe('/frame-23.png');
   });
 });
 

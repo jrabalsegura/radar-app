@@ -5,11 +5,13 @@ repositorio sigue el desarrollo incremental definido en
 [`docs/ROADMAP.md`](docs/ROADMAP.md); la fuente principal de verdad es
 [`docs/SPEC.md`](docs/SPEC.md).
 
-La Fase 7 añade la composición nacional de Península y Baleares como producto
-independiente a los 15 radares regionales. El selector ajusta automáticamente
-mapa, cobertura, estado y timeline. Los productos temporalmente sin datos
-permanecen visibles y se siguen consultando, sin mezclar ni reutilizar imágenes
-de otra fuente.
+La Fase 8 convierte el visor en una PWA responsive e instalable. Conserva el
+último manifiesto válido, sigue siendo utilizable tras perder la conexión,
+muestra siempre la antigüedad del dato y añade pantalla completa,
+geolocalización procesada localmente, preferencias, accesibilidad y límites de
+memoria. La pestaña busca datos nuevos cada diez minutos sin desplazar un
+instante histórico elegido. La composición nacional de Península y Baleares y
+los 15 radares regionales siguen siendo productos independientes.
 
 ## Requisitos
 
@@ -51,6 +53,7 @@ la CLI no sobrescribe una variable ya exportada.
 
 ```bash
 make dev-web       # servidor Vite local
+make preview-live  # build de producción con los datos locales del worker
 make fetch-once    # composición nacional y 15 radares; carga .env
 make check-inventory # comprueba códigos sin descargar sus GIF
 make poll-once     # ciclo completo: ingesta, retención y publicación
@@ -63,6 +66,7 @@ make validate-national SAMPLE=ruta/original.png
 make georeference-murcia OVERLAY=ruta/overlay.png # salida Web Mercator
 make check         # lint, formato, tipado, tests y build
 make format        # aplica los formateadores
+make test-e2e      # flujos principales en Chrome de escritorio y móvil
 ```
 
 Para usar directamente `pytest`, `ruff` o la CLI en una terminal nueva:
@@ -83,10 +87,47 @@ Los criterios de aceptación también se pueden comprobar por separado:
 
 ```bash
 npm --prefix apps/web test
+npm --prefix apps/web run test:e2e
 npm --prefix apps/web run build
 .venv/bin/pytest
 .venv/bin/ruff check .
 ```
+
+### Prueba local como despliegue estático
+
+Para probar el artefacto de producción con los datos reales de `data/`, primero
+publica al menos un ciclo del worker y después usa el objetivo reproducible:
+
+```bash
+make poll-once
+make preview-live
+```
+
+La aplicación queda en `http://127.0.0.1:4173/`. Para elegir otro puerto:
+
+```bash
+make preview-live LIVE_PREVIEW_PORT=4180
+```
+
+`preview-live` ejecuta y valida el build antes de copiarlo, enlaza
+`data/radar/` y `data/status/` dentro de un staging ignorado por Git y solo
+entonces inicia el servidor estático. No copies `apps/web/dist/` después de
+interrumpir `npm run build`: un `dist` parcial puede no contener `index.html` y
+`http.server` mostrará un listado de directorio en lugar de la aplicación.
+
+El worker continuo y el servidor web se ejecutan en terminales distintas:
+
+```bash
+# terminal 1
+make run-worker
+
+# terminal 2
+make preview-live
+```
+
+La Fase 9 definirá el servidor, los encabezados HTTP y la automatización del
+despliegue real; este objetivo solo reproduce localmente el contrato estático y
+los datos publicados.
 
 ## Estructura
 
@@ -169,6 +210,8 @@ refleja honestamente los huecos de AEMET. Puede verse con `make dev-web`. La
 calibración se documenta en [`docs/PHASE_4.md`](docs/PHASE_4.md) y la
 reproducción en [`docs/PHASE_5.md`](docs/PHASE_5.md). El contrato nacional,
 su máscara y su cobertura están en [`docs/PHASE_7.md`](docs/PHASE_7.md).
+La caché resiliente, la PWA, los controles locales, las métricas y las pruebas
+de navegador se describen en [`docs/PHASE_8.md`](docs/PHASE_8.md).
 
 ## Estrategia Git
 
