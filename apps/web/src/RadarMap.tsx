@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { preloadFrame } from './framePreloader';
+import { initialRadarZoom, radarCameraPadding } from './radarCamera';
 import type { RadarIndexEntry, RegionalRadarIndexEntry } from './radarIndex';
 import type { LongitudeLatitude } from './radarLocation';
 import type { RadarTimelineFrame } from './radarManifest';
@@ -33,6 +34,7 @@ interface RadarMapProps {
   showDebug: boolean;
   reducedMotion: boolean;
   userCoordinates: LongitudeLatitude | null;
+  bottomInset: number;
 }
 
 export function RadarMap({
@@ -42,6 +44,7 @@ export function RadarMap({
   showDebug,
   reducedMotion,
   userCoordinates,
+  bottomInset,
 }: RadarMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -53,6 +56,7 @@ export function RadarMap({
   const transitionSequenceRef = useRef(0);
   const initialOpacityRef = useRef(opacity);
   const initialDebugRef = useRef(showDebug);
+  const initialBottomInsetRef = useRef(bottomInset);
   const [mapReady, setMapReady] = useState(false);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
 
@@ -64,16 +68,25 @@ export function RadarMap({
     activeLayerRef.current = 0;
     activeUrlRef.current = initialFrameRef.current?.imageUrl ?? null;
     const configuredStyle = import.meta.env.VITE_MAP_STYLE_URL?.trim();
+    const initialZoom = initialRadarZoom(
+      radar,
+      containerRef.current.clientWidth,
+    );
     const map = new MapLibreMap({
       container: containerRef.current,
       style: configuredStyle || DEFAULT_STYLE_URL,
       center: radar.coordinates,
-      zoom: radar.mapZoom,
+      zoom: initialZoom,
       minZoom: 4,
       maxZoom: 12,
       bearing: 0,
       pitch: 0,
       attributionControl: false,
+    });
+    map.jumpTo({
+      center: radar.coordinates,
+      zoom: initialZoom,
+      padding: radarCameraPadding(radar, initialBottomInsetRef.current),
     });
     mapRef.current = map;
     map.addControl(
@@ -124,6 +137,14 @@ export function RadarMap({
       map.remove();
     };
   }, [radar]);
+
+  useEffect(() => {
+    mapRef.current?.jumpTo({
+      center: radar.coordinates,
+      zoom: initialRadarZoom(radar, containerRef.current?.clientWidth ?? 0),
+      padding: radarCameraPadding(radar, bottomInset),
+    });
+  }, [bottomInset, radar]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -239,7 +260,11 @@ export function RadarMap({
   }, [mapReady, userCoordinates]);
 
   return (
-    <div className="map-stage" data-map-ready={mapReady ? 'true' : 'false'}>
+    <div
+      className="map-stage"
+      data-map-ready={mapReady ? 'true' : 'false'}
+      data-bottom-inset={bottomInset}
+    >
       <div
         ref={containerRef}
         className="map-canvas"

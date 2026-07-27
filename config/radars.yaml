@@ -5,7 +5,7 @@ sources:
 defaults:
   cadenceMinutes: 10
   rangeKilometres: 240
-  mapZoom: 7.1
+  mapZoom: 7.3
   reflectivityConfig: palettes/regional-safe-v1.json
   ambiguousClassPolicy: discard
   sourceRaster:
@@ -126,7 +126,7 @@ radars:
     siteName: Canarias
     longitude: -16.189392
     latitude: 28.149181
-    mapZoom: 6.7
+    mapZoom: 6.9
     sampleValidation: verified
     staticMask: masks/regional-ca-v1.png
     ambiguousClassPolicy: static-mask

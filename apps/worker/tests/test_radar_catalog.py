@@ -30,8 +30,8 @@ def test_catalog_contains_every_openapi_regional_radar() -> None:
         "za",
     }
     assert catalog.definition_for("regional-mu").site_code == "FTN"
-    assert catalog.definition_for("regional-ma").map_zoom == pytest.approx(7.1)
-    assert catalog.definition_for("regional-ca").map_zoom == pytest.approx(6.7)
+    assert catalog.definition_for("regional-ma").map_zoom == pytest.approx(7.3)
+    assert catalog.definition_for("regional-ca").map_zoom == pytest.approx(6.9)
 
 
 def test_unavailable_radars_remain_configured() -> None:

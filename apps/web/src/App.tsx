@@ -50,6 +50,7 @@ const OPACITY_KEY = 'aemet-radar:opacity';
 const CATALOG_CACHE_ID = 'catalog';
 const HEALTH_CACHE_ID = 'health';
 const AUTO_REFRESH_MILLISECONDS = 10 * 60 * 1000;
+const SOUTHERN_MAP_CONTEXT_PIXELS = 112;
 
 type PlaybackSpeed = keyof typeof SPEEDS;
 type LocationStatus = 'idle' | 'locating' | 'located' | 'error';
@@ -91,8 +92,10 @@ export function App() {
     useState<BeforeInstallPromptEvent | null>(null);
   const selectedButtonRef = useRef<HTMLButtonElement | null>(null);
   const mapLayoutRef = useRef<HTMLElement | null>(null);
+  const timelinePanelRef = useRef<HTMLElement | null>(null);
   const manifestRef = useRef<RadarManifest | null>(null);
   const selectedIndexRef = useRef(0);
+  const [mapBottomInset, setMapBottomInset] = useState(0);
   const reducedMotion = useReducedMotion();
   const now = useMinuteClock();
   const selectedRadar =
@@ -230,6 +233,40 @@ export function App() {
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;
   }, [selectedIndex]);
+
+  useEffect(() => {
+    const panel = timelinePanelRef.current;
+    if (!panel) {
+      setMapBottomInset(0);
+      return;
+    }
+    const panelElement = panel;
+
+    function measurePanel() {
+      const bottomOffset = Number.parseFloat(
+        window.getComputedStyle(panelElement).bottom,
+      );
+      setMapBottomInset(
+        Math.ceil(
+          panelElement.getBoundingClientRect().height +
+            2 * (Number.isFinite(bottomOffset) ? bottomOffset : 0) +
+            SOUTHERN_MAP_CONTEXT_PIXELS,
+        ),
+      );
+    }
+
+    measurePanel();
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(measurePanel);
+    observer?.observe(panelElement);
+    window.addEventListener('resize', measurePanel);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measurePanel);
+    };
+  }, [fullscreen, manifest, selectedRadarId]);
 
   useEffect(() => {
     function updateConnection() {
@@ -580,6 +617,7 @@ export function App() {
             showDebug={showDebug}
             reducedMotion={reducedMotion}
             userCoordinates={userCoordinates}
+            bottomInset={mapBottomInset}
           />
         </Suspense>
 
@@ -687,6 +725,7 @@ export function App() {
             mapFrame={mapFrame}
             playing={playing}
             speed={speed}
+            panelRef={timelinePanelRef}
             selectedButtonRef={selectedButtonRef}
             onSelect={selectSlot}
             onTogglePlaying={() => setPlaying((active) => !active)}
@@ -769,6 +808,7 @@ interface TimelineProps {
   mapFrame: RadarTimelineFrame | null;
   playing: boolean;
   speed: PlaybackSpeed;
+  panelRef: RefObject<HTMLElement | null>;
   selectedButtonRef: RefObject<HTMLButtonElement | null>;
   onSelect: (index: number) => void;
   onTogglePlaying: () => void;
@@ -783,6 +823,7 @@ function Timeline({
   mapFrame,
   playing,
   speed,
+  panelRef,
   selectedButtonRef,
   onSelect,
   onTogglePlaying,
@@ -794,7 +835,11 @@ function Timeline({
     ? `Reproduciendo a velocidad ${SPEEDS[speed].label.toLowerCase()}. ${slotAnnouncement(selectedSlot, mapFrame)}`
     : `En pausa. ${slotAnnouncement(selectedSlot, mapFrame)}`;
   return (
-    <section className="timeline-panel" aria-label="Controles temporales">
+    <section
+      ref={panelRef}
+      className="timeline-panel"
+      aria-label="Controles temporales"
+    >
       <div className="playback-row">
         <button
           className="play-button"
