@@ -18,6 +18,7 @@ import {
   buildTimelineSlots,
   formatMadridDate,
   formatMadridTime,
+  formatMadridTimeZoneName,
   HISTORY_LABEL,
   isRadarManifest,
   type RadarManifest,
@@ -395,7 +396,8 @@ function FrameCard({
         {isLatest && <span>Más reciente</span>}
       </div>
       <p>
-        {formatMadridDate(selectedSlot.time)} · Europe/Madrid
+        {formatMadridDate(selectedSlot.time)} · hora de Madrid (
+        {formatMadridTimeZoneName(selectedSlot.time)})
         {selectedFrame?.timeSource === 'retrievedAt'
           ? ' · producto sin hora verificable'
           : ''}

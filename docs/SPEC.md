@@ -7,7 +7,8 @@
 > Estado: borrador inicial
 > Producto: aplicación web personal de visualización de radar AEMET
 > Idioma de la interfaz: español
-> Zona horaria de presentación: `Europe/Madrid`
+> Zona horaria de presentación: `Europe/Madrid`, con ajuste automático
+> `CET`/`CEST` según la fecha.
 
 ---
 

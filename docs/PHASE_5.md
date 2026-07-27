@@ -14,7 +14,7 @@ La fase convierte el visor estático de Murcia en un reproductor temporal que:
 - reproduce en bucle con velocidades lenta, normal y rápida;
 - mantiene una pausa mayor en el último fotograma;
 - permite navegar con las flechas izquierda y derecha;
-- usa hora local `Europe/Madrid`;
+- usa hora local `Europe/Madrid` y muestra `CET` o `CEST` según la fecha;
 - conserva la última reflectividad real durante los huecos;
 - precarga primero la observación más reciente y reutiliza cada URL;
 - alterna dos capas MapLibre con un crossfade corto;

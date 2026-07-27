@@ -174,6 +174,17 @@ export function formatMadridDate(value: string): string {
   }).format(new Date(value));
 }
 
+export function formatMadridTimeZoneName(value: string): string {
+  return (
+    new Intl.DateTimeFormat('es-ES', {
+      timeZone: MADRID_TIME_ZONE,
+      timeZoneName: 'short',
+    })
+      .formatToParts(new Date(value))
+      .find((part) => part.type === 'timeZoneName')?.value ?? MADRID_TIME_ZONE
+  );
+}
+
 function isTimelineFrame(value: unknown): value is RadarTimelineFrame {
   return (
     isRecord(value) &&

@@ -181,6 +181,7 @@ describe('App regional', () => {
     expect(screen.getByLabelText('Radar regional')).toHaveValue('regional-mu');
     expect(screen.getAllByRole('option')).toHaveLength(15);
     expect(screen.getByText('Últimas 3 h 50 min')).toBeInTheDocument();
+    expect(screen.getByText(/hora de Madrid \(CEST\)/)).toBeInTheDocument();
     expect(screen.getByTestId('radar-map')).toHaveAttribute(
       'data-radar',
       'regional-mu',
