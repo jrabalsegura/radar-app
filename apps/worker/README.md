@@ -25,6 +25,11 @@ local ignorado por Git; una variable ya exportada tiene prioridad.
   --sample-root data/phase6-samples \
   --sample-root data/mask-samples \
   --sample-root data/manual-phase2
+.venv/bin/aemet-radar build-reviewed-dry-mask \
+  ruta/al/original.gif ruta/al/ppi-vacio.png \
+  --product regional-ml \
+  --observed-at 2026-07-26T10:50:00Z \
+  --dry-reference-url https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/AHR260726105000.PPI.Z_005_240.png
 ```
 
 La salida estándar contiene únicamente un resumen JSON sin URLs efímeras ni
@@ -66,6 +71,11 @@ separación por radar. `build-reflectivity-mask` permite regenerar una máscara
 individual. Solo debe
 utilizarse con una selección revisada de muestras secas y lluviosas; el informe
 adyacente registra exactamente las referencias y píxeles excluidos.
+
+`build-reviewed-dry-mask` cubre una excepción más estricta: exige el PNG RGBA
+original del PPI oficial para el mismo radar y hora, con transparencia y un
+único color visible. Rechaza capas con ecos, texto o avisos de
+indisponibilidad y registra URL, hora y hashes de ambas imágenes.
 
 `georeference-murcia` tampoco necesita API key. Exige el PNG RGBA `480×480`
 producido por `analyze-reflectivity`, aplica la calibración versionada y escribe

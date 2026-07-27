@@ -77,9 +77,11 @@ conserva hashes, horas y ventana de observación.
 
 La generación en lote deduplica por contenido y exige al menos tres originales
 distintos separados dos horas. Murcia conserva veinte muestras y más de dos
-días de observación. Un radar que devuelva 404 o una imagen congelada mantiene
-temporalmente la política conservadora `discard`: no hereda la máscara de otro
-emplazamiento ni activa una calibración basada en evidencia insuficiente.
+días de observación. Como excepción estrecha, `build-reviewed-dry-mask` admite
+un único GIF cuando se coteja con el PNG PPI del visor oficial para el mismo
+radar y hora. La herramienta exige que esa referencia RGBA tenga transparencia
+y un único color visible; rechaza ecos, texto y avisos de producto no
+disponible.
 
 ```bash
 .venv/bin/aemet-radar build-radar-masks \
@@ -88,15 +90,31 @@ emplazamiento ni activa una calibración basada en evidencia insuficiente.
   --sample-root data/manual-phase2
 ```
 
-La ejecución controlada del 26 de julio dejó 11 máscaras específicas activas:
-Almería, Asturias, Illes Balears, Barcelona, Cáceres, Madrid, Murcia, Palencia,
-Las Palmas, Sevilla y Zaragoza. Cada una usa tres muestras y más de dos horas
-de ventana, salvo Murcia, que conserva 20 muestras y 51,99 horas.
+La ejecución controlada del 26 y 27 de julio dejó 12 máscaras específicas
+activas: Almería, Asturias, Illes Balears, Barcelona, Cáceres, Madrid, Málaga,
+Murcia, Palencia, Las Palmas, Sevilla y Zaragoza. Once proceden de varias
+muestras temporales; Málaga usa la excepción seca revisada:
 
-Permanecen en modo conservador Málaga, cuyo endpoint sigue entregando un único
-hash congelado, y A Coruña, Valencia y Vizcaya, que responden 404. La herramienta
-los informa como `awaiting-samples` y no crea PNG ficticios. Cuando acumulen
-tres originales distintos, el mismo comando generará sus archivos propios.
+```bash
+.venv/bin/aemet-radar build-reviewed-dry-mask \
+  data/mask-samples/raw/regional-ml/2026/07/26/ddeda4d5f83b45bc5553921858a66713bdb3af91247b66208a2d59cea5f0b831.gif \
+  docs/evidence/phase-6/official-viewer/AHR260726105000.PPI.Z_005_240.png \
+  --product regional-ml \
+  --observed-at 2026-07-26T10:50:00Z \
+  --dry-reference-url https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/AHR260726105000.PPI.Z_005_240.png
+```
+
+El PPI de Málaga de las 10:50 UTC contiene únicamente transparencia y el color
+RGBA `[239, 242, 249, 179]`. El GIF de la misma hora aporta las posiciones
+exactas de sus 3.207 píxeles amarillos fijos; el informe conserva ambos hashes.
+
+Permanecen en modo conservador A Coruña, Valencia y Vizcaya. Sus GIF OpenData
+responden 404 y el visor no ofrece una sustitución equivalente: A Coruña y
+Vizcaya muestran capas PPI con ecos azules/cian; Valencia devuelve “Producto no
+disponible”. El visor dibuja límites y reflectividad en capas separadas y su
+rasterizado no coincide píxel a píxel con el GIF `480×530`, por lo que no se
+activa una máscara aproximada. Las cinco capturas, URLs, hashes y diagnóstico
+están en `docs/evidence/phase-6/official-viewer/`.
 
 El worker interpreta el estado AEMET 404 como `no-data`, no como un fallo: hace
 un único intento, mantiene el manifiesto y la retención, limpia `lastError` y
@@ -187,6 +205,8 @@ por radar.
 
 - 15 manifiestos independientes;
 - 12 radares con una muestra real procesada;
+- 12 máscaras propias activas y tres políticas conservadoras;
+- cinco imágenes oficiales del visor conservadas con SHA-256;
 - 3 manifiestos vacíos y seleccionables;
 - cambio de producto sin mezcla de rutas ni fotogramas;
 - ajuste de centro, zoom, cobertura y esquinas por radar;

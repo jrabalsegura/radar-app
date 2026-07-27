@@ -37,6 +37,12 @@ intensidad no ambigua nunca se enmascara por permanecer inmóvil. Ninguna
 máscara debe editarse manualmente ni activarse sin revisar su informe y las
 salidas visuales descritas en `docs/PHASE_3.md`.
 
+Málaga documenta la excepción `ambiguous-reviewed-dry-reference-v1`: su único
+GIF se cotejó con un PPI oficial vacío del mismo radar y hora mediante
+`build-reviewed-dry-mask`. La herramienta valida automáticamente que la
+referencia tenga transparencia y un solo color visible. La evidencia original
+y su informe están bajo `docs/evidence/phase-6/official-viewer/`.
+
 Los radares sin evidencia suficiente mantienen la política conservadora
 `discard`: siguen operativos, pero no publican el amarillo ambiguo hasta que
 pueda generarse su máscara específica.

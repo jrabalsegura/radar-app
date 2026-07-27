@@ -7,9 +7,11 @@ import json
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
+from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 from typing import cast
+from urllib.parse import urlsplit
 
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
@@ -18,6 +20,7 @@ from aemet_radar.storage import atomic_write_bytes, atomic_write_json
 
 PROCESSOR_ID = "regional-v1"
 MASK_ALGORITHM = "ambiguous-temporal-invariance-v2"
+REVIEWED_DRY_MASK_ALGORITHM = "ambiguous-reviewed-dry-reference-v1"
 MINIMUM_MASK_SAMPLES = 3
 AMBIGUOUS_POLICIES = {"discard", "static-mask"}
 
@@ -437,6 +440,106 @@ def build_static_mask(
     )
 
 
+def build_reviewed_dry_static_mask(
+    sample_path: Path,
+    *,
+    dry_reference_path: Path,
+    dry_reference_url: str,
+    observed_at: str,
+    config_path: Path,
+    mask_path: Path,
+    report_path: Path | None = None,
+    product_id: str | None = None,
+    expected_site_code: str,
+) -> MaskBuildResult:
+    """Genera una máscara desde un GIF cotejado con un PPI oficial vacío."""
+
+    config = load_reflectivity_config(config_path, product_id=product_id)
+    sample = _load_indexed_gif(sample_path, config)
+    dry_reference = _load_blank_dry_reference(dry_reference_path)
+    if not observed_at:
+        raise ReflectivityProcessingError(
+            "La máscara revisada requiere la hora cotejada del producto."
+        )
+    reference_url = _official_viewer_reference_url(
+        dry_reference_url,
+        expected_site_code=expected_site_code,
+        observed_at=observed_at,
+    )
+
+    crop = sample.image.crop(config.crop.pillow_box)
+    class_indexes = config.classes_by_index
+    mask_data = bytearray([255]) * (config.crop.width * config.crop.height)
+    excluded = Counter[int]()
+    for position, palette_index in enumerate(crop.tobytes()):
+        reflectivity_class = class_indexes.get(palette_index)
+        if reflectivity_class is None or not reflectivity_class.ambiguous:
+            continue
+        mask_data[position] = 0
+        excluded[palette_index] += 1
+
+    mask = Image.frombytes(
+        "L",
+        (config.crop.width, config.crop.height),
+        bytes(mask_data),
+    )
+    _atomic_save_png(mask_path, mask)
+    resolved_report_path = report_path or mask_path.with_suffix(".json")
+    report: dict[str, object] = {
+        "schemaVersion": 1,
+        "productId": product_id or config.product_id,
+        "processor": config.processor,
+        "algorithm": REVIEWED_DRY_MASK_ALGORITHM,
+        "configurationSha256": f"sha256:{_sha256_file(config_path)}",
+        "maskSha256": f"sha256:{_sha256_file(mask_path)}",
+        "sourceHashes": [f"sha256:{sample.source_sha256}"],
+        "sourceEvidence": [
+            {
+                "sha256": f"sha256:{sample.source_sha256}",
+                "observedAt": observed_at,
+            }
+        ],
+        "dryReference": {
+            **dry_reference,
+            "url": reference_url,
+            "observedAt": observed_at,
+        },
+        "observationWindowHours": 0.0,
+        "distinctSamples": 1,
+        "crop": config.crop.to_dict(),
+        "coverage": config.coverage.to_dict(),
+        "semantics": {
+            "255": "eligible-for-reflectivity-classification",
+            "0": "reviewed-fixed-classified-pixel-excluded",
+        },
+        "excludedPixels": sum(excluded.values()),
+        "excludedByClass": [
+            {
+                **class_indexes[index].to_dict(),
+                "pixels": count,
+            }
+            for index, count in sorted(excluded.items())
+        ],
+        "method": (
+            "Se coteja el GIF indexado con la imagen PPI del mismo radar y hora "
+            "publicada por el visor oficial. La referencia debe ser un PNG RGBA "
+            "vacío con un único color visible y transparencia; solo entonces se "
+            "excluyen los píxeles de la clase ambigua presentes en el GIF."
+        ),
+        "knownRisk": (
+            "La excepción depende de que radar, producto y hora hayan sido revisados "
+            "como equivalentes. No debe reutilizarse con otra captura ni sustituye la "
+            "calibración temporal cuando el PPI contiene ecos."
+        ),
+    }
+    atomic_write_json(resolved_report_path, report)
+    return MaskBuildResult(
+        mask_path=mask_path,
+        report_path=resolved_report_path,
+        report=report,
+    )
+
+
 def _parse_class(value: object) -> ReflectivityClass:
     if not isinstance(value, dict):
         raise ReflectivityProcessingError("Cada clase de reflectividad debe ser un objeto JSON.")
@@ -591,6 +694,89 @@ def _load_static_mask(path: Path, crop: CropBox) -> Image.Image:
     if not values.issubset({0, 255}):
         raise ReflectivityProcessingError("La máscara estática debe ser binaria (0 o 255).")
     return mask
+
+
+def _load_blank_dry_reference(path: Path) -> dict[str, object]:
+    try:
+        content = path.read_bytes()
+        with Image.open(BytesIO(content)) as candidate:
+            candidate.load()
+            if candidate.format != "PNG" or candidate.mode != "RGBA":
+                raise ReflectivityProcessingError(
+                    "La referencia seca debe ser el PNG RGBA original del visor."
+                )
+            image = candidate.copy()
+    except ReflectivityProcessingError:
+        raise
+    except (OSError, UnidentifiedImageError, SyntaxError) as exc:
+        raise ReflectivityProcessingError("No se pudo abrir la referencia seca del visor.") from exc
+
+    visible = Counter[tuple[int, int, int, int]]()
+    transparent_pixels = 0
+    data = image.tobytes()
+    for offset in range(0, len(data), 4):
+        rgba = cast(tuple[int, int, int, int], tuple(data[offset : offset + 4]))
+        if rgba[3] == 0:
+            transparent_pixels += 1
+        else:
+            visible[rgba] += 1
+    if len(visible) != 1 or transparent_pixels == 0:
+        raise ReflectivityProcessingError(
+            "La referencia PPI contiene ecos, texto o más de un color visible.",
+            details={
+                "visibleColors": len(visible),
+                "transparentPixels": transparent_pixels,
+            },
+        )
+    visible_color, visible_pixels = next(iter(visible.items()))
+    return {
+        "fileName": path.name,
+        "sha256": f"sha256:{hashlib.sha256(content).hexdigest()}",
+        "format": "PNG",
+        "width": image.width,
+        "height": image.height,
+        "mode": image.mode,
+        "visibleColor": list(visible_color),
+        "visiblePixels": visible_pixels,
+        "transparentPixels": transparent_pixels,
+    }
+
+
+def _official_viewer_reference_url(
+    value: str,
+    *,
+    expected_site_code: str,
+    observed_at: str,
+) -> str:
+    parts = urlsplit(value)
+    if (
+        parts.scheme != "https"
+        or parts.hostname != "www.aemet.es"
+        or not parts.path.startswith("/es/api-eltiempo/radar/imagen-radar/PPI/")
+    ):
+        raise ReflectivityProcessingError(
+            "La referencia seca debe proceder del endpoint PPI oficial de AEMET."
+        )
+    filename = Path(parts.path).name
+    prefix = filename.split(".", maxsplit=1)[0]
+    if len(prefix) != 15 or prefix[:3] != expected_site_code.upper() or not prefix[3:].isdigit():
+        raise ReflectivityProcessingError(
+            "La referencia PPI no corresponde al emplazamiento solicitado."
+        )
+    try:
+        reference_time = datetime.strptime(prefix[3:], "%y%m%d%H%M%S").replace(tzinfo=UTC)
+        reviewed_time = datetime.fromisoformat(observed_at.replace("Z", "+00:00"))
+        if reviewed_time.tzinfo is None:
+            raise ValueError
+    except ValueError as exc:
+        raise ReflectivityProcessingError(
+            "La hora cotejada o el nombre de la referencia PPI no son válidos."
+        ) from exc
+    if reference_time != reviewed_time.astimezone(UTC):
+        raise ReflectivityProcessingError(
+            "La referencia PPI y el GIF deben corresponder a la misma hora."
+        )
+    return value
 
 
 def _classify(

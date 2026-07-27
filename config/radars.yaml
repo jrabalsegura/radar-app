@@ -95,6 +95,8 @@ radars:
     longitude: -4.65933
     latitude: 36.6134271638889
     sampleValidation: verified
+    staticMask: masks/regional-ml-v1.png
+    ambiguousClassPolicy: static-mask
   - id: regional-mu
     label: Murcia
     apiCode: mu

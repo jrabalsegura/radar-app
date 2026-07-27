@@ -10,6 +10,8 @@ from PIL import Image, ImageChops
 
 from aemet_radar.errors import ReflectivityProcessingError
 from aemet_radar.reflectivity import (
+    REVIEWED_DRY_MASK_ALGORITHM,
+    build_reviewed_dry_static_mask,
     build_static_mask,
     load_reflectivity_config,
     process_reflectivity_sample,
@@ -152,6 +154,90 @@ def test_static_mask_requires_three_distinct_samples(tmp_path: Path) -> None:
     assert captured.value.safe_details() == {"distinctSamples": 2}
 
 
+def test_reviewed_dry_mask_requires_blank_official_reference(tmp_path: Path) -> None:
+    dry_reference = tmp_path / "dry.png"
+    image = Image.new("RGBA", (4, 4), (0, 0, 0, 0))
+    image.putpixel((1, 1), (239, 242, 249, 179))
+    image.save(dry_reference)
+
+    result = build_reviewed_dry_static_mask(
+        FIXTURES / "source.gif",
+        dry_reference_path=dry_reference,
+        dry_reference_url=(
+            "https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/"
+            "AHR260726105000.PPI.Z_005_240.png"
+        ),
+        observed_at="2026-07-26T10:50:00Z",
+        config_path=FIXTURES / "config.json",
+        mask_path=tmp_path / "mask.png",
+        product_id="regional-mu",
+        expected_site_code="AHR",
+    )
+
+    with Image.open(result.mask_path) as mask:
+        assert mask.mode == "L"
+        assert set(mask.tobytes()) == {0, 255}
+        assert mask.tobytes().count(0) == result.report["excludedPixels"]
+    assert result.report["algorithm"] == REVIEWED_DRY_MASK_ALGORITHM
+    assert result.report["distinctSamples"] == 1
+    dry_report = cast(dict[str, object], result.report["dryReference"])
+    assert dry_report["visibleColor"] == [239, 242, 249, 179]
+    assert dry_report["visiblePixels"] == 1
+    assert dry_report["transparentPixels"] == 15
+
+
+def test_reviewed_dry_mask_rejects_reference_with_echoes(tmp_path: Path) -> None:
+    dry_reference = tmp_path / "echoes.png"
+    image = Image.new("RGBA", (4, 4), (239, 242, 249, 179))
+    image.putpixel((1, 1), (0, 0, 252, 255))
+    image.save(dry_reference)
+
+    with pytest.raises(ReflectivityProcessingError) as captured:
+        build_reviewed_dry_static_mask(
+            FIXTURES / "source.gif",
+            dry_reference_path=dry_reference,
+            dry_reference_url=(
+                "https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/"
+                "CCD260727071000.PPI.Z_005_240.png"
+            ),
+            observed_at="2026-07-27T07:10:00Z",
+            config_path=FIXTURES / "config.json",
+            mask_path=tmp_path / "mask.png",
+            product_id="regional-mu",
+            expected_site_code="CCD",
+        )
+
+    assert captured.value.safe_details() == {
+        "transparentPixels": 0,
+        "visibleColors": 2,
+    }
+
+
+def test_reviewed_dry_mask_rejects_mismatched_site_or_time(tmp_path: Path) -> None:
+    dry_reference = tmp_path / "dry.png"
+    image = Image.new("RGBA", (4, 4), (0, 0, 0, 0))
+    image.putpixel((1, 1), (239, 242, 249, 179))
+    image.save(dry_reference)
+
+    with pytest.raises(
+        ReflectivityProcessingError,
+        match="misma hora",
+    ):
+        build_reviewed_dry_static_mask(
+            FIXTURES / "source.gif",
+            dry_reference_path=dry_reference,
+            dry_reference_url=(
+                "https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/"
+                "AHR260726105000.PPI.Z_005_240.png"
+            ),
+            observed_at="2026-07-26T11:00:00Z",
+            config_path=FIXTURES / "config.json",
+            mask_path=tmp_path / "mask.png",
+            product_id="regional-mu",
+            expected_site_code="AHR",
+        )
+
+
 def test_palette_mismatch_fails_instead_of_silent_classification(tmp_path: Path) -> None:
     with Image.open(FIXTURES / "source.gif") as template:
         source = template.copy()
@@ -237,6 +323,38 @@ def test_versioned_regional_mask_matches_its_v2_report(
     assert len(report["sourceEvidence"]) == report["distinctSamples"]
     assert report["excludedPixels"] == excluded_pixels
     assert [item["paletteIndex"] for item in report["excludedByClass"]] == [10]
+
+
+def test_versioned_malaga_mask_matches_reviewed_dry_reference() -> None:
+    mask_path = REPOSITORY_ROOT / "config" / "masks" / "regional-ml-v1.png"
+    report_path = mask_path.with_suffix(".json")
+    reference_path = (
+        REPOSITORY_ROOT
+        / "docs"
+        / "evidence"
+        / "phase-6"
+        / "official-viewer"
+        / "AHR260726105000.PPI.Z_005_240.png"
+    )
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+
+    with Image.open(mask_path) as mask:
+        mask.load()
+        assert mask.mode == "L"
+        assert mask.size == (480, 480)
+        assert set(mask.tobytes()) == {0, 255}
+        assert mask.tobytes().count(0) == 3_207
+
+    mask_digest = hashlib.sha256(mask_path.read_bytes()).hexdigest()
+    reference_digest = hashlib.sha256(reference_path.read_bytes()).hexdigest()
+    dry_reference = cast(dict[str, object], report["dryReference"])
+    assert report["algorithm"] == REVIEWED_DRY_MASK_ALGORITHM
+    assert report["maskSha256"] == f"sha256:{mask_digest}"
+    assert report["distinctSamples"] == 1
+    assert report["excludedPixels"] == 3_207
+    assert dry_reference["sha256"] == f"sha256:{reference_digest}"
+    assert dry_reference["visibleColor"] == [239, 242, 249, 179]
+    assert dry_reference["observedAt"] == "2026-07-26T10:50:00Z"
 
 
 def _write_mask_sample(path: Path, first_row: tuple[int, ...]) -> Path:

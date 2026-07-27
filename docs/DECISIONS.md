@@ -369,3 +369,24 @@ contratos inválidos y descargas no válidas continúan siendo errores.
 **Motivo:** OpenAPI define 404 como “petición sin datos” y mantiene publicados
 los códigos regionales. Tratar una ausencia funcional como una avería produce
 alarmas falsas sin aportar capacidad de recuperación.
+
+---
+
+## ADR-023 — Excepción de máscara con referencia PPI seca
+
+**Estado:** aceptada como excepción revisada a ADR-021.
+
+Un único GIF regional puede generar una máscara si se coteja con el PNG PPI
+original del visor AEMET para el mismo radar y hora. La herramienta exige
+formato RGBA, transparencia y exactamente un color visible, conserva ambos
+SHA-256 y solo excluye la clase ambigua presente en el GIF.
+
+Málaga cumple estas condiciones a las 10:50 UTC del 26 de julio de 2026. A
+Coruña y Vizcaya no las cumplen porque sus PPI contienen ecos; Valencia y la
+captura actual de Málaga muestran un aviso de producto no disponible. Estas
+salidas se conservan como evidencia, pero no se convierten en máscaras.
+
+**Motivo:** una referencia PPI verdaderamente vacía permite distinguir la
+cartografía amarilla sin esperar diversidad temporal, manteniendo una prueba
+reproducible. Una capa distinta, aproximada o con ecos no demuestra qué píxeles
+amarillos del GIF son fijos.

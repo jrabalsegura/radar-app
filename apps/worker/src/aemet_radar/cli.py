@@ -28,6 +28,7 @@ from aemet_radar.products import (
 )
 from aemet_radar.radar_catalog import DEFAULT_CATALOG_PATH, load_radar_catalog
 from aemet_radar.reflectivity import (
+    build_reviewed_dry_static_mask,
     build_static_mask,
     process_reflectivity_sample,
 )
@@ -237,6 +238,55 @@ def build_parser() -> argparse.ArgumentParser:
         help="Configuración versionada de paleta y recorte.",
     )
 
+    build_reviewed_mask = subcommands.add_parser(
+        "build-reviewed-dry-mask",
+        help="Genera una máscara desde un GIF cotejado con un PPI oficial vacío.",
+    )
+    build_reviewed_mask.add_argument(
+        "sample",
+        type=Path,
+        help="Original GIF regional que contiene la cartografía fija.",
+    )
+    build_reviewed_mask.add_argument(
+        "dry_reference",
+        type=Path,
+        help="PNG RGBA vacío descargado del visor PPI para el mismo radar y hora.",
+    )
+    build_reviewed_mask.add_argument(
+        "--dry-reference-url",
+        required=True,
+        help="URL oficial exacta del PNG PPI cotejado.",
+    )
+    build_reviewed_mask.add_argument(
+        "--observed-at",
+        required=True,
+        help="Hora UTC común del GIF y la referencia, en formato ISO 8601.",
+    )
+    build_reviewed_mask.add_argument(
+        "--product",
+        required=True,
+        choices=tuple(product.id for product in REGIONAL_PRODUCTS),
+        help="Radar regional al que pertenecen ambas imágenes.",
+    )
+    build_reviewed_mask.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="PNG binario; por defecto config/masks/<producto>-v1.png.",
+    )
+    build_reviewed_mask.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+        help="Informe JSON; por defecto usa el nombre de la máscara.",
+    )
+    build_reviewed_mask.add_argument(
+        "--radar-config",
+        type=Path,
+        default=DEFAULT_CATALOG_PATH,
+        help="Catálogo regional versionado.",
+    )
+
     build_radar_masks = subcommands.add_parser(
         "build-radar-masks",
         help="Genera máscaras específicas desde archivos de muestras regionales.",
@@ -329,6 +379,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_georeferencing(arguments)
         if arguments.command == "build-reflectivity-mask":
             return _run_reflectivity_mask_build(arguments)
+        if arguments.command == "build-reviewed-dry-mask":
+            return _run_reviewed_dry_mask_build(arguments)
         if arguments.command == "build-radar-masks":
             return _run_radar_masks_build(arguments)
         if arguments.command == "validate-radar":
@@ -659,6 +711,41 @@ def _run_reflectivity_mask_build(arguments: argparse.Namespace) -> int:
             "mask": result.mask_path.as_posix(),
             "report": result.report_path.as_posix(),
             "distinctSamples": result.report["distinctSamples"],
+            "excludedPixels": result.report["excludedPixels"],
+        }
+    )
+    return 0
+
+
+def _run_reviewed_dry_mask_build(arguments: argparse.Namespace) -> int:
+    product_id = str(arguments.product)
+    definition = load_radar_catalog(_as_path(arguments.radar_config)).definition_for(product_id)
+    output_value = arguments.output
+    output_path = (
+        output_value.resolve()
+        if isinstance(output_value, Path)
+        else Path("config/masks").resolve() / f"{product_id}-v1.png"
+    )
+    report_value = arguments.report
+    report_path = report_value.resolve() if isinstance(report_value, Path) else None
+    result = build_reviewed_dry_static_mask(
+        _as_path(arguments.sample).resolve(),
+        dry_reference_path=_as_path(arguments.dry_reference).resolve(),
+        dry_reference_url=str(arguments.dry_reference_url),
+        observed_at=str(arguments.observed_at),
+        config_path=definition.reflectivity_config_path,
+        mask_path=output_path,
+        report_path=report_path,
+        product_id=product_id,
+        expected_site_code=definition.site_code,
+    )
+    _print_json(
+        {
+            "status": "ok",
+            "processor": result.report["processor"],
+            "mask": result.mask_path.as_posix(),
+            "report": result.report_path.as_posix(),
+            "algorithm": result.report["algorithm"],
             "excludedPixels": result.report["excludedPixels"],
         }
     )

@@ -60,6 +60,7 @@ def test_each_calibrated_radar_uses_its_own_mask() -> None:
             "regional-ba",
             "regional-cc",
             "regional-ma",
+            "regional-ml",
             "regional-mu",
             "regional-vd",
             "regional-ca",

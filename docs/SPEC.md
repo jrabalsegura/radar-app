@@ -497,6 +497,13 @@ una clase inequívoca no podrá enmascararse por invariancia temporal. El
 resultado será reproducible y revisable visualmente; no se aceptará una edición
 manual opaca sin documentación ni una máscara compartida entre radares.
 
+Como excepción revisada, un único GIF podrá generar máscara si existe una
+imagen PPI del visor oficial para el mismo radar y la misma hora que sea
+verificablemente vacía: PNG RGBA original, transparencia y un solo color
+visible. El informe deberá conservar URL, SHA-256, hora, color y recuentos. Una
+capa con ecos, texto o el aviso de producto no disponible no constituye esa
+evidencia.
+
 Mientras un producto no tenga evidencia suficiente, conservará una política
 explícita y conservadora que descarte la clase ambigua completa.
 

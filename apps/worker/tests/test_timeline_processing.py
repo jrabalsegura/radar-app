@@ -59,7 +59,7 @@ def test_murcia_timeline_processor_publishes_and_reuses_derived_frame(
     assert report["output"]["resampling"] == "nearest"
 
 
-def test_generic_profile_validates_a_different_radar_geometry(
+def test_reviewed_dry_profile_validates_a_different_radar_geometry(
     tmp_path: Path,
 ) -> None:
     catalog = load_radar_catalog(RADAR_CATALOG)
@@ -85,7 +85,10 @@ def test_generic_profile_validates_a_different_radar_geometry(
         (tmp_path / "validation" / "reflectivity" / "report.json").read_text()
     )
     assert reflectivity["productId"] == "regional-ml"
-    assert reflectivity["statistics"]["discardedByAmbiguousPolicy"] == 1
+    yellow = reflectivity["ambiguities"]["yellow"]
+    assert yellow["policy"] == "static-mask"
+    assert yellow["result"]["discardedByAmbiguousPolicy"] == 0
+    assert yellow["result"]["keptPixels"] + yellow["result"]["discardedByStaticMask"] == 1
     assert (tmp_path / "validation" / "calibration" / "overlay-3857.png").is_file()
 
 

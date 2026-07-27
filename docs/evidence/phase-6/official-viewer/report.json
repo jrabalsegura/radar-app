@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-07-27",
+  "sourcePage": "https://www.aemet.es/es/eltiempo/observacion/radar",
+  "timelineEndpoint": "https://www.aemet.es/es/api-eltiempo/radar/timeline/PPI/CCD",
+  "images": [
+    {
+      "productId": "regional-co",
+      "siteCode": "CCD",
+      "file": "CCD260727071000.PPI.Z_005_240.png",
+      "sha256": "sha256:d5ed16586f1a963af624cb48b479a8115f30eb51e5d10494648ae0d8358cc9bd",
+      "url": "https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/CCD260727071000.PPI.Z_005_240.png",
+      "observedAt": "2026-07-27T07:10:00Z",
+      "state": "reflectivity-present",
+      "maskEligible": false,
+      "reason": "La capa PPI contiene píxeles azules y cian y no es el GIF gráfico 480x530 consumido por OpenData."
+    },
+    {
+      "productId": "regional-ml",
+      "siteCode": "AHR",
+      "file": "AHR260727071000.PPI.Z_005_240.png",
+      "sha256": "sha256:2dab0ffd8a730c9aecba8655642394837fcb770bcf6faf9ed061d2189cb25301",
+      "url": "https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/AHR260727071000.PPI.Z_005_240.png",
+      "observedAt": "2026-07-27T07:10:00Z",
+      "state": "product-unavailable",
+      "maskEligible": false,
+      "reason": "La imagen contiene el aviso Producto no disponible y no representa la cartografía del GIF OpenData."
+    },
+    {
+      "productId": "regional-ss",
+      "siteCode": "SSE",
+      "file": "SSE260727071000.PPI.Z_005_240.png",
+      "sha256": "sha256:d0be959a62f1c4074389899a2543673fdb51b63d9d8eaf76f7d890573136e998",
+      "url": "https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/SSE260727071000.PPI.Z_005_240.png",
+      "observedAt": "2026-07-27T07:10:00Z",
+      "state": "reflectivity-present",
+      "maskEligible": false,
+      "reason": "La capa PPI contiene píxeles azules y cian y no es el GIF gráfico 480x530 consumido por OpenData."
+    },
+    {
+      "productId": "regional-va",
+      "siteCode": "VAL",
+      "file": "VAL260727071000.PPI.Z_005_240.png",
+      "sha256": "sha256:2bbb86159490149f9c0f95c3e69758743e41a29e05d87f4e161e7a4110e540c1",
+      "url": "https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/VAL260727071000.PPI.Z_005_240.png",
+      "observedAt": "2026-07-27T07:10:00Z",
+      "state": "product-unavailable",
+      "maskEligible": false,
+      "reason": "La imagen contiene el aviso Producto no disponible y no representa la cartografía del GIF OpenData."
+    },
+    {
+      "productId": "regional-ml",
+      "siteCode": "AHR",
+      "file": "AHR260726105000.PPI.Z_005_240.png",
+      "sha256": "sha256:8336234a119ee841686b9e377351eec6d2a1d141c1944666018ced8e741f45a7",
+      "url": "https://www.aemet.es/es/api-eltiempo/radar/imagen-radar/PPI/AHR260726105000.PPI.Z_005_240.png",
+      "observedAt": "2026-07-26T10:50:00Z",
+      "state": "blank-reference",
+      "maskEligible": true,
+      "reason": "Coincide en radar y hora con el GIF archivado; el PNG RGBA tiene un único color visible y transparencia, sin clases de reflectividad."
+    }
+  ]
+}
