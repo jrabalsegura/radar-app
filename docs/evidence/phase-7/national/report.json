@@ -1,0 +1,42 @@
+{
+  "configuration": {
+    "georeferencingSha256": "sha256:c57adebd482556957cb27322b0a0d8c833cfe64261504604607fc0000ea0b7f1",
+    "maskSha256": "sha256:a5aab4010b83400ce40031340866c58a7f1fc966ff417fbc7f6bed5e90411e2c",
+    "paletteSha256": "sha256:7eba7427f06a9c2a44b8c61c984e34a43b2e5aa9bbdb3d5e084215cfe720f3d8"
+  },
+  "mask": {
+    "algorithm": "exact-reflectivity-palette-v1",
+    "discardedPixels": 1037061,
+    "file": "mask.png",
+    "reflectivityPixels": 937
+  },
+  "output": {
+    "file": "overlay.png",
+    "maplibreCoordinates": [
+      [
+        -16.079999999999995,
+        51.29999999999996
+      ],
+      [
+        12.139999999999997,
+        51.29999999999996
+      ],
+      [
+        12.139999999999997,
+        27.219999999999978
+      ],
+      [
+        -16.079999999999995,
+        27.219999999999978
+      ]
+    ]
+  },
+  "processor": "national-v1",
+  "schemaVersion": 1,
+  "source": {
+    "bitDepth": 4,
+    "height": 1079,
+    "sha256": "sha256:4b6f66678a5c07df23907b09dd182e52f8a88ab9c4c720248fbd3f69e6a15f6e",
+    "width": 962
+  }
+}

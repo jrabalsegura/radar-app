@@ -59,7 +59,7 @@ class AemetClient:
             base_url=DEFAULT_BASE_URL,
             follow_redirects=False,
             timeout=httpx.Timeout(timeout_seconds),
-            headers={"User-Agent": "aemet-radar-worker/0.8"},
+            headers={"User-Agent": "aemet-radar-worker/0.9"},
         )
 
     def __enter__(self) -> AemetClient:

@@ -1,6 +1,25 @@
 {
-  "generatedAt": "2026-07-27T09:01:14.764734Z",
+  "generatedAt": "2026-07-27T12:08:00.359675Z",
   "products": [
+    {
+      "ageSeconds": 1080,
+      "archivedFrames": 24,
+      "attempts": 1,
+      "dataStatus": "current",
+      "id": "national",
+      "label": "Composición nacional",
+      "lastError": null,
+      "lastFrameTime": "2026-07-27T11:50:00Z",
+      "lastOutcome": "duplicate",
+      "lastPollAt": "2026-07-27T12:08:00.359675Z",
+      "lastSuccessAt": "2026-07-27T12:08:00.359675Z",
+      "latestProductTime": "2026-07-27T11:50:00Z",
+      "manifestUrl": "/radar/national/manifest.json",
+      "publishableFrames": 24,
+      "staleAfterSeconds": 1200,
+      "status": "current",
+      "timeBasis": "productTime"
+    },
     {
       "ageSeconds": 3074,
       "archivedFrames": 24,

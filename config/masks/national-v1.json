@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "productId": "national",
+  "processor": "national-v1",
+  "algorithm": "exact-reflectivity-palette-v1",
+  "output": {
+    "mode": "L",
+    "echo": 255,
+    "noData": 0
+  },
+  "staticCoverageMask": false,
+  "method": "Cada fotograma genera una máscara binaria propia. Solo los píxeles cuyo RGB coincide exactamente con una clase de reflectividad versionada reciben 255; fondo, transparencia y ausencia de dato reciben 0.",
+  "rationale": "La huella de cobertura nacional cambia cuando un radar regional deja de contribuir. Una máscara espacial estática podría borrar ecos futuros o presentar cobertura inexistente."
+}

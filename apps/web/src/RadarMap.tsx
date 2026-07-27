@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { preloadFrame } from './framePreloader';
-import type { RegionalRadarIndexEntry } from './radarIndex';
+import type { RadarIndexEntry, RegionalRadarIndexEntry } from './radarIndex';
 import type { RadarTimelineFrame } from './radarManifest';
 
 const DEFAULT_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
@@ -22,7 +22,7 @@ const DEBUG_LAYER_ID = 'coverage-debug';
 const CROSSFADE_MILLISECONDS = 180;
 
 interface RadarMapProps {
-  radar: RegionalRadarIndexEntry;
+  radar: RadarIndexEntry;
   selectedFrame: RadarTimelineFrame | null;
   opacity: number;
   showDebug: boolean;
@@ -100,11 +100,10 @@ export function RadarMap({
           'line-dasharray': [2, 2],
         },
       });
-      debugMarkerRef.current = createDebugMarker(
-        map,
-        radar,
-        initialDebugRef.current,
-      );
+      debugMarkerRef.current =
+        radar.kind === 'regional'
+          ? createDebugMarker(map, radar, initialDebugRef.current)
+          : null;
       setMapReady(true);
     });
 
@@ -305,16 +304,17 @@ function createDebugMarker(
   return new Marker({ element }).setLngLat(radar.coordinates).addTo(map);
 }
 
-function debugSource(
-  radar: RegionalRadarIndexEntry,
-): GeoJSONSourceSpecification {
+function debugSource(radar: RadarIndexEntry): GeoJSONSourceSpecification {
   return {
     type: 'geojson',
     data: {
       type: 'Feature',
       properties: {
         kind: 'coverage',
-        label: `Cobertura nominal ${radar.rangeKilometres} km`,
+        label:
+          radar.kind === 'national'
+            ? radar.coverageLabel
+            : `Cobertura nominal ${radar.rangeKilometres} km`,
       },
       geometry: {
         type: 'LineString',

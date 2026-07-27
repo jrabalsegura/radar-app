@@ -1,0 +1,749 @@
+{
+  "frames": [
+    {
+      "id": "national_20260727T080000Z_fd611599a0d3",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/fd611599a0d3d7ec4e1304418c3986fc0447b1390ad49bfbede1c9b0b5833a5e/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:41.830909Z",
+      "productTime": "2026-07-27T08:00:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T080000Z-fd611599a0d3d7ec4e1304418c3986fc0447b1390ad49bfbede1c9b0b5833a5e.png",
+      "retrievedAt": "2026-07-27T12:07:41.830909Z",
+      "sourceHash": "sha256:fd611599a0d3d7ec4e1304418c3986fc0447b1390ad49bfbede1c9b0b5833a5e",
+      "status": "available",
+      "time": "2026-07-27T08:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T081000Z_80f8cf6d0673",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/80f8cf6d0673e294b8d7c67730f196bf82705854c00a8d32f7682ab29d1b2f0b/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:41.858634Z",
+      "productTime": "2026-07-27T08:10:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T081000Z-80f8cf6d0673e294b8d7c67730f196bf82705854c00a8d32f7682ab29d1b2f0b.png",
+      "retrievedAt": "2026-07-27T12:07:41.858634Z",
+      "sourceHash": "sha256:80f8cf6d0673e294b8d7c67730f196bf82705854c00a8d32f7682ab29d1b2f0b",
+      "status": "available",
+      "time": "2026-07-27T08:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T082000Z_313f91db8ba4",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/313f91db8ba47061f59998a530859de4d3bcacbe51453750b604b447c1936643/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:41.933340Z",
+      "productTime": "2026-07-27T08:20:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T082000Z-313f91db8ba47061f59998a530859de4d3bcacbe51453750b604b447c1936643.png",
+      "retrievedAt": "2026-07-27T12:07:41.933340Z",
+      "sourceHash": "sha256:313f91db8ba47061f59998a530859de4d3bcacbe51453750b604b447c1936643",
+      "status": "available",
+      "time": "2026-07-27T08:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T083000Z_64171bf751f8",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/64171bf751f8652abca9fa6dba90a07a02b782ab93372c9af87f60db25ec7b81/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:41.971556Z",
+      "productTime": "2026-07-27T08:30:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T083000Z-64171bf751f8652abca9fa6dba90a07a02b782ab93372c9af87f60db25ec7b81.png",
+      "retrievedAt": "2026-07-27T12:07:41.971556Z",
+      "sourceHash": "sha256:64171bf751f8652abca9fa6dba90a07a02b782ab93372c9af87f60db25ec7b81",
+      "status": "available",
+      "time": "2026-07-27T08:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T084000Z_8b38415debe6",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/8b38415debe612109317ff1589ffc72cd9520a8a4e1e0d4f38f84e34804a3573/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.000521Z",
+      "productTime": "2026-07-27T08:40:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T084000Z-8b38415debe612109317ff1589ffc72cd9520a8a4e1e0d4f38f84e34804a3573.png",
+      "retrievedAt": "2026-07-27T12:07:42.000521Z",
+      "sourceHash": "sha256:8b38415debe612109317ff1589ffc72cd9520a8a4e1e0d4f38f84e34804a3573",
+      "status": "available",
+      "time": "2026-07-27T08:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T085000Z_de0a21d7df83",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/de0a21d7df837597ac29a2ef12f26f66c03e40b4da3f962e577bf76033d2ad82/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.030146Z",
+      "productTime": "2026-07-27T08:50:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T085000Z-de0a21d7df837597ac29a2ef12f26f66c03e40b4da3f962e577bf76033d2ad82.png",
+      "retrievedAt": "2026-07-27T12:07:42.030146Z",
+      "sourceHash": "sha256:de0a21d7df837597ac29a2ef12f26f66c03e40b4da3f962e577bf76033d2ad82",
+      "status": "available",
+      "time": "2026-07-27T08:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T090000Z_77b47dbc4381",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/77b47dbc4381795e26cae46734688c4229cfd32e19e269654815f7b7bad793d6/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.058219Z",
+      "productTime": "2026-07-27T09:00:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T090000Z-77b47dbc4381795e26cae46734688c4229cfd32e19e269654815f7b7bad793d6.png",
+      "retrievedAt": "2026-07-27T12:07:42.058219Z",
+      "sourceHash": "sha256:77b47dbc4381795e26cae46734688c4229cfd32e19e269654815f7b7bad793d6",
+      "status": "available",
+      "time": "2026-07-27T09:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T091000Z_38562a18d1b8",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/38562a18d1b84cb58d6ee1b12251c9296e7b07215815e5544544b52ba8010c9d/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.088292Z",
+      "productTime": "2026-07-27T09:10:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T091000Z-38562a18d1b84cb58d6ee1b12251c9296e7b07215815e5544544b52ba8010c9d.png",
+      "retrievedAt": "2026-07-27T12:07:42.088292Z",
+      "sourceHash": "sha256:38562a18d1b84cb58d6ee1b12251c9296e7b07215815e5544544b52ba8010c9d",
+      "status": "available",
+      "time": "2026-07-27T09:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T092000Z_c88791d651e0",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/c88791d651e06558b2ca29b2c59a533b4434e316bd1d1c10e93aedab9182b804/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.119175Z",
+      "productTime": "2026-07-27T09:20:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T092000Z-c88791d651e06558b2ca29b2c59a533b4434e316bd1d1c10e93aedab9182b804.png",
+      "retrievedAt": "2026-07-27T12:07:42.119175Z",
+      "sourceHash": "sha256:c88791d651e06558b2ca29b2c59a533b4434e316bd1d1c10e93aedab9182b804",
+      "status": "available",
+      "time": "2026-07-27T09:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T093000Z_59d5f06c2f2e",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/59d5f06c2f2edf8ef55e4c76a99011cbbc1ba7b7ab7997b609ab95883b6c09d3/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.148810Z",
+      "productTime": "2026-07-27T09:30:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T093000Z-59d5f06c2f2edf8ef55e4c76a99011cbbc1ba7b7ab7997b609ab95883b6c09d3.png",
+      "retrievedAt": "2026-07-27T12:07:42.148810Z",
+      "sourceHash": "sha256:59d5f06c2f2edf8ef55e4c76a99011cbbc1ba7b7ab7997b609ab95883b6c09d3",
+      "status": "available",
+      "time": "2026-07-27T09:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T094000Z_14640c90fdff",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/14640c90fdff42248c2395592b6915dc2cfd4e98c021951faa974a10add58bd3/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.179227Z",
+      "productTime": "2026-07-27T09:40:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T094000Z-14640c90fdff42248c2395592b6915dc2cfd4e98c021951faa974a10add58bd3.png",
+      "retrievedAt": "2026-07-27T12:07:42.179227Z",
+      "sourceHash": "sha256:14640c90fdff42248c2395592b6915dc2cfd4e98c021951faa974a10add58bd3",
+      "status": "available",
+      "time": "2026-07-27T09:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T095000Z_56fc79a96b8a",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/56fc79a96b8a623c94b53bd1d7464556d1d893eb4a1a7df91e96b01393c98b4b/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.210175Z",
+      "productTime": "2026-07-27T09:50:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T095000Z-56fc79a96b8a623c94b53bd1d7464556d1d893eb4a1a7df91e96b01393c98b4b.png",
+      "retrievedAt": "2026-07-27T12:07:42.210175Z",
+      "sourceHash": "sha256:56fc79a96b8a623c94b53bd1d7464556d1d893eb4a1a7df91e96b01393c98b4b",
+      "status": "available",
+      "time": "2026-07-27T09:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T100000Z_313a8a3e8036",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/313a8a3e803698ec4c4da21062493dc786f74df7cfa3c190c5e6282f13c546ee/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.245352Z",
+      "productTime": "2026-07-27T10:00:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T100000Z-313a8a3e803698ec4c4da21062493dc786f74df7cfa3c190c5e6282f13c546ee.png",
+      "retrievedAt": "2026-07-27T12:07:42.245352Z",
+      "sourceHash": "sha256:313a8a3e803698ec4c4da21062493dc786f74df7cfa3c190c5e6282f13c546ee",
+      "status": "available",
+      "time": "2026-07-27T10:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T101000Z_642648f4a445",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/642648f4a44584f161b636f6fa23737e77889ce43b473e4a67de4642faa243a9/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.275048Z",
+      "productTime": "2026-07-27T10:10:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T101000Z-642648f4a44584f161b636f6fa23737e77889ce43b473e4a67de4642faa243a9.png",
+      "retrievedAt": "2026-07-27T12:07:42.275048Z",
+      "sourceHash": "sha256:642648f4a44584f161b636f6fa23737e77889ce43b473e4a67de4642faa243a9",
+      "status": "available",
+      "time": "2026-07-27T10:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T102000Z_a4589d60b889",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/a4589d60b8894bea2b00aa2cf035c7f530bd636b22bca9f7ec5dbb2e14f1f823/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.302594Z",
+      "productTime": "2026-07-27T10:20:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T102000Z-a4589d60b8894bea2b00aa2cf035c7f530bd636b22bca9f7ec5dbb2e14f1f823.png",
+      "retrievedAt": "2026-07-27T12:07:42.302594Z",
+      "sourceHash": "sha256:a4589d60b8894bea2b00aa2cf035c7f530bd636b22bca9f7ec5dbb2e14f1f823",
+      "status": "available",
+      "time": "2026-07-27T10:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T103000Z_826a071b842c",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/826a071b842c8f28fc81e4011b830616e809e607171eaa2236a0c368707085ef/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.331301Z",
+      "productTime": "2026-07-27T10:30:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T103000Z-826a071b842c8f28fc81e4011b830616e809e607171eaa2236a0c368707085ef.png",
+      "retrievedAt": "2026-07-27T12:07:42.331301Z",
+      "sourceHash": "sha256:826a071b842c8f28fc81e4011b830616e809e607171eaa2236a0c368707085ef",
+      "status": "available",
+      "time": "2026-07-27T10:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T104000Z_cba610a1d4b8",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/cba610a1d4b8b47382e82e2314f029af8f41da7550d26f68e3083c21486dbb33/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.359842Z",
+      "productTime": "2026-07-27T10:40:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T104000Z-cba610a1d4b8b47382e82e2314f029af8f41da7550d26f68e3083c21486dbb33.png",
+      "retrievedAt": "2026-07-27T12:07:42.359842Z",
+      "sourceHash": "sha256:cba610a1d4b8b47382e82e2314f029af8f41da7550d26f68e3083c21486dbb33",
+      "status": "available",
+      "time": "2026-07-27T10:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T105000Z_02b86ab0370c",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/02b86ab0370c50e2c73036ffc9251532f4dd4ac41faa001c7eb4eb1c347c8fbc/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.451079Z",
+      "productTime": "2026-07-27T10:50:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T105000Z-02b86ab0370c50e2c73036ffc9251532f4dd4ac41faa001c7eb4eb1c347c8fbc.png",
+      "retrievedAt": "2026-07-27T12:07:42.451079Z",
+      "sourceHash": "sha256:02b86ab0370c50e2c73036ffc9251532f4dd4ac41faa001c7eb4eb1c347c8fbc",
+      "status": "available",
+      "time": "2026-07-27T10:50:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T110000Z_8986114cf4a4",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/8986114cf4a4d5f178235d69dd5b255934f0323dedd764f2c0b7318d10965ea9/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.534418Z",
+      "productTime": "2026-07-27T11:00:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T110000Z-8986114cf4a4d5f178235d69dd5b255934f0323dedd764f2c0b7318d10965ea9.png",
+      "retrievedAt": "2026-07-27T12:07:42.534418Z",
+      "sourceHash": "sha256:8986114cf4a4d5f178235d69dd5b255934f0323dedd764f2c0b7318d10965ea9",
+      "status": "available",
+      "time": "2026-07-27T11:00:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T111000Z_66599c318740",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/66599c318740f756194f0a4fbc37f899625435192ffebf16951323ac9aba4349/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.564611Z",
+      "productTime": "2026-07-27T11:10:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T111000Z-66599c318740f756194f0a4fbc37f899625435192ffebf16951323ac9aba4349.png",
+      "retrievedAt": "2026-07-27T12:07:42.564611Z",
+      "sourceHash": "sha256:66599c318740f756194f0a4fbc37f899625435192ffebf16951323ac9aba4349",
+      "status": "available",
+      "time": "2026-07-27T11:10:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T112000Z_8e2d3165ddcd",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/8e2d3165ddcdfc89dc1c8115bf336ac1a5fec0c890bcb5f7fd129fa1e830cb08/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.595004Z",
+      "productTime": "2026-07-27T11:20:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T112000Z-8e2d3165ddcdfc89dc1c8115bf336ac1a5fec0c890bcb5f7fd129fa1e830cb08.png",
+      "retrievedAt": "2026-07-27T12:07:42.595004Z",
+      "sourceHash": "sha256:8e2d3165ddcdfc89dc1c8115bf336ac1a5fec0c890bcb5f7fd129fa1e830cb08",
+      "status": "available",
+      "time": "2026-07-27T11:20:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T113000Z_f569d99a2d53",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/f569d99a2d5391914fcd56f81ad3df343ab913216b69d48b0f74d4f6f0fed2d6/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.620190Z",
+      "productTime": "2026-07-27T11:30:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T113000Z-f569d99a2d5391914fcd56f81ad3df343ab913216b69d48b0f74d4f6f0fed2d6.png",
+      "retrievedAt": "2026-07-27T12:07:42.620190Z",
+      "sourceHash": "sha256:f569d99a2d5391914fcd56f81ad3df343ab913216b69d48b0f74d4f6f0fed2d6",
+      "status": "available",
+      "time": "2026-07-27T11:30:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T114000Z_c6149718a1fa",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/c6149718a1fa780d108fa3c09f6829ea7b1959ac979567d3cbe4a0c32f405b91/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:42.646310Z",
+      "productTime": "2026-07-27T11:40:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T114000Z-c6149718a1fa780d108fa3c09f6829ea7b1959ac979567d3cbe4a0c32f405b91.png",
+      "retrievedAt": "2026-07-27T12:07:42.646310Z",
+      "sourceHash": "sha256:c6149718a1fa780d108fa3c09f6829ea7b1959ac979567d3cbe4a0c32f405b91",
+      "status": "available",
+      "time": "2026-07-27T11:40:00Z",
+      "timeSource": "productTime"
+    },
+    {
+      "id": "national_20260727T115000Z_4b6f66678a5c",
+      "imageCoordinates": [
+        [
+          -16.079999999999995,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          51.29999999999996
+        ],
+        [
+          12.139999999999997,
+          27.219999999999978
+        ],
+        [
+          -16.079999999999995,
+          27.219999999999978
+        ]
+      ],
+      "imageUrl": "/radar/national/frames/4b6f66678a5c07df23907b09dd182e52f8a88ab9c4c720248fbd3f69e6a15f6e/overlay.png",
+      "lastRetrievedAt": "2026-07-27T12:07:41.723762Z",
+      "productTime": "2026-07-27T11:50:00Z",
+      "rawUrl": "/raw/national/2026/07/27/20260727T115000Z-4b6f66678a5c07df23907b09dd182e52f8a88ab9c4c720248fbd3f69e6a15f6e.png",
+      "retrievedAt": "2026-07-27T12:07:41.723762Z",
+      "sourceHash": "sha256:4b6f66678a5c07df23907b09dd182e52f8a88ab9c4c720248fbd3f69e6a15f6e",
+      "status": "available",
+      "time": "2026-07-27T11:50:00Z",
+      "timeSource": "productTime"
+    }
+  ],
+  "gaps": [],
+  "generatedAt": "2026-07-27T12:08:00.359675Z",
+  "latestFrameTime": "2026-07-27T11:50:00Z",
+  "latestProductTime": "2026-07-27T11:50:00Z",
+  "radar": {
+    "cadenceMinutes": 10,
+    "id": "national",
+    "kind": "national",
+    "label": "Composición nacional"
+  },
+  "schemaVersion": 1,
+  "statistics": {
+    "archivedFrames": 24,
+    "discardedDuplicates": 0,
+    "invalidReports": 0,
+    "publishedFrames": 24
+  },
+  "timeBasis": "productTime",
+  "window": {
+    "anchor": "latest-available-frame",
+    "end": "2026-07-27T11:50:00Z",
+    "hours": 3.8333333333333335,
+    "minutes": 230,
+    "start": "2026-07-27T08:00:00Z"
+  }
+}

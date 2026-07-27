@@ -1,4 +1,4 @@
-"""Productos publicados por AEMET OpenData."""
+"""Productos radar nacionales y regionales publicados por AEMET."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ NATIONAL = RadarProduct(
     label="Composición nacional",
     kind=ProductKind.NATIONAL,
     endpoint="/api/red/radar/nacional",
-    cadence_minutes=30,
+    cadence_minutes=10,
 )
 
 # Catálogo publicado en AEMET_OpenData_specification.json. La disponibilidad
@@ -77,6 +77,7 @@ PROVISIONAL_REGIONAL_PRODUCTS: tuple[RadarProduct, ...] = tuple(
 )
 
 REGIONAL_PRODUCTS: tuple[RadarProduct, ...] = PROVISIONAL_REGIONAL_PRODUCTS
+ALL_PRODUCTS: tuple[RadarProduct, ...] = (NATIONAL, *REGIONAL_PRODUCTS)
 PRODUCTS: dict[str, RadarProduct] = {
     **{product.id: product for product in REGIONAL_PRODUCTS},
     NATIONAL.id: NATIONAL,

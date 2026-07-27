@@ -5,10 +5,11 @@ repositorio sigue el desarrollo incremental definido en
 [`docs/ROADMAP.md`](docs/ROADMAP.md); la fuente principal de verdad es
 [`docs/SPEC.md`](docs/SPEC.md).
 
-La Fase 6 generaliza el pipeline a los 15 radares regionales del contrato
-OpenAPI de AEMET. El selector ajusta automáticamente mapa, cobertura, estado y
-timeline. Los radares temporalmente sin datos permanecen visibles y se siguen
-consultando, sin mezclar ni reutilizar imágenes de otro producto.
+La Fase 7 añade la composición nacional de Península y Baleares como producto
+independiente a los 15 radares regionales. El selector ajusta automáticamente
+mapa, cobertura, estado y timeline. Los productos temporalmente sin datos
+permanecen visibles y se siguen consultando, sin mezclar ni reutilizar imágenes
+de otra fuente.
 
 ## Requisitos
 
@@ -50,7 +51,7 @@ la CLI no sobrescribe una variable ya exportada.
 
 ```bash
 make dev-web       # servidor Vite local
-make fetch-once    # una consulta de los 15 radares regionales; carga .env
+make fetch-once    # composición nacional y 15 radares; carga .env
 make check-inventory # comprueba códigos sin descargar sus GIF
 make poll-once     # ciclo completo: ingesta, retención y publicación
 make run-worker    # scheduler continuo
@@ -58,6 +59,7 @@ make rebuild-manifests # reconstruye la publicación solo desde disco
 make serve-files   # inspección local en http://127.0.0.1:8000
 make analyze-reflectivity SAMPLE=ruta/original.gif # depuración completa de Murcia
 make validate-radar PRODUCT=regional-am SAMPLE=ruta/original.gif
+make validate-national SAMPLE=ruta/original.png
 make georeference-murcia OVERLAY=ruta/overlay.png # salida Web Mercator
 make check         # lint, formato, tipado, tests y build
 make format        # aplica los formateadores
@@ -102,6 +104,12 @@ scripts/           utilidades reproducibles futuras
 La fuente regional primaria es la cronología PPI pública del visor oficial de
 AEMET: entrega 24 PNG con hora de producto y límites geográficos. OpenData
 permanece como fallback y requiere `AEMET_API_KEY`.
+
+La composición nacional usa la cronología pública `compo/PB` del mismo visor:
+24 PNG indexados en EPSG:3857, cada 10 minutos, para Península y Baleares.
+Canarias se representa mediante el radar regional de Las Palmas. La máscara
+nacional se calcula por fotograma conservando solo los once RGB exactos de
+reflectividad, ya que la huella de cobertura puede cambiar.
 
 Los originales se guardan en
 `data/raw/<producto>/<AAAA>/<MM>/<DD>/`: los PPI usan una clave de observación y
@@ -153,13 +161,14 @@ equidistante de 1 km a EPSG:3857, recorta el alcance nominal de 240 km y genera
 próximo no crea colores intermedios. El ciclo y `rebuild-manifests` encadenan
 automáticamente ambos procesadores para cada hash nuevo regional.
 
-La muestra real versionada del frontend publica 15 manifiestos bajo
-`apps/web/public/radar/`: trece reproducen PPI, Las Palmas conserva un GIF de
-fallback y Valencia permanece sin datos. Los radares PPI disponibles incluyen
-su animación completa de 24 observaciones; Málaga refleja honestamente los
-huecos de AEMET. Puede verse con `make dev-web`. La
+La muestra real versionada del frontend publica 16 manifiestos bajo
+`apps/web/public/radar/`: la composición nacional y trece radares reproducen
+PNG del visor, Las Palmas conserva un GIF de fallback y Valencia permanece sin
+datos. Los productos disponibles incluyen hasta 24 observaciones; Málaga
+refleja honestamente los huecos de AEMET. Puede verse con `make dev-web`. La
 calibración se documenta en [`docs/PHASE_4.md`](docs/PHASE_4.md) y la
-reproducción en [`docs/PHASE_5.md`](docs/PHASE_5.md).
+reproducción en [`docs/PHASE_5.md`](docs/PHASE_5.md). El contrato nacional,
+su máscara y su cobertura están en [`docs/PHASE_7.md`](docs/PHASE_7.md).
 
 ## Estrategia Git
 

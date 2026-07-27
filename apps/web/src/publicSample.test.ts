@@ -11,7 +11,10 @@ import {
 } from './radarManifest';
 
 const manifestModules = import.meta.glob(
-  '../public/radar/regional-*/manifest.json',
+  [
+    '../public/radar/national/manifest.json',
+    '../public/radar/regional-*/manifest.json',
+  ],
   {
     eager: true,
     import: 'default',
@@ -21,6 +24,7 @@ const frameImages = import.meta.glob(
   [
     '../public/radar/regional-*/frames/*/overlay-3857.png',
     '../public/radar/regional-*/frames/*/overlay.png',
+    '../public/radar/national/frames/*/overlay.png',
   ],
   {
     eager: true,
@@ -32,7 +36,7 @@ const imageUrls = new Set(
   Object.keys(frameImages).map((path) => path.replace('../public', '')),
 );
 
-describe('muestra pública de la fase 6', () => {
+describe('muestra pública de la fase 7', () => {
   it('publica el catálogo completo y conserva los radares sin datos', () => {
     const indexPayload: unknown = publicIndex;
     const healthPayload: unknown = publicHealth;
@@ -42,24 +46,24 @@ describe('muestra pública de la fase 6', () => {
     if (!isRadarIndex(indexPayload) || !isRadarHealth(healthPayload)) {
       return;
     }
-    expect(indexPayload.radars).toHaveLength(15);
+    expect(indexPayload.radars).toHaveLength(16);
     expect(indexPayload.radars.filter((radar) => radar.available)).toHaveLength(
-      14,
+      15,
     );
     expect(
       indexPayload.radars
         .filter((radar) => !radar.available)
         .map((radar) => radar.id),
     ).toEqual(['regional-va']);
-    expect(healthPayload.products).toHaveLength(15);
+    expect(healthPayload.products).toHaveLength(16);
   });
 
   it('mantiene separado cada manifiesto y referencia únicamente PNG existentes', () => {
-    expect(Object.keys(manifestModules)).toHaveLength(15);
+    expect(Object.keys(manifestModules)).toHaveLength(16);
     const manifests = Object.values(manifestModules).filter(
       (payload): payload is RadarManifest => isRadarManifest(payload),
     );
-    expect(manifests).toHaveLength(15);
+    expect(manifests).toHaveLength(16);
 
     for (const manifest of manifests) {
       const indexRadar = isRadarIndex(publicIndex)
@@ -81,6 +85,9 @@ describe('muestra pública de la fase 6', () => {
     const byId = new Map(
       manifests.map((manifest) => [manifest.radar.id, manifest]),
     );
+    expect(byId.get('national')?.radar.kind).toBe('national');
+    expect(byId.get('national')?.frames).toHaveLength(24);
+    expect(buildTimelineSlots(byId.get('national')!)).toHaveLength(24);
     expect(byId.get('regional-co')?.frames).toHaveLength(24);
     expect(byId.get('regional-ss')?.frames).toHaveLength(24);
     expect(byId.get('regional-mu')?.frames).toHaveLength(24);

@@ -435,3 +435,38 @@ reflectividad ya separado y límites oficiales. Esto recupera A Coruña y
 Vizcaya, reduce el procesamiento destructivo de cartografía y permite mostrar
 el bucle completo que AEMET publica, manteniendo OpenData como vía de
 continuidad independiente.
+
+---
+
+## ADR-025 — Composición `compo/PB` y máscara nacional por fotograma
+
+**Estado:** aceptada para `national-v1`.
+
+La composición nacional usa como fuente primaria la cronología
+`/es/api-eltiempo/radar/timeline/compo/PB` del visor oficial. Su cadencia
+verificada es de 10 minutos y se publican las últimas 24 observaciones, un
+intervalo inclusivo de 3 horas y 50 minutos. El nombre
+`radwAAAAMMDDHHMM_3857.png` y `Fecha` deben identificar la misma hora UTC.
+OpenData permanece como fallback de archivo, pero su GIF no es publicable sin
+un derivado nacional validado.
+
+El PNG nacional indexado de `962×1079` y 4 bits se trata como EPSG:3857. Los
+límites de AEMET se reordenan de SE, NE, NW, SW a NW, NE, SE, SW para MapLibre
+y se validan contra la configuración propia de la composición. No se reutiliza
+la proyección azimutal regional.
+
+La máscara es dinámica: para cada fotograma conserva únicamente RGB exactos de
+las once clases de reflectividad. Fondo claro, transparencia y negro de
+ausencia de dato se descartan. No se usa una silueta fija porque la cobertura
+visible cambia con los radares que contribuyen a la composición.
+
+El alcance oficial observado es `Penbal`, Península y Baleares. Canarias no
+forma parte de esta lámina; el visor cambia al PPI regional de Las Palmas, que
+la aplicación conserva como producto seleccionable y describe de forma
+explícita.
+
+**Motivo:** la composición ya aporta una rejilla Web Mercator, límites, hora y
+paleta verificables. Mantener un procesador independiente evita deformaciones
+regionales, una máscara por color no confunde cambios de cobertura con datos
+meteorológicos y el alcance explícito evita sugerir una composición canaria
+que AEMET no publica en este contrato.

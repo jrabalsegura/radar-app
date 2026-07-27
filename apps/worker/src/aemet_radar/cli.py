@@ -22,7 +22,24 @@ from aemet_radar.history import scan_product_history
 from aemet_radar.hybrid_service import HybridIngestionService
 from aemet_radar.manifests import ManifestPublisher, select_history_frames
 from aemet_radar.mask_calibration import discover_mask_samples
+from aemet_radar.national_client import AemetNationalClient
+from aemet_radar.national_processing import (
+    DEFAULT_GEOREFERENCING_CONFIG as DEFAULT_NATIONAL_GEOREFERENCING_CONFIG,
+)
+from aemet_radar.national_processing import (
+    DEFAULT_MASK_CONFIG as DEFAULT_NATIONAL_MASK_CONFIG,
+)
+from aemet_radar.national_processing import (
+    DEFAULT_PALETTE_CONFIG as DEFAULT_NATIONAL_PALETTE_CONFIG,
+)
+from aemet_radar.national_service import (
+    NationalIngestionService,
+    RadarIngestionService,
+)
+from aemet_radar.national_timeline_processing import NationalTimelineProcessor
 from aemet_radar.products import (
+    ALL_PRODUCTS,
+    NATIONAL,
     PRODUCTS,
     REGIONAL_PRODUCTS,
     RadarProduct,
@@ -38,7 +55,10 @@ from aemet_radar.runner import HistoryWorker, run_periodically
 from aemet_radar.service import IngestionService
 from aemet_radar.settings import OperationalSettings, Settings
 from aemet_radar.storage import ArchiveStore
-from aemet_radar.timeline_processing import RegionalTimelineProcessor
+from aemet_radar.timeline_processing import (
+    RadarTimelineProcessor,
+    RegionalTimelineProcessor,
+)
 from aemet_radar.viewer_client import AemetViewerClient
 
 DEFAULT_REFLECTIVITY_CONFIG = Path("config/palettes/regional-mu-v1.json")
@@ -69,12 +89,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--product-delay",
         type=_non_negative_float,
         default=None,
-        help="Pausa entre productos regionales; por defecto usa el entorno.",
+        help="Pausa entre productos; por defecto usa el entorno.",
     )
 
     inventory = subcommands.add_parser(
         "check-inventory",
-        help="Comprueba una vez los endpoints regionales sin descargar los GIF.",
+        help="Comprueba una vez los endpoints OpenData sin descargar imágenes.",
     )
     _add_common_network_arguments(inventory)
     inventory.add_argument(
@@ -136,7 +156,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--product-delay",
         type=_non_negative_float,
         default=None,
-        help="Pausa entre productos regionales; por defecto usa el entorno.",
+        help="Pausa entre productos; por defecto usa el entorno.",
     )
 
     rebuild = subcommands.add_parser(
@@ -354,6 +374,40 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("data/debug/phase-6/validation"),
         help="Directorio para informes y previsualizaciones.",
     )
+
+    validate_national = subcommands.add_parser(
+        "validate-national",
+        help="Genera máscara y overlay de una composición nacional PNG.",
+    )
+    validate_national.add_argument(
+        "input",
+        type=Path,
+        help="PNG nacional original del visor oficial.",
+    )
+    validate_national.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("data/debug/phase-7/national"),
+        help="Directorio para máscara, overlay e informe.",
+    )
+    validate_national.add_argument(
+        "--palette-config",
+        type=Path,
+        default=DEFAULT_NATIONAL_PALETTE_CONFIG,
+        help="Paleta nacional versionada.",
+    )
+    validate_national.add_argument(
+        "--mask-config",
+        type=Path,
+        default=DEFAULT_NATIONAL_MASK_CONFIG,
+        help="Contrato de máscara nacional.",
+    )
+    validate_national.add_argument(
+        "--georeferencing-config",
+        type=Path,
+        default=DEFAULT_NATIONAL_GEOREFERENCING_CONFIG,
+        help="Georreferenciación nacional versionada.",
+    )
     return parser
 
 
@@ -387,6 +441,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _run_radar_masks_build(arguments)
         if arguments.command == "validate-radar":
             return _run_radar_validation(arguments)
+        if arguments.command == "validate-national":
+            return _run_national_validation(arguments)
     except AemetRadarError as exc:
         _print_json({"status": "error", "error": _safe_error(exc)}, stream=sys.stderr)
         return 2
@@ -428,12 +484,24 @@ def _run_fetch_once(arguments: argparse.Namespace, settings: Settings) -> int:
             timeout_seconds=float(arguments.timeout),
             max_image_bytes=int(arguments.max_bytes),
         ) as viewer,
+        AemetNationalClient(
+            timeout_seconds=float(arguments.timeout),
+            max_image_bytes=int(arguments.max_bytes),
+        ) as national_viewer,
     ):
-        service = HybridIngestionService(
-            viewer,
-            IngestionService(client, store),
-            store,
-            catalog=catalog,
+        fallback = IngestionService(client, store)
+        service = RadarIngestionService(
+            HybridIngestionService(
+                viewer,
+                fallback,
+                store,
+                catalog=catalog,
+            ),
+            NationalIngestionService(
+                national_viewer,
+                fallback,
+                store,
+            ),
         )
         service.begin_cycle()
         for product_index, product in enumerate(selected):
@@ -482,7 +550,10 @@ def _run_fetch_once(arguments: argparse.Namespace, settings: Settings) -> int:
 
 def _run_inventory_check(arguments: argparse.Namespace, settings: Settings) -> int:
     data_dir = _as_path(arguments.data_dir).resolve()
-    products = load_radar_catalog(_as_path(arguments.radar_config)).products
+    products = (
+        NATIONAL,
+        *load_radar_catalog(_as_path(arguments.radar_config)).products,
+    )
     results: list[dict[str, object]] = []
     error_count = 0
     delay = float(arguments.delay)
@@ -548,13 +619,25 @@ def _run_history(arguments: argparse.Namespace, settings: Settings) -> int:
             timeout_seconds=float(arguments.timeout),
             max_image_bytes=int(arguments.max_bytes),
         ) as viewer,
+        AemetNationalClient(
+            timeout_seconds=float(arguments.timeout),
+            max_image_bytes=int(arguments.max_bytes),
+        ) as national_viewer,
     ):
+        fallback = IngestionService(client, store)
         worker = HistoryWorker(
-            HybridIngestionService(
-                viewer,
-                IngestionService(client, store),
-                store,
-                catalog=catalog,
+            RadarIngestionService(
+                HybridIngestionService(
+                    viewer,
+                    fallback,
+                    store,
+                    catalog=catalog,
+                ),
+                NationalIngestionService(
+                    national_viewer,
+                    fallback,
+                    store,
+                ),
             ),
             data_dir=data_dir,
             products=selected,
@@ -886,11 +969,44 @@ def _run_radar_validation(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def _run_national_validation(arguments: argparse.Namespace) -> int:
+    output_dir = _as_path(arguments.output_dir).resolve()
+    processor = NationalTimelineProcessor(
+        output_dir,
+        palette_path=_as_path(arguments.palette_config),
+        mask_path=_as_path(arguments.mask_config),
+        georeferencing_path=_as_path(arguments.georeferencing_config),
+    )
+    report = processor.validate_sample(
+        _as_path(arguments.input).resolve(),
+        output_dir=output_dir,
+    )
+    mask = report.get("mask")
+    output = report.get("output")
+    _print_json(
+        {
+            "status": "ok",
+            "productId": NATIONAL.id,
+            "processor": report["processor"],
+            "report": (output_dir / "national-processing.json").as_posix(),
+            "mask": (
+                (output_dir / str(mask.get("file"))).as_posix() if isinstance(mask, dict) else None
+            ),
+            "overlay": (
+                (output_dir / str(output.get("file"))).as_posix()
+                if isinstance(output, dict)
+                else None
+            ),
+        }
+    )
+    return 0
+
+
 def _timeline_processor(
     data_dir: Path,
     catalog_path: Path,
-) -> RegionalTimelineProcessor:
-    return RegionalTimelineProcessor(
+) -> RadarTimelineProcessor:
+    return RadarTimelineProcessor(
         data_dir,
         catalog=load_radar_catalog(catalog_path),
     )
@@ -902,7 +1018,7 @@ def _add_product_argument(parser: argparse.ArgumentParser) -> None:
         action="append",
         choices=tuple(PRODUCTS),
         dest="products",
-        help="Producto; se puede repetir. Por defecto usa los 15 radares regionales.",
+        help="Producto; se puede repetir. Por defecto usa nacional y 15 regionales.",
     )
 
 
@@ -939,7 +1055,7 @@ def _add_common_network_arguments(parser: argparse.ArgumentParser) -> None:
 
 def _selected_products(value: object) -> tuple[RadarProduct, ...]:
     if value is None:
-        return REGIONAL_PRODUCTS
+        return ALL_PRODUCTS
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise TypeError("products debe ser una lista de identificadores")
     return tuple(PRODUCTS[product_id] for product_id in value)
