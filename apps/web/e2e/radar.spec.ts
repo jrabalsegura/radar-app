@@ -41,7 +41,7 @@ test('recorre el radar con controles accesibles y conserva la edad visible', asy
     .poll(async () =>
       Number(await page.locator('.map-stage').getAttribute('data-top-inset')),
     )
-    .toBeGreaterThan(100);
+    .toBe(0);
   await expect
     .poll(async () =>
       Number(
@@ -52,6 +52,7 @@ test('recorre el radar con controles accesibles y conserva la edad visible', asy
   await expect
     .poll(async () => (await mapContainer.boundingBox())?.height ?? 0)
     .toBeGreaterThan(300);
+  await expect(page.locator('.frame-card')).toHaveCount(0);
   await expect.poll(() => vectorTileResponses.length).toBeGreaterThan(0);
   expect(vectorTileResponses.every((response) => response.status < 400)).toBe(
     true,
@@ -76,9 +77,16 @@ test('recorre el radar con controles accesibles y conserva la edad visible', asy
     page.getByRole('heading', { name: 'Composición nacional' }),
   ).toBeVisible();
 
+  const mapOptions = page.getByRole('button', {
+    name: 'Abrir opciones del mapa',
+  });
+  await mapOptions.click();
   const opacity = page.getByLabel('Opacidad del radar');
   await opacity.fill('0.45');
-  await expect(page.locator('.map-tools output')).toHaveText('45%');
+  await expect(page.locator('.map-options__panel output')).toHaveText('45%');
+  await page.keyboard.press('Escape');
+  await expect(mapOptions).toBeFocused();
+  await expect(page.getByLabel('Opacidad del radar')).toHaveCount(0);
 
   const play = page.getByRole('button', { name: 'Reproducir historial' });
   await play.focus();
@@ -116,8 +124,9 @@ test('la copia local mantiene la interfaz utilizable sin conexión', async ({
   await expect(page.locator('.data-freshness')).toContainText(
     /Último dato .* · hace /,
   );
+  await page.getByRole('button', { name: 'Abrir opciones del mapa' }).click();
   await page.getByLabel('Opacidad del radar').fill('0.55');
-  await expect(page.locator('.map-tools output')).toHaveText('55%');
+  await expect(page.locator('.map-options__panel output')).toHaveText('55%');
 });
 
 test('respeta movimiento reducido', async ({ page }) => {
@@ -145,6 +154,7 @@ test('amplía el reproductor con la Fullscreen API', async ({
     page.getByRole('heading', { name: 'Radar Murcia' }),
   ).toBeVisible();
 
+  await page.getByRole('button', { name: 'Abrir opciones del mapa' }).click();
   await page.getByRole('button', { name: 'Pantalla completa' }).click();
   await expect
     .poll(() =>
@@ -155,6 +165,7 @@ test('amplía el reproductor con la Fullscreen API', async ({
     )
     .toBe(true);
 
+  await page.getByRole('button', { name: 'Abrir opciones del mapa' }).click();
   await page
     .getByRole('button', { name: 'Salir de pantalla completa' })
     .click();

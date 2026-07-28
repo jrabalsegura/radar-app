@@ -28,9 +28,7 @@ import {
 import { closestRegionalRadar, type LongitudeLatitude } from './radarLocation';
 import {
   buildTimelineSlots,
-  formatMadridDate,
   formatMadridTime,
-  formatMadridTimeZoneName,
   HISTORY_LABEL,
   isRadarManifest,
   type RadarManifest,
@@ -88,13 +86,15 @@ export function App() {
   const [userCoordinates, setUserCoordinates] =
     useState<LongitudeLatitude | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [mapMenuOpen, setMapMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const selectedButtonRef = useRef<HTMLButtonElement | null>(null);
   const timelineSliderRef = useRef<HTMLInputElement | null>(null);
   const focusedTimelineRadarRef = useRef<string | null>(null);
   const mapLayoutRef = useRef<HTMLElement | null>(null);
-  const mapTopOverlayRef = useRef<HTMLDivElement | null>(null);
+  const mapMenuRef = useRef<HTMLDivElement | null>(null);
+  const mapMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const timelinePanelRef = useRef<HTMLElement | null>(null);
   const manifestRef = useRef<RadarManifest | null>(null);
   const selectedIndexRef = useRef(0);
@@ -242,29 +242,17 @@ export function App() {
 
   useEffect(() => {
     const layout = mapLayoutRef.current;
-    const topOverlay = mapTopOverlayRef.current;
     const panel = timelinePanelRef.current;
     if (!layout) {
       return;
     }
     const layoutElement = layout;
-    const topOverlayElement = topOverlay;
     const panelElement = panel;
 
     function measureOverlays() {
       const layoutRect = layoutElement.getBoundingClientRect();
-      const topOffset = topOverlayElement
-        ? Number.parseFloat(window.getComputedStyle(topOverlayElement).top)
-        : 0;
       const bottomOffset = panelElement
         ? Number.parseFloat(window.getComputedStyle(panelElement).bottom)
-        : 0;
-      const top = topOverlayElement
-        ? Math.ceil(
-            topOverlayElement.getBoundingClientRect().bottom -
-              layoutRect.top +
-              (Number.isFinite(topOffset) ? topOffset : 0),
-          )
         : 0;
       const bottom = panelElement
         ? Math.ceil(
@@ -274,9 +262,9 @@ export function App() {
           )
         : 0;
       setMapInsets((current) =>
-        current.top === top && current.bottom === bottom
+        current.top === 0 && current.bottom === bottom
           ? current
-          : { top, bottom },
+          : { top: 0, bottom },
       );
     }
 
@@ -286,9 +274,6 @@ export function App() {
         ? null
         : new ResizeObserver(measureOverlays);
     observer?.observe(layoutElement);
-    if (topOverlayElement) {
-      observer?.observe(topOverlayElement);
-    }
     if (panelElement) {
       observer?.observe(panelElement);
     }
@@ -298,6 +283,34 @@ export function App() {
       window.removeEventListener('resize', measureOverlays);
     };
   }, [fullscreen, manifest, manifestError, selectedRadarId]);
+
+  useEffect(() => {
+    if (!mapMenuOpen) {
+      return;
+    }
+
+    function closeOnOutsidePointer(event: PointerEvent) {
+      const target = event.target;
+      if (target instanceof Node && !mapMenuRef.current?.contains(target)) {
+        setMapMenuOpen(false);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      setMapMenuOpen(false);
+      mapMenuButtonRef.current?.focus();
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [mapMenuOpen]);
 
   useEffect(() => {
     function updateConnection() {
@@ -435,6 +448,7 @@ export function App() {
     setPlaying(false);
     setLocationStatus('idle');
     setLocationMessage('');
+    setMapMenuOpen(false);
     setSelectedIndex(0);
     setSelectedRadarId(radarId);
   }, []);
@@ -483,6 +497,7 @@ export function App() {
     if (!target || !document.fullscreenEnabled) {
       return;
     }
+    setMapMenuOpen(false);
     if (document.fullscreenElement === target) {
       await document.exitFullscreen();
     } else {
@@ -528,8 +543,6 @@ export function App() {
     );
   }
 
-  const selectedFrame =
-    selectedSlot?.kind === 'frame' ? selectedSlot.frame : null;
   const mapFrame = selectedSlot ? mostRecentFrame(slots, selectedIndex) : null;
   const baseStatus = selectedHealth?.status ?? radarAvailability(selectedRadar);
   const status: RadarHealthStatus = manifestError
@@ -676,22 +689,12 @@ export function App() {
           </p>
         )}
 
-        {selectedSlot && manifest ? (
-          <FrameCard
-            manifest={manifest}
-            selectedSlot={selectedSlot}
-            selectedFrame={selectedFrame}
-            mapFrame={mapFrame}
-            now={now}
-            cardRef={mapTopOverlayRef}
-          />
-        ) : (
+        {!selectedSlot || !manifest ? (
           <div
-            ref={mapTopOverlayRef}
             className={`no-data-card${manifestError ? ' no-data-card--error' : ''}`}
             role={manifestError ? 'alert' : 'status'}
           >
-            <p className="frame-card__label">
+            <p className="no-data-card__label">
               {selectedRadar.kind === 'national'
                 ? selectedRadar.regionCode
                 : selectedRadar.siteCode}
@@ -720,50 +723,85 @@ export function App() {
               </button>
             )}
           </div>
-        )}
+        ) : null}
 
-        <div className="map-tools" aria-label="Ajustes del mapa">
-          <label>
-            <span>Opacidad</span>
-            <input
-              aria-label="Opacidad del radar"
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={opacity}
-              disabled={!mapFrame}
-              onChange={(event) =>
-                setOpacity(Number(event.currentTarget.value))
-              }
-            />
-            <output>{Math.round(opacity * 100)}%</output>
-          </label>
+        <div ref={mapMenuRef} className="map-options">
           <button
-            className="coverage-button"
-            type="button"
-            aria-pressed={showDebug}
-            onClick={() => setShowDebug((visible) => !visible)}
-          >
-            {showDebug ? 'Ocultar cobertura' : 'Ver cobertura'}
-          </button>
-          <button
-            className="fullscreen-button"
+            ref={mapMenuButtonRef}
+            className="map-options__trigger"
             type="button"
             aria-label={
-              fullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'
+              mapMenuOpen
+                ? 'Cerrar opciones del mapa'
+                : 'Abrir opciones del mapa'
             }
-            aria-pressed={fullscreen}
-            disabled={!document.fullscreenEnabled}
-            title={
-              document.fullscreenEnabled
-                ? undefined
-                : 'Pantalla completa no disponible en este navegador'
-            }
-            onClick={() => void toggleFullscreen()}
+            aria-expanded={mapMenuOpen}
+            aria-controls="map-options-panel"
+            onClick={() => setMapMenuOpen((open) => !open)}
           >
-            {fullscreen ? 'Salir' : 'Ampliar'}
+            <span className="map-options__icon" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
           </button>
+          {mapMenuOpen && (
+            <div
+              id="map-options-panel"
+              className="map-options__panel"
+              role="group"
+              aria-label="Controles del mapa"
+            >
+              <p className="map-options__title">Opciones del mapa</p>
+              <label className="map-options__opacity">
+                <span>Opacidad del radar</span>
+                <span className="map-options__range">
+                  <input
+                    aria-label="Opacidad del radar"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={opacity}
+                    disabled={!mapFrame}
+                    onChange={(event) =>
+                      setOpacity(Number(event.currentTarget.value))
+                    }
+                  />
+                  <output>{Math.round(opacity * 100)}%</output>
+                </span>
+              </label>
+              <div className="map-options__actions">
+                <button
+                  className="coverage-button"
+                  type="button"
+                  aria-pressed={showDebug}
+                  onClick={() => setShowDebug((visible) => !visible)}
+                >
+                  {showDebug ? 'Ocultar cobertura' : 'Ver cobertura'}
+                </button>
+                <button
+                  className="fullscreen-button"
+                  type="button"
+                  aria-label={
+                    fullscreen
+                      ? 'Salir de pantalla completa'
+                      : 'Pantalla completa'
+                  }
+                  aria-pressed={fullscreen}
+                  disabled={!document.fullscreenEnabled}
+                  title={
+                    document.fullscreenEnabled
+                      ? undefined
+                      : 'Pantalla completa no disponible en este navegador'
+                  }
+                  onClick={() => void toggleFullscreen()}
+                >
+                  {fullscreen ? 'Salir' : 'Ampliar'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {selectedSlot && manifest && (
@@ -785,72 +823,6 @@ export function App() {
         )}
       </section>
     </main>
-  );
-}
-
-interface FrameCardProps {
-  manifest: RadarManifest;
-  selectedSlot: TimelineSlot;
-  selectedFrame: RadarTimelineFrame | null;
-  mapFrame: RadarTimelineFrame | null;
-  now: number;
-  cardRef: RefObject<HTMLDivElement | null>;
-}
-
-function FrameCard({
-  manifest,
-  selectedSlot,
-  selectedFrame,
-  mapFrame,
-  now,
-  cardRef,
-}: FrameCardProps) {
-  const isLatest =
-    selectedSlot.kind === 'frame' &&
-    selectedSlot.time === manifest.latestFrameTime;
-  return (
-    <div
-      ref={cardRef}
-      className={`frame-card${selectedSlot.kind === 'gap' ? ' frame-card--gap' : ''}`}
-    >
-      <p className="frame-card__label">
-        {selectedFrame
-          ? selectedFrame.timeSource === 'productTime'
-            ? 'Hora del producto'
-            : 'Hora de obtención'
-          : 'Hueco temporal'}
-      </p>
-      <div className="frame-card__time">
-        <time dateTime={selectedSlot.time}>
-          {formatMadridTime(selectedSlot.time)}
-        </time>
-        {isLatest && <span>Más reciente</span>}
-      </div>
-      <p>
-        {formatMadridDate(selectedSlot.time)} · hora de Madrid (
-        {formatMadridTimeZoneName(selectedSlot.time)})
-        {selectedFrame?.timeSource === 'retrievedAt'
-          ? ' · producto sin hora verificable'
-          : ''}
-      </p>
-      <p className="frame-card__age">
-        Antigüedad: {formatDataAge(selectedSlot.time, now)}
-      </p>
-      {!selectedFrame && (
-        <>
-          <strong>No existe una observación para este intervalo.</strong>
-          {mapFrame && (
-            <p className="frame-card__continuity">
-              Se mantiene la última reflectividad disponible, de las{' '}
-              <time dateTime={mapFrame.time}>
-                {formatMadridTime(mapFrame.time)}
-              </time>
-              .
-            </p>
-          )}
-        </>
-      )}
-    </div>
   );
 }
 

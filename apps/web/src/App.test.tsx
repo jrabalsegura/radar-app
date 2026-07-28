@@ -246,9 +246,8 @@ describe('App radar', () => {
     expect(
       await screen.findByText(/Último dato 19:30 · hace/),
     ).toBeInTheDocument();
-    expect(
-      await screen.findByText(/hora de Madrid \(CEST\)/),
-    ).toBeInTheDocument();
+    expect(screen.queryByText('Hora del producto')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hora de obtención')).not.toBeInTheDocument();
     expect(screen.getByTestId('radar-map')).toHaveAttribute(
       'data-radar',
       'regional-mu',
@@ -286,8 +285,52 @@ describe('App radar', () => {
       'mu-two',
     );
     expect(
-      screen.getByText(/Se mantiene la última reflectividad disponible/),
-    ).toHaveTextContent('19:10');
+      screen.getByRole('button', {
+        name: 'Sin observación a las 19:20',
+      }),
+    ).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('agrupa los ajustes en un menú contextual accesible', async () => {
+    mockRadarFetches();
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Radar Murcia' });
+
+    expect(
+      screen.queryByRole('group', { name: 'Controles del mapa' }),
+    ).not.toBeInTheDocument();
+    const trigger = screen.getByRole('button', {
+      name: 'Abrir opciones del mapa',
+    });
+    fireEvent.click(trigger);
+
+    expect(
+      screen.getByRole('group', { name: 'Controles del mapa' }),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Opacidad del radar'), {
+      target: { value: '0.45' },
+    });
+    expect(screen.getByTestId('radar-map')).toHaveAttribute(
+      'data-opacity',
+      '0.45',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Ver cobertura' }));
+    expect(screen.getByTestId('radar-map')).toHaveAttribute(
+      'data-debug',
+      'true',
+    );
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(
+      screen.queryByRole('group', { name: 'Controles del mapa' }),
+    ).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+
+    fireEvent.click(trigger);
+    fireEvent.pointerDown(document.body);
+    expect(
+      screen.queryByRole('group', { name: 'Controles del mapa' }),
+    ).not.toBeInTheDocument();
   });
 
   it('cambia de producto sin mezclar fotogramas', async () => {
@@ -472,6 +515,9 @@ describe('App radar', () => {
     expect(screen.getByTestId('radar-map')).toHaveAttribute(
       'data-frame',
       'mu-three',
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Abrir opciones del mapa' }),
     );
     const opacitySlider = screen.getByLabelText('Opacidad del radar');
     opacitySlider.focus();
