@@ -351,6 +351,10 @@
       "label": "Almería",
       "latestFrameTime": "2026-07-27T08:10:00Z",
       "manifestUrl": "/radar/regional-am/manifest.json",
+      "mapCenter": [
+        -1.5819,
+        37.4042
+      ],
       "mapZoom": 7.3,
       "rangeKilometres": 240.0,
       "siteCode": "NJR",

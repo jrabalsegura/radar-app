@@ -1,0 +1,11 @@
+[Unit]
+Description=Backup de Radar AEMET
+ConditionPathIsDirectory=/var/lib/aemet-radar/data
+ConditionPathIsDirectory=/var/www/aemet-radar/config
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/aemet-radar-backup
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

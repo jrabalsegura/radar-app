@@ -4,8 +4,11 @@ WEB_DIR := apps/web
 WORKER_DIR := apps/worker
 LIVE_PREVIEW_DIR := tmp/live-preview
 LIVE_PREVIEW_PORT ?= 4173
+RADAR_HTTP_PORT ?= 8080
+RADAR_UID := $(shell id -u)
+RADAR_GID := $(shell id -g)
 
-.PHONY: install web-install worker-install dev-web prepare-live-preview preview-live fetch-once check-inventory poll-once run-worker rebuild-manifests serve-files analyze-reflectivity validate-radar validate-national georeference-murcia build-reflectivity-mask build-radar-masks lint format format-check typecheck test test-e2e build check clean
+.PHONY: install web-install worker-install dev-web prepare-live-preview preview-live fetch-once check-inventory poll-once run-worker rebuild-manifests serve-files analyze-reflectivity validate-radar validate-national georeference-murcia build-reflectivity-mask build-radar-masks container-build container-up container-status container-logs container-check container-down lint format format-check typecheck test test-e2e build check clean
 
 install: web-install worker-install
 
@@ -82,6 +85,26 @@ build-radar-masks:
 		--sample-root data/phase6-samples \
 		--sample-root data/mask-samples \
 		--sample-root data/manual-phase2
+
+container-build:
+	RADAR_UID=$(RADAR_UID) RADAR_GID=$(RADAR_GID) docker compose build
+
+container-up:
+	@test -f .env || (echo "Falta .env; copia .env.example y configura AEMET_API_KEY" && exit 2)
+	RADAR_UID=$(RADAR_UID) RADAR_GID=$(RADAR_GID) RADAR_HTTP_PORT=$(RADAR_HTTP_PORT) docker compose up --build --detach
+
+container-status:
+	RADAR_UID=$(RADAR_UID) RADAR_GID=$(RADAR_GID) RADAR_HTTP_PORT=$(RADAR_HTTP_PORT) docker compose ps
+
+container-logs:
+	RADAR_UID=$(RADAR_UID) RADAR_GID=$(RADAR_GID) RADAR_HTTP_PORT=$(RADAR_HTTP_PORT) docker compose logs --follow worker web
+
+container-check:
+	./deploy/scripts/smoke-test.sh "http://127.0.0.1:$(RADAR_HTTP_PORT)"
+	RADAR_UID=$(RADAR_UID) RADAR_GID=$(RADAR_GID) docker compose exec -T web sh -c 'test -z "$${AEMET_API_KEY+x}"'
+
+container-down:
+	RADAR_UID=$(RADAR_UID) RADAR_GID=$(RADAR_GID) RADAR_HTTP_PORT=$(RADAR_HTTP_PORT) docker compose down
 
 lint:
 	npm --prefix $(WEB_DIR) run lint

@@ -48,8 +48,8 @@ se sustituye por cartografía de otra fuente.
   pantallas pequeñas y pantalla completa.
   `mapCenterLongitude` y `mapCenterLatitude` permiten ajustar declarativamente
   radares cuyo emplazamiento físico no coincide con el centro visual útil;
-  Madrid se centra en la capital, Málaga en Granada capital y Murcia entre
-  Fortuna y Águilas.
+  Almería se centra en Águilas, Madrid en la capital, Málaga en Granada capital
+  y Murcia entre Fortuna y Águilas.
 - `Cerca de mí` usa `navigator.geolocation`, calcula la distancia de gran
   círculo en el navegador y selecciona el radar regional más cercano. Las
   coordenadas no se envían ni se guardan.

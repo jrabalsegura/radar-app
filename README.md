@@ -5,13 +5,18 @@ repositorio sigue el desarrollo incremental definido en
 [`docs/ROADMAP.md`](docs/ROADMAP.md); la fuente principal de verdad es
 [`docs/SPEC.md`](docs/SPEC.md).
 
-La Fase 8 convierte el visor en una PWA responsive e instalable. Conserva el
-último manifiesto válido, sigue siendo utilizable tras perder la conexión,
-muestra siempre la antigüedad del dato y añade pantalla completa,
-geolocalización procesada localmente, preferencias, accesibilidad y límites de
-memoria. La pestaña busca datos nuevos cada diez minutos sin desplazar un
-instante histórico elegido. La composición nacional de Península y Baleares y
-los 15 radares regionales siguen siendo productos independientes.
+La Fase 9 completa el MVP con un despliegue reproducible y operable. El worker
+Python y el frontend estático viven en contenedores separados sin privilegios,
+comparten un volumen persistente con permisos restrictivos y tienen checks de
+salud, logs acotados, backups y rollback. Docker Compose permite una prueba
+prolongada en el Mac; producción usa Podman/Quadlet detrás de nginx y HTTPS en
+`radar.joserabalsegura.com`.
+
+El visor sigue siendo una PWA responsive e instalable: conserva el último
+manifiesto válido, funciona tras perder la conexión, muestra siempre la
+antigüedad del dato y ofrece pantalla completa, geolocalización local,
+preferencias y accesibilidad. La composición nacional de Península y Baleares
+y los 15 radares regionales son productos independientes.
 
 ## Requisitos
 
@@ -67,6 +72,9 @@ make georeference-murcia OVERLAY=ruta/overlay.png # salida Web Mercator
 make check         # lint, formato, tipado, tests y build
 make format        # aplica los formateadores
 make test-e2e      # flujos principales en Chrome de escritorio y móvil
+make container-up  # build y despliegue local en http://127.0.0.1:8080
+make container-check # smoke test y comprobación de aislamiento de la key
+make container-down # detiene contenedores sin borrar data/
 ```
 
 Para usar directamente `pytest`, `ruff` o la CLI en una terminal nueva:
@@ -125,9 +133,9 @@ make run-worker
 make preview-live
 ```
 
-La Fase 9 definirá el servidor, los encabezados HTTP y la automatización del
-despliegue real; este objetivo solo reproduce localmente el contrato estático y
-los datos publicados.
+El contenedor reproduce además el servidor y los encabezados HTTP reales. La
+guía de prueba prolongada, producción y actualizaciones está en
+[`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ## Estructura
 
@@ -136,7 +144,7 @@ apps/web/          frontend React + TypeScript + Vite
 apps/worker/       paquete Python del worker
 config/            configuración futura versionada
 data/              datos locales ignorados por Git
-deploy/            reservado para la Fase 9
+deploy/            Containerfiles, Quadlet, nginx, backups y smoke tests
 docs/              especificación, decisiones y roadmap
 samples/           muestras mínimas y documentadas
 scripts/           utilidades reproducibles futuras
@@ -212,6 +220,10 @@ reproducción en [`docs/PHASE_5.md`](docs/PHASE_5.md). El contrato nacional,
 su máscara y su cobertura están en [`docs/PHASE_7.md`](docs/PHASE_7.md).
 La caché resiliente, la PWA, los controles locales, las métricas y las pruebas
 de navegador se describen en [`docs/PHASE_8.md`](docs/PHASE_8.md).
+La arquitectura de contenedores, seguridad, persistencia, HTTPS, backups y
+rollback está en [`docs/PHASE_9.md`](docs/PHASE_9.md); el despliegue completo y
+la operación diaria están en [`docs/DEPLOY.md`](docs/DEPLOY.md) y
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
 ## Estrategia Git
 

@@ -470,3 +470,67 @@ paleta verificables. Mantener un procesador independiente evita deformaciones
 regionales, una máscara por color no confunde cambios de cobertura con datos
 meteorológicos y el alcance explícito evita sugerir una composición canaria
 que AEMET no publica en este contrato.
+
+---
+
+## ADR-026 — Dos contenedores, un UID y un volumen persistente
+
+**Estado:** aceptada.
+
+El despliegue separa el scheduler Python y el servidor estático nginx. Solo el
+worker recibe `AEMET_API_KEY` y monta el volumen como escritor; el web lo monta
+en solo lectura. Ambos procesos usan el UID/GID `10001:10001` en producción.
+En el Mac, Compose sustituye ese valor por el UID/GID de la cuenta local.
+
+La identidad compartida es necesaria porque la publicación atómica basada en
+`mkstemp` crea JSON e imágenes con modo `600`. No se amplían esos permisos para
+facilitar el servicio web. Los root filesystem son de solo lectura, se eliminan
+capabilities y se aplica `no-new-privileges`.
+
+Podman se ejecuta como root mediante Quadlet para enlazar de forma declarativa
+el directorio del host, pero los procesos dentro de los contenedores no son
+root. El web solo publica `127.0.0.1:8088`; nginx del host termina HTTPS.
+
+**Motivo:** un contenedor por proceso permite reinicios, salud, secretos y
+permisos independientes. El bind mount conserva datos al cambiar imágenes y el
+UID común mantiene la confidencialidad sin impedir que nginx lea la publicación.
+
+---
+
+## ADR-027 — Scheduler continuo bajo systemd y salud por publicación
+
+**Estado:** aceptada.
+
+Se conserva el scheduler interno ya probado: programa ciclos respecto a su
+inicio, consulta productos secuencialmente y nunca solapa dos escritores.
+Quadlet aplica `Restart=always`. No se añade un timer systemd de ingesta porque
+podría iniciar un ciclo mientras el anterior siguiera procesando.
+
+El healthcheck del worker valida `schemaVersion`, lista de productos y edad de
+`health.json`; no exige un estado global `ok`. El margen predeterminado es 30
+minutos y el primer arranque tiene 15 minutos de gracia. Así una incidencia de
+AEMET degrada el dato sin reiniciar un proceso sano, mientras una publicación
+detenida termina marcada como `unhealthy`.
+
+**Motivo:** la salud de la aplicación y la disponibilidad meteorológica son
+señales distintas. Reiniciar por un radar retrasado no recupera AEMET y puede
+ocultar la causa real.
+
+---
+
+## ADR-028 — Rollback de imágenes separado de restauración de datos
+
+**Estado:** aceptada.
+
+Las imágenes de cada release se etiquetan con el SHA corto. `current` apunta al
+release activo y `rollback` conserva el anterior. Un cambio normal o rollback
+recrea los contenedores sin reemplazar `/var/lib/aemet-radar/data`.
+
+Un timer independiente guarda entorno, configuración, máscaras, archivos
+operativos y volumen completo en un archivo protegido, con 14 días de
+retención. Restaurar ese archivo se documenta como operación destructiva de
+desastre y no forma parte del rollback habitual.
+
+**Motivo:** código y estado tienen ciclos de vida distintos. Acoplar un rollback
+de imagen a una copia antigua de datos perdería observaciones válidas sin
+necesidad.

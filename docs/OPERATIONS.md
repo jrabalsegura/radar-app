@@ -1,191 +1,313 @@
-# Operación local
+# Operación
 
-La operación de producción con Podman, systemd y Nginx sigue pendiente de la
-Fase 9. Esta guía cubre el worker, la publicación local y los pipelines nacional
-y regional disponibles tras la Fase 7.
+Esta guía cubre la instalación de producción descrita en `docs/DEPLOY.md`. En
+el Mac, los comandos equivalentes son `make container-status`,
+`make container-logs`, `make container-check` y `make container-down`.
 
-## Comprobar el estado
+## Estado rápido
 
 ```bash
-jq . data/status/health.json
-jq . data/radar/index.json
+ssh remote
+
+sudo systemctl status aemet-radar-worker.service
+sudo systemctl status aemet-radar-web.service
+sudo systemctl status nginx
+
+sudo podman ps --format \
+  'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+curl -fsS http://127.0.0.1:8088/healthz
+curl -fsS http://127.0.0.1:8088/status/health.json \
+  | jq '{generatedAt, status, products: [.products[] | {id, status, dataStatus}]}'
 ```
 
-Por producto, `status` refleja el último ciclo (`current`, `delayed`,
-`no-data` o `error`) y `dataStatus` refleja solo la edad del último fotograma.
-El umbral de retraso es dos veces la cadencia declarada del producto.
+Hay dos conceptos diferentes:
 
-Un estado AEMET 404 se interpreta como `no-data`: no se reintenta dentro del
-mismo ciclo, no genera `lastError` y se vuelve a consultar en el ciclo
-siguiente. Una mezcla de productos `current` y `no-data` mantiene el estado
-global `ok`; un producto `delayed` o `error` sí lo degrada. Si el radar conserva
-fotogramas válidos anteriores, el manifiesto se reconstruye normalmente hasta
-que salgan de la ventana, sin fabricar sustitutos.
+- la salud del contenedor comprueba que el proceso web responde o que el
+  worker continúa publicando JSON válido;
+- el campo público `status` describe AEMET y la edad de sus productos. Puede
+  ser `degraded` aunque el software funcione correctamente.
 
-Los fallos de validación de descarga dejan informes seguros bajo:
+El healthcheck permite 30 minutos sin una publicación nueva. Ese margen cubre
+un ciclo secuencial lento, pero detecta un worker bloqueado. Se ajusta con
+`AEMET_HEALTH_MAX_AGE_SECONDS` en `/etc/aemet-radar/worker.env`.
+
+Ejecutar los checks manualmente:
+
+```bash
+sudo podman healthcheck run aemet-radar-worker
+sudo podman healthcheck run aemet-radar-web
+sudo podman inspect aemet-radar-worker \
+  --format '{{json .State.Health}}' | jq
+sudo podman inspect aemet-radar-web \
+  --format '{{json .State.Health}}' | jq
+```
+
+## Logs y rotación
+
+Los Quadlets usan el driver `k8s-file` con un límite de 20 MB por contenedor.
+Podman conserva la salida para `podman logs` sin dejar crecer indefinidamente
+un único fichero:
+
+```bash
+sudo podman logs --since 1h aemet-radar-worker
+sudo podman logs --since 1h aemet-radar-web
+sudo podman logs --follow aemet-radar-worker
+```
+
+Systemd registra creación, reinicios y fallos de unidad:
+
+```bash
+sudo journalctl -u aemet-radar-worker.service --since today
+sudo journalctl -u aemet-radar-web.service --since today
+sudo journalctl -u nginx --since today
+```
+
+nginx del host escribe:
 
 ```text
-data/reports/phase-2/failures/
+/var/log/nginx/radar.joserabalsegura.com.access.log
+/var/log/nginx/radar.joserabalsegura.com.error.log
 ```
 
-Se pueden revisar con:
+El paquete nginx instala su política en `/etc/logrotate.d/nginx`. Comprobarla
+sin forzar rotación:
 
 ```bash
-for report in data/reports/phase-2/failures/*.json; do
-  jq . "$report"
-done
+sudo logrotate --debug /etc/logrotate.d/nginx
 ```
 
-Estos informes contienen tamaño, MIME declarado y SHA-256, pero nunca el cuerpo
-inválido, la API key o la URL efímera.
+## Entender `health.json`
 
-La fuente primaria no usa key: consulta una vez por ciclo las cronologías
-`compo/PB` nacional y PPI regional. Si la observación más reciente no cumple el
-contrato o aparece como producto no disponible, el worker usa OpenData. Un
-fallo histórico deja un hueco real; no invalida las demás observaciones.
+Por producto, `status` puede ser:
 
-## Forzar un ciclo completo
+- `current`: último ciclo y dato actuales;
+- `delayed`: el dato supera dos veces la cadencia esperada;
+- `no-data`: AEMET declara que no hay producto, sin tratarlo como avería;
+- `error`: falló la consulta o validación.
+
+`dataStatus` describe solo la edad del último fotograma. Un fallo temporal no
+vacía un manifiesto válido. La fuente primaria es el visor público de AEMET;
+OpenData, que sí necesita la key, permanece como fallback.
+
+Revisar errores resumidos:
 
 ```bash
-make poll-once
+curl -fsS http://127.0.0.1:8088/status/health.json \
+  | jq '.products[] | select(.status == "error" or .status == "delayed")'
 ```
 
-Este comando consulta la composición nacional y los 15 radares regionales de
-forma secuencial, aplica reintentos limitados, conserva 24 horas y publica los
-JSON. Devuelve código 1 si al menos un producto falla, aunque los productos
-correctos sí quedan actualizados. Un 404 funcional `no-data` no hace fallar el
-ciclo.
-
-## Ejecutar el scheduler
-
-```bash
-make run-worker
-```
-
-Valores no sensibles configurables en `.env`:
+Los diagnósticos seguros del worker están en:
 
 ```text
-AEMET_POLL_INTERVAL_SECONDS=300
-AEMET_RETRY_ATTEMPTS=3
-AEMET_RETRY_BACKOFF_SECONDS=1
-AEMET_RETENTION_HOURS=24
-AEMET_HISTORY_HOURS=3.8333333333333335
-AEMET_PRODUCT_DELAY_SECONDS=1
+/var/lib/aemet-radar/data/reports/phase-2/failures/
 ```
 
-Los ciclos se programan respecto a su hora de inicio para no acumular la
-duración de las llamadas. `Ctrl-C` detiene el proceso.
+No contienen la key ni el cuerpo inválido.
 
-## Reconstruir desde disco
+## Reiniciar sin perder datos
+
+Reiniciar un servicio:
 
 ```bash
-make rebuild-manifests
+sudo systemctl restart aemet-radar-worker.service
+sudo systemctl restart aemet-radar-web.service
 ```
 
-No consulta AEMET y no requiere `AEMET_API_KEY`. Relee los informes adyacentes a
-PNG y GIF, descarta informes inválidos, ordena y deduplica el historial, genera
-los derivados nacionales o regionales que falten y vuelve a publicar
-manifiestos, índice y health. La ventana predeterminada es de 3 horas y 50
-minutos.
+Los contenedores son reemplazables; el estado vive en
+`/var/lib/aemet-radar/data`. No uses `podman rm --volumes`, no borres ese
+directorio y no cambies recursivamente sus permisos. Worker y web comparten el
+UID/GID `10001:10001` porque los ficheros atómicos son deliberadamente
+restrictivos.
 
-## Inspeccionar por HTTP
-
-En una terminal:
+Tras reiniciar el servidor:
 
 ```bash
-make serve-files
+sudo systemctl is-active aemet-radar-worker.service
+sudo systemctl is-active aemet-radar-web.service
+sudo podman ps
 ```
 
-En otra:
+## Forzar un ciclo o reconstruir manifiestos
+
+Un ciclo puntual dentro del contenedor activo crearía un segundo escritor y no
+debe ejecutarse mientras el scheduler principal está en marcha.
+
+Para forzarlo de forma controlada:
 
 ```bash
-curl http://127.0.0.1:8000/radar/index.json
-curl http://127.0.0.1:8000/radar/national/manifest.json
-curl http://127.0.0.1:8000/radar/regional-mu/manifest.json
-curl http://127.0.0.1:8000/radar/regional-co/manifest.json
-curl http://127.0.0.1:8000/status/health.json
+sudo systemctl stop aemet-radar-worker.service
+sudo podman run --rm \
+  --env-file /etc/aemet-radar/worker.env \
+  --user 10001:10001 \
+  --volume /var/lib/aemet-radar/data:/data:rw,z \
+  localhost/aemet-radar-worker:current \
+  run --cycles 1 --data-dir /data
+sudo systemctl start aemet-radar-worker.service
 ```
 
-El servidor es solo local, no permite listar directorios y no sustituye a
-Nginx.
-
-## Validar una muestra nacional
-
-No consulta AEMET ni requiere API key:
+Para regenerar JSON e imágenes derivadas desde originales, sin consultar AEMET
+y sin pasar la key:
 
 ```bash
-.venv/bin/aemet-radar validate-national \
-  data/raw/national/AAAA/MM/DD/<observación>-<sha256>.png \
-  --output-dir data/debug/phase-7/national
+sudo systemctl stop aemet-radar-worker.service
+sudo podman run --rm \
+  --user 10001:10001 \
+  --volume /var/lib/aemet-radar/data:/data:rw,z \
+  localhost/aemet-radar-worker:current \
+  rebuild-manifests --data-dir /data
+sudo systemctl start aemet-radar-worker.service
 ```
 
-Revisar `mask.png`, `overlay.png` y `national-processing.json`. El informe debe
-declarar `national-v1`, `962×1079`, 4 bits, los tres hashes de configuración y
-las esquinas NW, NE, SE, SW oficiales.
+Detener antes el servicio garantiza un único escritor sobre la publicación
+atómica.
 
-## Validar una muestra regional
+## Retención y espacio
 
-No consulta AEMET ni requiere API key:
+El worker conserva por defecto 24 horas de originales y al menos el último
+fotograma válido de cada producto. Publica una ventana de 3 horas y 50 minutos.
+Los valores efectivos están en `/etc/aemet-radar/worker.env`.
 
 ```bash
-make validate-radar \
-  PRODUCT=regional-am \
-  SAMPLE=data/raw/regional-am/AAAA/MM/DD/<sha256>.gif
+sudo du -sh /var/lib/aemet-radar/data
+sudo du -sh /var/lib/aemet-radar/data/raw/*
+sudo df -h /var/lib/aemet-radar/data
 ```
 
-Revisar `reflectivity/preview.png`,
-`georeferenced/overlay-3857.png`, `calibration/overlay-3857.png` y
-`validation.json`. Si cambian dimensiones o paleta, la validación se detiene y
-el perfil debe estudiarse antes de habilitar la capa.
+No añadas una limpieza externa sobre `data/raw`: el propio worker elimina el
+original y su informe como una pareja y protege el último válido. Los backups
+sí tienen una retención independiente de 14 días.
 
-## Regenerar la reflectividad de Murcia
+## Backups
 
-No consulta AEMET ni requiere API key:
+Estado y siguiente ejecución:
 
 ```bash
-.venv/bin/aemet-radar analyze-reflectivity \
-  data/raw/regional-mu/AAAA/MM/DD/<sha256>.gif \
-  --output-dir data/debug/phase-3/regional-mu/<sha256-corto>
+sudo systemctl status aemet-radar-backup.timer
+sudo systemctl list-timers aemet-radar-backup.timer
+sudo journalctl -u aemet-radar-backup.service
+sudo ls -lh /var/backups/aemet-radar
 ```
 
-Revisar especialmente:
-
-```text
-classified.png     coincidencias antes de eliminar elementos fijos
-coverage-mask.png  cobertura circular parametrizada
-overlay.png        capa RGBA final
-preview.png        transparencia visible sobre damero
-report.json        píxeles conservados y descartados por clase
-```
-
-La máscara estática está versionada. Su regeneración deliberada requiere al
-menos tres originales distintos:
+Crear uno bajo demanda:
 
 ```bash
-.venv/bin/aemet-radar build-reflectivity-mask \
-  muestra-seca.gif muestra-lluviosa.gif otra-muestra.gif
+sudo systemctl start aemet-radar-backup.service
+sudo journalctl -u aemet-radar-backup.service -n 20
 ```
 
-Después se deben revisar el PNG, su informe JSON, varias previsualizaciones y
-los golden tests. El procedimiento detallado está en `docs/PHASE_3.md`.
+El script pausa el worker durante la lectura para evitar una carrera con la
+retención o una nueva publicación, y recupera su estado activo al terminar. El
+contenedor web no se detiene.
+
+Validar un archivo sin extraerlo:
+
+```bash
+backup=/var/backups/aemet-radar/aemet-radar-AAAAMMDDTHHMMSSZ.tar.gz
+sudo tar -tzf "$backup" | sed -n '1,80p'
+sudo gzip -t "$backup"
+```
+
+La copia incluye el secreto. Mantén `/var/backups/aemet-radar` con permisos
+`700` y replica sus archivos solo hacia almacenamiento igualmente protegido.
+
+### Restauración de desastre
+
+La restauración sobrescribe estado y requiere una ventana de mantenimiento.
+Antes de ejecutarla, guarda un backup del estado actual y revisa el contenido
+del archivo. Después:
+
+```bash
+sudo systemctl stop aemet-radar-worker.service
+sudo systemctl stop aemet-radar-web.service
+sudo systemctl start aemet-radar-backup.service
+
+backup=/var/backups/aemet-radar/aemet-radar-AAAAMMDDTHHMMSSZ.tar.gz
+sudo gzip -t "$backup"
+sudo tar -tzf "$backup" | less
+```
+
+Solo tras confirmar de forma explícita el backup elegido:
+
+```bash
+sudo tar -xzf "$backup" -C /
+sudo chown -R 10001:10001 /var/lib/aemet-radar/data
+sudo chmod 0700 /etc/aemet-radar
+sudo chmod 0600 /etc/aemet-radar/worker.env
+
+sudo systemctl daemon-reload
+sudo nginx -t
+sudo systemctl start aemet-radar-worker.service
+sudo systemctl start aemet-radar-web.service
+
+cd /var/www/aemet-radar
+deploy/scripts/smoke-test.sh http://127.0.0.1:8088
+```
 
 ## Rotar la API key
 
-1. Sustituir `AEMET_API_KEY` en `.env` o en el entorno del proceso.
-2. Mantener permisos `600` en `.env`.
-3. Reiniciar el worker.
-4. Ejecutar un único ciclo y comprobar que `lastSuccessAt` avanza.
+1. Editar el archivo sin imprimirlo:
 
-La clave no se pasa como argumento ni se incluye en los JSON.
+   ```bash
+   sudoedit /etc/aemet-radar/worker.env
+   ```
 
-## Recuperar la última publicación válida
+2. Confirmar `600 root:root`.
+3. Reiniciar solo el worker:
 
-Un fallo de AEMET no reemplaza el manifiesto del producto afectado. Si un JSON
-público se elimina o se considera inconsistente, se reconstruye desde los
-originales:
+   ```bash
+   sudo systemctl restart aemet-radar-worker.service
+   ```
+
+4. Esperar un ciclo y comprobar que `lastSuccessAt` avanza.
+
+No hace falta reconstruir imágenes ni reiniciar el web. No inspecciones el
+entorno del worker: la key es visible para root dentro de su configuración OCI.
+
+Comprobar de forma segura que el web no recibe una variable con ese nombre:
 
 ```bash
-make rebuild-manifests
+sudo podman exec aemet-radar-web \
+  sh -c 'test -z "${AEMET_API_KEY+x}"'
 ```
 
-El rollback de contenedores pertenece a fases posteriores.
+## HTTPS y nginx
+
+```bash
+sudo nginx -t
+sudo systemctl status nginx
+sudo certbot certificates
+sudo certbot renew --dry-run
+curl -I https://radar.joserabalsegura.com/
+```
+
+El puerto `8088` permanece enlazado a loopback. La única entrada pública es
+nginx en `80/443`.
+
+Si se cambia `VITE_MAP_STYLE_URL` a otro dominio, también debe actualizarse la
+CSP en `deploy/containers/security-headers.conf`, reconstruirse el web y
+verificarse en un navegador. Un bloqueo CSP se diagnostica en la consola del
+navegador, no relajando globalmente la política.
+
+## Actualización y rollback
+
+El procedimiento completo, incluido el etiquetado `current`/`rollback`, está en
+`docs/DEPLOY.md`. Reglas operativas:
+
+- construir ambas imágenes antes de reiniciar;
+- crear backup antes del cambio;
+- mover ambas etiquetas antes de reiniciar cualquiera;
+- no reemplazar `/var/lib/aemet-radar/data`;
+- validar primero `127.0.0.1:8088` y después HTTPS;
+- conservar al menos el release anterior hasta terminar la observación.
+
+## Diagnóstico por síntoma
+
+| Síntoma | Comprobación inicial | Acción habitual |
+| --- | --- | --- |
+| `502 Bad Gateway` | `systemctl status aemet-radar-web` y `curl 127.0.0.1:8088/healthz` | reiniciar o hacer rollback del web |
+| UI abre pero no hay radares | `curl .../radar/index.json` y permisos de `data` | revisar worker y UID `10001` |
+| Worker `unhealthy` | edad de `generatedAt` y `podman logs` | distinguir ciclo lento de bloqueo |
+| Estado `degraded` | productos retrasados/error en `health.json` | observar AEMET; no borrar datos |
+| Mapa base vacío | consola CSP y acceso a OpenFreeMap | revisar dominio de estilo/CSP |
+| Certificado próximo a caducar | `certbot renew --dry-run` y timer | reparar renovación antes de caducar |
+| Disco creciendo | `du`, retención efectiva y backups | revisar configuración, no borrar raw a mano |
