@@ -25,6 +25,7 @@ import {
   type RadarIndex,
   type RadarIndexEntry,
 } from './radarIndex';
+import { radarIdForHotkey, radarLabelWithHotkey } from './radarHotkeys';
 import { closestRegionalRadar, type LongitudeLatitude } from './radarLocation';
 import {
   buildTimelineSlots,
@@ -453,6 +454,40 @@ export function App() {
     setSelectedRadarId(radarId);
   }, []);
 
+  useEffect(() => {
+    if (!index) {
+      return;
+    }
+    const availableRadarIds = new Set(index.radars.map((radar) => radar.id));
+
+    function selectRadarWithHotkey(event: KeyboardEvent) {
+      if (
+        event.defaultPrevented ||
+        event.repeat ||
+        event.isComposing ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        shouldIgnoreRadarHotkeyTarget(event.target)
+      ) {
+        return;
+      }
+      const radarId = radarIdForHotkey(event.key);
+      if (
+        !radarId ||
+        radarId === selectedRadarId ||
+        !availableRadarIds.has(radarId)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      selectRadar(radarId);
+    }
+
+    document.addEventListener('keydown', selectRadarWithHotkey);
+    return () => document.removeEventListener('keydown', selectRadarWithHotkey);
+  }, [index, selectRadar, selectedRadarId]);
+
   function locateNearestRadar() {
     if (!index || !('geolocation' in navigator)) {
       setLocationStatus('error');
@@ -593,7 +628,7 @@ export function App() {
                   .filter((radar) => radar.kind === 'national')
                   .map((radar) => (
                     <option key={radar.id} value={radar.id}>
-                      {radar.label}
+                      {radarLabelWithHotkey(radar.id, radar.label)}
                       {radar.available ? '' : ' · sin datos'}
                     </option>
                   ))}
@@ -603,7 +638,7 @@ export function App() {
                   .filter((radar) => radar.kind === 'regional')
                   .map((radar) => (
                     <option key={radar.id} value={radar.id}>
-                      {radar.label}
+                      {radarLabelWithHotkey(radar.id, radar.label)}
                       {radar.available ? '' : ' · sin datos'}
                     </option>
                   ))}
@@ -977,6 +1012,18 @@ function Timeline({
 
 function radarAvailability(radar: RadarIndexEntry): RadarHealthStatus {
   return radar.available ? 'current' : 'no-data';
+}
+
+function shouldIgnoreRadarHotkeyTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return (
+    target.isContentEditable ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLTextAreaElement ||
+    (target instanceof HTMLInputElement && target.type !== 'range')
+  );
 }
 
 function statusLabel(status: RadarHealthStatus): string {

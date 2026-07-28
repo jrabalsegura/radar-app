@@ -38,7 +38,10 @@ se sustituye por cartografía de otra fuente.
 ## Controles y estado
 
 - El selector agrupa composición nacional y 15 radares regionales y conserva la
-  última elección en el dispositivo.
+  última elección en el dispositivo. Cada opción muestra entre paréntesis una
+  tecla única que permite abrir directamente ese radar; los atajos no
+  interceptan combinaciones con modificadores ni la escritura en controles
+  editables.
 - Los radares regionales parten de un encuadre de unos 150 km de radio (`zoom
   7.3` a 768 px) y adaptan ese zoom al ancho disponible para conservar una
   extensión geográfica parecida en móvil y escritorio; la composición nacional
