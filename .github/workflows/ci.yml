@@ -74,3 +74,30 @@ jobs:
 
       - name: Test
         run: pytest
+
+  containers:
+    name: Container images
+    runs-on: ubuntu-latest
+    needs: [frontend, worker]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build worker image
+        run: >-
+          docker build
+          --file deploy/containers/worker.Containerfile
+          --tag aemet-radar-worker:ci
+          .
+
+      - name: Build web image
+        run: >-
+          docker build
+          --file deploy/containers/web.Containerfile
+          --tag aemet-radar-web:ci
+          .
+
+      - name: Verify non-root image users
+        run: |
+          test "$(docker image inspect aemet-radar-worker:ci --format '{{.Config.User}}')" = "10001:10001"
+          test "$(docker image inspect aemet-radar-web:ci --format '{{.Config.User}}')" = "10001:10001"

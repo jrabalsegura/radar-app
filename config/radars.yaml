@@ -26,6 +26,8 @@ radars:
     siteName: Almería - Níjar
     longitude: -2.08209663
     latitude: 36.83242654
+    mapCenterLongitude: -1.5819
+    mapCenterLatitude: 37.4042
     sampleValidation: verified
     staticMask: masks/regional-am-v1.png
     ambiguousClassPolicy: static-mask

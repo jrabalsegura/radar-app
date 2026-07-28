@@ -1,0 +1,34 @@
+[Unit]
+Description=Radar AEMET - servidor web estático
+
+[Container]
+ContainerName=aemet-radar-web
+Image=localhost/aemet-radar-web:current
+Pull=never
+PublishPort=127.0.0.1:8088:8080
+Volume=/var/lib/aemet-radar/data:/data:ro,z
+User=10001
+Group=10001
+RunInit=true
+ReadOnly=true
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+DropCapability=all
+HealthCmd=wget -q -O - http://127.0.0.1:8080/healthz
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=10s
+LogDriver=k8s-file
+LogOpt=max-size=20mb
+PidsLimit=128
+StopSignal=SIGQUIT
+StopTimeout=15
+
+[Service]
+Restart=always
+RestartSec=5
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

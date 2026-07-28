@@ -1,0 +1,52 @@
+#!/bin/sh
+set -eu
+umask 077
+
+backup_root=${AEMET_BACKUP_ROOT:-/var/backups/aemet-radar}
+retention_days=${AEMET_BACKUP_RETENTION_DAYS:-14}
+source_root=${AEMET_BACKUP_SOURCE_ROOT:-/}
+timestamp=$(date -u +%Y%m%dT%H%M%SZ)
+worker_was_active=false
+
+install -d -m 0700 "$backup_root"
+temporary_archive=$(mktemp "$backup_root/.aemet-radar-$timestamp.XXXXXX")
+final_archive="$backup_root/aemet-radar-$timestamp.tar.gz"
+
+cleanup() {
+    rm -f "$temporary_archive"
+    if [ "$worker_was_active" = true ]; then
+        systemctl start aemet-radar-worker.service
+    fi
+}
+trap cleanup EXIT HUP INT TERM
+
+if [ "$source_root" = "/" ] \
+    && systemctl is-active --quiet aemet-radar-worker.service; then
+    systemctl stop aemet-radar-worker.service
+    worker_was_active=true
+fi
+
+tar \
+    --create \
+    --gzip \
+    --file "$temporary_archive" \
+    --directory "$source_root" \
+    etc/aemet-radar \
+    etc/containers/systemd/aemet-radar-worker.container \
+    etc/containers/systemd/aemet-radar-web.container \
+    etc/nginx/sites-available/radar.joserabalsegura.com \
+    etc/systemd/system/aemet-radar-backup.service \
+    etc/systemd/system/aemet-radar-backup.timer \
+    usr/local/sbin/aemet-radar-backup \
+    var/www/aemet-radar/config \
+    var/lib/aemet-radar/data
+
+mv "$temporary_archive" "$final_archive"
+
+find "$backup_root" \
+    -type f \
+    -name 'aemet-radar-*.tar.gz' \
+    -mtime "+$retention_days" \
+    -delete
+
+printf '%s\n' "$final_archive"

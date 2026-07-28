@@ -36,9 +36,8 @@ def test_catalog_contains_every_openapi_regional_radar() -> None:
     assert catalog.definition_for("regional-ml").map_center_longitude == pytest.approx(-3.5986)
     assert catalog.definition_for("regional-ml").map_center_latitude == pytest.approx(37.1773)
     assert catalog.definition_for("regional-mu").map_center_latitude == pytest.approx(37.84)
-    assert catalog.definition_for("regional-am").map_center_longitude == pytest.approx(
-        catalog.definition_for("regional-am").longitude
-    )
+    assert catalog.definition_for("regional-am").map_center_longitude == pytest.approx(-1.5819)
+    assert catalog.definition_for("regional-am").map_center_latitude == pytest.approx(37.4042)
 
 
 def test_unavailable_radars_remain_configured() -> None:

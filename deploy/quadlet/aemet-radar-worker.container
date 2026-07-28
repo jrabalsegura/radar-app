@@ -1,0 +1,36 @@
+[Unit]
+Description=Radar AEMET - worker de ingesta
+
+[Container]
+ContainerName=aemet-radar-worker
+Image=localhost/aemet-radar-worker:current
+Pull=never
+Exec=run --data-dir /data
+WorkingDir=/app
+EnvironmentFile=/etc/aemet-radar/worker.env
+Volume=/var/lib/aemet-radar/data:/data:rw,z
+User=10001
+Group=10001
+RunInit=true
+ReadOnly=true
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+DropCapability=all
+HealthCmd=python /usr/local/bin/worker-healthcheck.py
+HealthInterval=60s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=15m
+LogDriver=k8s-file
+LogOpt=max-size=20mb
+PidsLimit=256
+StopSignal=SIGINT
+StopTimeout=30
+
+[Service]
+Restart=always
+RestartSec=10
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
