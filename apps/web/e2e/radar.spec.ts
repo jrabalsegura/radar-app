@@ -72,7 +72,15 @@ test('recorre el radar con controles accesibles y conserva la edad visible', asy
   await page.keyboard.press('ArrowLeft');
   await expect(timeline).toHaveValue(String(initialTimelineValue - 1));
 
-  await page.getByLabel('Fuente radar').selectOption('national');
+  await expect(
+    page.getByRole('option', { name: 'Almería (A)' }),
+  ).toBeAttached();
+  await page.keyboard.press('A');
+  await expect(
+    page.getByRole('heading', { name: 'Radar Almería' }),
+  ).toBeVisible();
+
+  await page.keyboard.press('E');
   await expect(
     page.getByRole('heading', { name: 'Composición nacional' }),
   ).toBeVisible();

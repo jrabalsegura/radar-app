@@ -113,10 +113,12 @@ En el Mac ARM64 de desarrollo se verificó:
 - CSP y demás cabeceras de seguridad;
 - mapa con lienzo `1231×611`, teselas y controles visibles, sin errores de
   consola;
+- 9 flujos E2E en Chrome de escritorio y móvil, incluido el cambio de radar con
+  `A` y `E` (pantalla completa se omite deliberadamente en móvil);
 - sintaxis de nginx interno y virtual host mediante nginx 1.28.0;
 - generación de ambos servicios con Podman/Quadlet 5.8.1;
 - creación, listado y verificación gzip de un backup aislado;
-- `make check`: 28 pruebas de frontend y 104 de worker, además de lint,
+- `make check`: 32 pruebas de frontend y 104 de worker, además de lint,
   formato, tipado y build.
 
 La validación local no modifica el servidor remoto ni demuestra todavía DNS,

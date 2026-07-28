@@ -15,8 +15,9 @@ prolongada en el Mac; producción usa Podman/Quadlet detrás de nginx y HTTPS en
 El visor sigue siendo una PWA responsive e instalable: conserva el último
 manifiesto válido, funciona tras perder la conexión, muestra siempre la
 antigüedad del dato y ofrece pantalla completa, geolocalización local,
-preferencias y accesibilidad. La composición nacional de Península y Baleares
-y los 15 radares regionales son productos independientes.
+preferencias, atajos visibles para cambiar de radar y accesibilidad. La
+composición nacional de Península y Baleares y los 15 radares regionales son
+productos independientes.
 
 ## Requisitos
 

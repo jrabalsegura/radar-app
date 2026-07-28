@@ -367,6 +367,50 @@ describe('App radar', () => {
     );
   });
 
+  it('muestra y aplica los atajos de radar sin interferir con controles editables', async () => {
+    mockRadarFetches();
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Radar Murcia' });
+    const sourceSelector = screen.getByLabelText('Fuente radar');
+    const timelineSlider = await screen.findByRole('slider', {
+      name: 'Instante del radar',
+    });
+
+    expect(
+      screen.getByRole('option', { name: 'Almería (A)' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Madrid (M)' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Málaga (G)' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Murcia (N)' }),
+    ).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole('option')
+        .every((option) => /\([A-Z]\)/.test(option.textContent ?? '')),
+    ).toBe(true);
+
+    fireEvent.keyDown(timelineSlider, { key: 'A' });
+    expect(
+      await screen.findByRole('heading', { name: 'Radar Almería' }),
+    ).toBeInTheDocument();
+
+    fireEvent.keyDown(sourceSelector, { key: 'n' });
+    expect(screen.getByLabelText('Fuente radar')).toHaveValue('regional-am');
+
+    fireEvent.keyDown(document, { key: 'e', metaKey: true });
+    expect(screen.getByLabelText('Fuente radar')).toHaveValue('regional-am');
+
+    fireEvent.keyDown(document, { key: 'E' });
+    expect(
+      await screen.findByRole('heading', { name: 'Composición nacional' }),
+    ).toBeInTheDocument();
+  });
+
   it('precarga únicamente el timeline seleccionado', async () => {
     mockRadarFetches();
     render(<App />);
