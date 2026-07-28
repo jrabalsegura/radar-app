@@ -2567,6 +2567,10 @@
       "label": "Málaga",
       "latestFrameTime": "2026-07-27T08:10:00Z",
       "manifestUrl": "/radar/regional-ml/manifest.json",
+      "mapCenter": [
+        -3.5986,
+        37.1773
+      ],
       "mapZoom": 7.3,
       "rangeKilometres": 240.0,
       "siteCode": "AHR",

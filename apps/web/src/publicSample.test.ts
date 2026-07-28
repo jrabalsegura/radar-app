@@ -55,6 +55,12 @@ describe('muestra pública de la fase 7', () => {
         .filter((radar) => !radar.available)
         .map((radar) => radar.id),
     ).toEqual(['regional-va']);
+    expect(
+      indexPayload.radars.find((radar) => radar.id === 'regional-ml'),
+    ).toMatchObject({
+      coordinates: [-4.65933, 36.6134271638889],
+      mapCenter: [-3.5986, 37.1773],
+    });
     expect(healthPayload.products).toHaveLength(16);
   });
 
