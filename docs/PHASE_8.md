@@ -43,23 +43,28 @@ se sustituye por cartografía de otra fuente.
   7.3` a 768 px) y adaptan ese zoom al ancho disponible para conservar una
   extensión geográfica parecida en móvil y escritorio; la composición nacional
   conserva su encuadre general. Canarias aplica la misma adaptación desde su
-  ajuste específico. El mapa mide dinámicamente la tarjeta de observación y los
-  controles temporales para centrar el emplazamiento en el rectángulo realmente
-  visible entre ambos, también en pantallas pequeñas y pantalla completa.
+  ajuste específico. El mapa mide dinámicamente los controles temporales para
+  centrar el emplazamiento en el área realmente visible sobre ellos, también en
+  pantallas pequeñas y pantalla completa.
   `mapCenterLongitude` y `mapCenterLatitude` permiten ajustar declarativamente
   radares cuyo emplazamiento físico no coincide con el centro visual útil;
-  Madrid se centra en la capital y Murcia entre Fortuna y Águilas.
+  Madrid se centra en la capital, Málaga en Granada capital y Murcia entre
+  Fortuna y Águilas.
 - `Cerca de mí` usa `navigator.geolocation`, calcula la distancia de gran
   círculo en el navegador y selecciona el radar regional más cercano. Las
   coordenadas no se envían ni se guardan.
+- Un botón compacto abre las opciones del mapa sin ocupar permanentemente el
+  área cartográfica. El panel agrupa opacidad, cobertura y pantalla completa,
+  admite cierre con `Escape` o pulsación exterior y queda preparado para
+  incorporar controles posteriores al MVP.
 - `Ampliar` usa la Fullscreen API sobre el reproductor. MapLibre conserva la
-  misma instancia y responde al cambio de tamaño del viewport.
-- La opacidad se conserva como preferencia local.
+  misma instancia y responde al cambio de tamaño del viewport. La opacidad se
+  conserva como preferencia local.
 - Los estados `Actualizado`, `Retrasado`, `Sin datos` y `Error temporal` tienen
   texto y color. Una copia guardada degrada un estado actual a `Retrasado`.
-- La hora y la antigüedad relativa del último dato están siempre presentes. En
-  pantalla completa cada tarjeta conserva también la antigüedad del instante
-  seleccionado.
+- La hora y la antigüedad relativa del último dato están siempre presentes en
+  la cabecera. El instante seleccionado permanece visible en la línea temporal,
+  sin duplicar esa información sobre el mapa.
 - Al abrir la aplicación o cambiar de radar, el foco pasa al deslizador temporal
   para recorrer inmediatamente el historial con `←` y `→`. Las actualizaciones
   automáticas no roban el foco del control que esté usando la persona.
