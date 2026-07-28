@@ -20,6 +20,8 @@ describe('atajos de radar', () => {
     expect(radarHotkey('regional-ma')).toBe('m');
     expect(radarHotkey('regional-ml')).toBe('g');
     expect(radarHotkey('regional-mu')).toBe('n');
+    expect(radarHotkey('regional-ss')).toBe('y');
+    expect(radarHotkey('regional-za')).toBe('z');
     expect(radarIdForHotkey('A')).toBe('regional-am');
     expect(radarIdForHotkey('ArrowLeft')).toBeNull();
   });

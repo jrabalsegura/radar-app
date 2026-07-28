@@ -13,8 +13,8 @@ export const RADAR_HOTKEYS: Readonly<Record<string, string>> = {
   'regional-ca': 'l',
   'regional-se': 's',
   'regional-va': 'v',
-  'regional-ss': 'z',
-  'regional-za': 'r',
+  'regional-ss': 'y',
+  'regional-za': 'z',
 };
 
 const RADAR_IDS_BY_HOTKEY = new Map(
