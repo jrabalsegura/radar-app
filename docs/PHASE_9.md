@@ -55,8 +55,9 @@ El nginx del contenedor:
 - sirve el service worker y `index.html` con revalidación.
 
 Compose limita los logs JSON a tres ficheros de 10 MB. Quadlet usa `k8s-file`
-con máximo de 20 MB. Los logs del nginx del host conservan la rotación del
-paquete.
+con máximo de 20 MB; el límite se pasa como argumento de Podman para conservar
+compatibilidad con los generadores Quadlet 4.9/5.0 de Ubuntu. Los logs del
+nginx del host conservan la rotación del paquete.
 
 ## Backups y rollback
 
@@ -116,7 +117,7 @@ En el Mac ARM64 de desarrollo se verificó:
 - 9 flujos E2E en Chrome de escritorio y móvil, incluido el cambio de radar con
   `A` y `E` (pantalla completa se omite deliberadamente en móvil);
 - sintaxis de nginx interno y virtual host mediante nginx 1.28.0;
-- generación de ambos servicios con Podman/Quadlet 5.8.1;
+- generación de ambos servicios con Podman/Quadlet 4.9.3, 5.0.1 y 5.8.1;
 - creación, listado y verificación gzip de un backup aislado;
 - `make check`: 32 pruebas de frontend y 104 de worker, además de lint,
   formato, tipado y build.

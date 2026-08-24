@@ -20,10 +20,9 @@ HealthTimeout=5s
 HealthRetries=3
 HealthStartPeriod=10s
 LogDriver=k8s-file
-LogOpt=max-size=20mb
+# Compatibilidad con los generadores Quadlet 4.9/5.0 de Ubuntu.
+PodmanArgs=--log-opt=max-size=20mb --stop-signal=SIGQUIT --stop-timeout=15
 PidsLimit=128
-StopSignal=SIGQUIT
-StopTimeout=15
 
 [Service]
 Restart=always

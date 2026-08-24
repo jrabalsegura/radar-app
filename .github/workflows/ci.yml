@@ -101,3 +101,12 @@ jobs:
         run: |
           test "$(docker image inspect aemet-radar-worker:ci --format '{{.Config.User}}')" = "10001:10001"
           test "$(docker image inspect aemet-radar-web:ci --format '{{.Config.User}}')" = "10001:10001"
+
+      - name: Validate Quadlets with Podman 4.9
+        run: >-
+          docker run --rm
+          --entrypoint /usr/lib/systemd/system-generators/podman-system-generator
+          --env QUADLET_UNIT_DIRS=/units
+          --volume "$GITHUB_WORKSPACE/deploy/quadlet:/units:ro"
+          quay.io/podman/stable:v4.9.3
+          --dryrun
