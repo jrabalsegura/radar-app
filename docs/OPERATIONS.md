@@ -45,8 +45,10 @@ sudo podman inspect aemet-radar-web \
 ## Logs y rotación
 
 Los Quadlets usan el driver `k8s-file` con un límite de 20 MB por contenedor.
-Podman conserva la salida para `podman logs` sin dejar crecer indefinidamente
-un único fichero:
+El límite se transmite mediante `PodmanArgs=--log-opt=max-size=20mb` para ser
+compatible con los generadores Quadlet 4.9/5.0 de Ubuntu, que todavía no
+reconocen de forma uniforme las claves nativas equivalentes. Podman conserva
+la salida para `podman logs` sin dejar crecer indefinidamente un único fichero:
 
 ```bash
 sudo podman logs --since 1h aemet-radar-worker

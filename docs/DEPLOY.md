@@ -187,6 +187,12 @@ El segundo comando debe mostrar `v2`. Si el paquete de la distribución no
 incluye `podman-system-generator`, instala una versión actual de Podman antes
 de seguir; no conviertas los `.container` en servicios escritos a mano.
 
+Las unidades transmiten mediante `PodmanArgs=` el límite de log, la señal y el
+timeout de parada. Esos argumentos de `podman run` funcionan también con los
+generadores Quadlet 4.9 y 5.0 que distribuyen algunas versiones de Ubuntu; las
+claves Quadlet nativas `LogOpt=` y `StopSignal=` no están disponibles en todas
+ellas.
+
 No es necesario instalar Node.js, npm, Python, `build-essential`, Prisma ni una
 base de datos en el host.
 
@@ -306,6 +312,24 @@ sudo install -m 0644 \
 Validar la generación antes de arrancar:
 
 ```bash
+sudo env QUADLET_UNIT_DIRS=/etc/containers/systemd \
+  /usr/lib/systemd/system-generators/podman-system-generator --dryrun
+```
+
+La salida debe incluir los dos servicios generados y no debe contener
+`unsupported key`. Si aparece un error referente a `LogOpt`, `StopSignal` o
+`StopTimeout`, el servidor tiene instalada una copia anterior de las unidades.
+Reinstálalas desde el checkout actual y repite la validación:
+
+```bash
+cd /var/www/aemet-radar
+sudo install -m 0644 \
+  deploy/quadlet/aemet-radar-worker.container \
+  /etc/containers/systemd/aemet-radar-worker.container
+sudo install -m 0644 \
+  deploy/quadlet/aemet-radar-web.container \
+  /etc/containers/systemd/aemet-radar-web.container
+
 sudo env QUADLET_UNIT_DIRS=/etc/containers/systemd \
   /usr/lib/systemd/system-generators/podman-system-generator --dryrun
 ```
@@ -536,6 +560,8 @@ sudo install -m 0644 \
   deploy/nginx/radar.joserabalsegura.com.conf \
   /etc/nginx/sites-available/radar.joserabalsegura.com
 
+sudo env QUADLET_UNIT_DIRS=/etc/containers/systemd \
+  /usr/lib/systemd/system-generators/podman-system-generator --dryrun
 sudo systemctl daemon-reload
 sudo nginx -t
 sudo systemctl restart aemet-radar-worker.service
