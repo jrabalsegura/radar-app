@@ -4,7 +4,8 @@ Artefactos de la Fase 9:
 
 - `containers/`: imágenes del worker y web, nginx interno y healthcheck;
 - `quadlet/`: servicios Podman administrados por systemd;
-- `nginx/`: virtual host público del servidor;
+- `nginx/`: plantilla HTTP inicial del virtual host público; Certbot administra
+  después la copia instalada en el servidor;
 - `scripts/`: smoke test y backup protegido;
 - `systemd/`: servicio y timer del backup.
 
