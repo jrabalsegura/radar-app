@@ -360,6 +360,12 @@ No abras `8088` en el firewall.
 
 ## 8. Instalar nginx del host
 
+El fichero versionado es una plantilla HTTP solo para la instalación inicial.
+En el paso siguiente Certbot ampliará la copia instalada en `/etc/nginx` con el
+certificado, el bloque TLS y la redirección a HTTPS. Desde ese momento esa copia
+es estado operativo del servidor y no se vuelve a sobrescribir con la plantilla
+durante una actualización normal de la app.
+
 ```bash
 cd /var/www/aemet-radar
 
@@ -404,7 +410,9 @@ sudo certbot --nginx \
   -d radar.joserabalsegura.com
 ```
 
-Certbot modifica el site del host y configura la renovación. Validarla:
+Certbot modifica el site instalado del host y configura la renovación. Esa
+copia modificada también queda incluida en los backups de la sección siguiente.
+Validar la renovación:
 
 ```bash
 sudo certbot renew --dry-run
@@ -547,7 +555,7 @@ sudo podman tag \
   localhost/aemet-radar-web:current
 ```
 
-Reinstalar archivos operativos versionados, validar y reiniciar:
+Reinstalar los Quadlet versionados, validar y reiniciar:
 
 ```bash
 sudo install -m 0644 \
@@ -556,23 +564,24 @@ sudo install -m 0644 \
 sudo install -m 0644 \
   deploy/quadlet/aemet-radar-web.container \
   /etc/containers/systemd/aemet-radar-web.container
-sudo install -m 0644 \
-  deploy/nginx/radar.joserabalsegura.com.conf \
-  /etc/nginx/sites-available/radar.joserabalsegura.com
 
 sudo env QUADLET_UNIT_DIRS=/etc/containers/systemd \
   /usr/lib/systemd/system-generators/podman-system-generator --dryrun
 sudo systemctl daemon-reload
-sudo nginx -t
 sudo systemctl restart aemet-radar-worker.service
 sudo systemctl restart aemet-radar-web.service
-sudo systemctl reload nginx
 
 deploy/scripts/smoke-test.sh http://127.0.0.1:8088
 deploy/scripts/smoke-test.sh https://radar.joserabalsegura.com
 ```
 
 El volumen `/var/lib/aemet-radar/data` no se reemplaza durante la actualización.
+Tampoco se reinstala `deploy/nginx/radar.joserabalsegura.com.conf`: es la
+plantilla HTTP del primer despliegue y sobrescribir con ella el site que Certbot
+ya modificó eliminaría el virtual host HTTPS. Si un cambio requiere modificar
+nginx, trátalo como una operación separada: conserva primero la copia instalada,
+integra el cambio sobre ella, ejecuta `sudo nginx -t` y solo entonces recarga
+nginx.
 
 ## 13. Rollback
 
@@ -596,9 +605,11 @@ cd /var/www/aemet-radar
 deploy/scripts/smoke-test.sh http://127.0.0.1:8088
 ```
 
-Si el release también cambió Quadlet o nginx, recupera esos archivos desde el
-commit anterior, instálalos de nuevo y valida `podman-system-generator
---dryrun` y `nginx -t` antes de reiniciar.
+Si el release también cambió Quadlet, recupera esos archivos desde el commit
+anterior, instálalos de nuevo y valida `podman-system-generator --dryrun` antes
+de reiniciar. Para nginx restaura la copia operativa guardada antes del cambio o
+la incluida en el backup; no reinstales la plantilla HTTP inicial después de
+haber activado Certbot. Ejecuta `nginx -t` antes de recargarlo.
 
 Restaurar un backup de datos es una operación distinta y potencialmente
 destructiva. Solo se usa ante pérdida o corrupción, después de conservar una

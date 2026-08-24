@@ -285,6 +285,42 @@ curl -I https://radar.joserabalsegura.com/
 El puerto `8088` permanece enlazado a loopback. La única entrada pública es
 nginx en `80/443`.
 
+### HTTPS muestra el site predeterminado o un certificado de otro dominio
+
+Si el smoke test local funciona pero HTTPS devuelve `curl: (60) SSL: no
+alternative certificate subject name` o el navegador muestra `Welcome to
+nginx`, el contenedor no es la causa. El virtual host de
+`radar.joserabalsegura.com` probablemente ha perdido el bloque TLS y la petición
+en `443` está entrando en el site predeterminado.
+
+Comprobar el certificado disponible y la configuración activa:
+
+```bash
+sudo certbot certificates
+sudo nginx -T | grep -n -A 12 -B 3 \
+  'server_name radar.joserabalsegura.com'
+```
+
+Si Certbot ya tiene un certificado para el dominio, reinstalarlo sobre el
+virtual host HTTP existente y recuperar la redirección:
+
+```bash
+sudo certbot --nginx \
+  --redirect \
+  --reinstall \
+  -d radar.joserabalsegura.com
+sudo nginx -t
+sudo systemctl reload nginx
+
+curl -I https://radar.joserabalsegura.com/
+deploy/scripts/smoke-test.sh https://radar.joserabalsegura.com
+```
+
+Esto no requiere reconstruir imágenes ni reiniciar los contenedores. La
+plantilla `deploy/nginx/radar.joserabalsegura.com.conf` solo se instala antes de
+la primera ejecución de Certbot; una actualización ordinaria nunca debe
+sobrescribir con ella la copia de `/etc/nginx/sites-available`.
+
 Si se cambia `VITE_MAP_STYLE_URL` a otro dominio, también debe actualizarse la
 CSP en `deploy/containers/security-headers.conf`, reconstruirse el web y
 verificarse en un navegador. Un bloqueo CSP se diagnostica en la consola del
@@ -299,6 +335,7 @@ El procedimiento completo, incluido el etiquetado `current`/`rollback`, está en
 - crear backup antes del cambio;
 - mover ambas etiquetas antes de reiniciar cualquiera;
 - no reemplazar `/var/lib/aemet-radar/data`;
+- no reemplazar el virtual host de `/etc/nginx` con la plantilla HTTP inicial;
 - validar primero `127.0.0.1:8088` y después HTTPS;
 - conservar al menos el release anterior hasta terminar la observación.
 
