@@ -20,7 +20,7 @@ from aemet_radar.georeferencing import georeference_overlay
 from aemet_radar.health import HealthPublisher
 from aemet_radar.history import scan_product_history
 from aemet_radar.hybrid_service import HybridIngestionService
-from aemet_radar.manifests import ManifestPublisher, select_history_frames
+from aemet_radar.manifests import ManifestPublisher
 from aemet_radar.mask_calibration import discover_mask_samples
 from aemet_radar.national_client import AemetNationalClient
 from aemet_radar.national_processing import (
@@ -58,6 +58,7 @@ from aemet_radar.storage import ArchiveStore
 from aemet_radar.timeline_processing import (
     RadarTimelineProcessor,
     RegionalTimelineProcessor,
+    frames_for_processing,
 )
 from aemet_radar.viewer_client import AemetViewerClient
 
@@ -141,12 +142,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Retención de originales en horas.",
     )
     run.add_argument(
-        "--history-hours",
-        type=_positive_float,
-        default=None,
-        help="Ventana publicada en horas.",
-    )
-    run.add_argument(
         "--cycles",
         type=_positive_int,
         default=None,
@@ -165,12 +160,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_data_arguments(rebuild)
     _add_product_argument(rebuild)
-    rebuild.add_argument(
-        "--history-hours",
-        type=_positive_float,
-        default=None,
-        help="Ventana publicada en horas.",
-    )
 
     serve = subcommands.add_parser(
         "serve-files",
@@ -646,10 +635,7 @@ def _run_history(arguments: argparse.Namespace, settings: Settings) -> int:
                 arguments.retention_hours,
                 operational.retention_hours,
             ),
-            history_hours=_value_or(
-                arguments.history_hours,
-                operational.history_hours,
-            ),
+            publication_products=(NATIONAL, *catalog.products),
             timeline_processor=_timeline_processor(
                 data_dir,
                 _as_path(arguments.radar_config),
@@ -682,18 +668,15 @@ def _run_history(arguments: argparse.Namespace, settings: Settings) -> int:
 
 
 def _run_rebuild(arguments: argparse.Namespace) -> int:
-    operational = OperationalSettings.from_environment()
     data_dir = _as_path(arguments.data_dir).resolve()
     selected = _selected_products(arguments.products)
     generated_at = datetime.now(UTC)
-    history_hours = _value_or(arguments.history_hours, operational.history_hours)
     timeline_processor = _timeline_processor(
         data_dir,
         _as_path(arguments.radar_config),
     )
     publisher = ManifestPublisher(
         data_dir,
-        history_hours=history_hours,
         image_resolver=timeline_processor.frame_image,
         radar_metadata_resolver=timeline_processor.radar_metadata,
     )
@@ -702,12 +685,19 @@ def _run_rebuild(arguments: argparse.Namespace) -> int:
         scan = scan_product_history(data_dir, product)
         timeline_processor.ensure_frames(
             product,
-            select_history_frames(scan.frames, history_hours),
+            frames_for_processing(product, scan),
         )
         results.append(publisher.rebuild_product(product, generated_at=generated_at))
-    index_path = publisher.rebuild_index(selected, generated_at=generated_at)
+    publication_products = (
+        NATIONAL,
+        *load_radar_catalog(_as_path(arguments.radar_config)).products,
+    )
+    for product in publication_products:
+        if not publisher.manifest_path(product).is_file():
+            publisher.rebuild_product(product, generated_at=generated_at)
+    index_path = publisher.rebuild_index(publication_products, generated_at=generated_at)
     health_path = HealthPublisher(data_dir, publisher).publish(
-        selected,
+        publication_products,
         generated_at=generated_at,
     )
     _print_json(

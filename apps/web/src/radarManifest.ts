@@ -20,6 +20,8 @@ export interface RadarTimelineFrame {
   sourceHash: string;
   rawUrl: string;
   imageUrl: string;
+  noCoverageUrl?: string | null;
+  sourceProvider?: string;
   imageCoordinates: MapCoordinates;
   status: 'available';
 }
@@ -207,9 +209,21 @@ function isTimelineFrame(value: unknown): value is RadarTimelineFrame {
     typeof value.rawUrl === 'string' &&
     value.rawUrl.startsWith('/') &&
     typeof value.imageUrl === 'string' &&
-    value.imageUrl.startsWith('/') &&
+    isLocalImageUrl(value.imageUrl) &&
+    (value.noCoverageUrl == null || isLocalImageUrl(value.noCoverageUrl)) &&
+    (value.sourceProvider === undefined ||
+      typeof value.sourceProvider === 'string') &&
     isMapCoordinates(value.imageCoordinates) &&
     value.status === 'available'
+  );
+}
+
+function isLocalImageUrl(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.startsWith('/radar/') &&
+    !value.includes('\\') &&
+    !value.split('/').includes('..')
   );
 }
 

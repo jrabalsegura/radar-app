@@ -103,7 +103,7 @@ def main() -> None:
         x = position % CROP_SIZE[0]
         y = position // CROP_SIZE[0]
         inside_coverage = (x - 3) ** 2 + (y - 2) ** 2 <= 3**2
-        opaque = rgb is not None and allowed == 255 and inside_coverage
+        opaque = rgb is not None and (allowed == 255 or palette_index != 10) and inside_coverage
         overlay_pixels.append((*rgb, 255) if opaque and rgb is not None else (0, 0, 0, 0))
         alpha_pixels.append(255 if opaque else 0)
 

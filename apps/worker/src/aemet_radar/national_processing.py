@@ -238,6 +238,16 @@ def publish_national_overlay(
     )
     overlay = rgb.convert("RGBA")
     overlay.putalpha(mask)
+    # AEMET identifica en negro las zonas del mosaico sin radar operativo.
+    # El fondo claro (sin ecos) no es ausencia de cobertura.
+    no_coverage = Image.new("RGBA", rgb.size, (83, 91, 105, 0))
+    no_coverage_alpha = Image.new("L", rgb.size)
+    no_coverage_alpha.putdata(
+        [255 if pixel == (0, 0, 0) else 0 for pixel in rgb.get_flattened_data()]
+    )
+    no_coverage.putalpha(no_coverage_alpha)
+    no_coverage_buffer = BytesIO()
+    no_coverage.save(no_coverage_buffer, format="PNG", optimize=True)
 
     mask_buffer = BytesIO()
     mask.save(mask_buffer, format="PNG", optimize=True)
@@ -248,6 +258,7 @@ def publish_national_overlay(
     report_path = output_dir / "national-processing.json"
     atomic_write_bytes(mask_output_path, mask_buffer.getvalue())
     atomic_write_bytes(overlay_path, overlay_buffer.getvalue())
+    atomic_write_bytes(output_dir / "no-coverage.png", no_coverage_buffer.getvalue())
     report: dict[str, object] = {
         "schemaVersion": 1,
         "processor": PROCESSOR_ID,
@@ -270,6 +281,8 @@ def publish_national_overlay(
         },
         "output": {
             "file": overlay_path.name,
+            "noCoverageFile": "no-coverage.png",
+            "noCoveragePixels": no_coverage_alpha.histogram()[255],
             "maplibreCoordinates": [list(coordinate) for coordinate in coordinates],
         },
     }

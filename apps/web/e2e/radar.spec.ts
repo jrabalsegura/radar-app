@@ -208,3 +208,69 @@ test.describe('geolocalización móvil', () => {
     await expect(page.getByText('Radar más cercano: Madrid.')).toBeVisible();
   });
 });
+
+test('muestra radar real, accesos directos y cobertura nacional versionada', async ({
+  page,
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/');
+  const stage = page.locator('.map-stage');
+  await expect(stage).toHaveAttribute(
+    'data-frame-ready',
+    /\/radar\/regional-mu\//,
+  );
+  await expect(page.getByTestId('visible-frame-time')).toContainText(
+    /Imagen:|Obtenida:/,
+  );
+  await expect(
+    page.getByRole('button', { name: 'Centrar radar' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Ir a la última' }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel('Leyenda de reflectividad en dBZ'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Ir a composición nacional' }),
+  ).toBeVisible();
+  const timeline = page.getByLabel('Instante del radar');
+  const latestIndex = await timeline.inputValue();
+  await timeline.press('ArrowLeft');
+  await page.getByRole('button', { name: 'Ir a la última' }).click();
+  await expect(timeline).toHaveValue(latestIndex);
+  await page.getByRole('button', { name: 'Centrar radar' }).click();
+  await page.screenshot({ path: testInfo.outputPath('regional.png') });
+  const coverageRequests: string[] = [];
+  page.on('response', (response) => {
+    if (response.url().endsWith('/no-coverage.png') && response.ok())
+      coverageRequests.push(response.url());
+  });
+  await page.getByRole('button', { name: 'Ir a composición nacional' }).click();
+  await expect(stage).toHaveAttribute(
+    'data-frame-ready',
+    /\/radar\/national\/frames\/[a-f0-9]{64}\/[a-f0-9]{64}\//,
+  );
+  await page.getByRole('button', { name: 'Abrir opciones del mapa' }).click();
+  await page.getByRole('button', { name: 'Ver zonas sin cobertura' }).click();
+  await page.keyboard.press('Escape');
+  await expect.poll(() => coverageRequests.length).toBeGreaterThan(0);
+  await expect(page.locator('.coverage-caption')).toContainText(
+    'sin cobertura operativa según AEMET',
+  );
+  await page.screenshot({ path: testInfo.outputPath('national-coverage.png') });
+  const metrics = await page.evaluate(() => window.__RADAR_PERFORMANCE__);
+  expect(metrics?.radarReadyMilliseconds).toBeGreaterThan(0);
+  expect(metrics?.radarImageRequests).toBeGreaterThan(0);
+  await testInfo.attach('performance', {
+    body: JSON.stringify(metrics, null, 2),
+    contentType: 'application/json',
+  });
+  expect(errors).toEqual([]);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});

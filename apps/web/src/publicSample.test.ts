@@ -22,9 +22,10 @@ const manifestModules = import.meta.glob(
 );
 const frameImages = import.meta.glob(
   [
-    '../public/radar/regional-*/frames/*/overlay-3857.png',
-    '../public/radar/regional-*/frames/*/overlay.png',
-    '../public/radar/national/frames/*/overlay.png',
+    '../public/radar/regional-*/frames/**/overlay-3857.png',
+    '../public/radar/regional-*/frames/**/overlay.png',
+    '../public/radar/national/frames/**/overlay.png',
+    '../public/radar/national/frames/**/no-coverage.png',
   ],
   {
     eager: true,
@@ -92,13 +93,17 @@ describe('muestra pública de la fase 7', () => {
             imageUrls.has(frame.imageUrl),
         ),
       ).toBe(true);
+      for (const frame of manifest.frames) {
+        if (frame.noCoverageUrl)
+          expect(imageUrls.has(frame.noCoverageUrl)).toBe(true);
+      }
     }
 
     const byId = new Map(
       manifests.map((manifest) => [manifest.radar.id, manifest]),
     );
     expect(byId.get('national')?.radar.kind).toBe('national');
-    expect(byId.get('national')?.frames).toHaveLength(24);
+    expect(byId.get('national')?.frames).toHaveLength(23);
     expect(buildTimelineSlots(byId.get('national')!)).toHaveLength(24);
     expect(byId.get('regional-co')?.frames).toHaveLength(24);
     expect(byId.get('regional-ss')?.frames).toHaveLength(24);

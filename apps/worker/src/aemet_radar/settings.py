@@ -6,7 +6,6 @@ import os
 from dataclasses import dataclass
 
 from aemet_radar.errors import ConfigurationError
-from aemet_radar.temporal import HISTORY_HOURS
 
 _PLACEHOLDER_VALUES = {
     "",
@@ -48,7 +47,6 @@ class OperationalSettings:
     retry_attempts: int = 3
     retry_backoff_seconds: float = 1.0
     retention_hours: float = 24.0
-    history_hours: float = HISTORY_HOURS
     product_delay_seconds: float = 1.0
 
     @classmethod
@@ -61,7 +59,6 @@ class OperationalSettings:
                 1.0,
             ),
             retention_hours=_positive_float("AEMET_RETENTION_HOURS", 24.0),
-            history_hours=_positive_float("AEMET_HISTORY_HOURS", HISTORY_HOURS),
             product_delay_seconds=_non_negative_float(
                 "AEMET_PRODUCT_DELAY_SECONDS",
                 1.0,

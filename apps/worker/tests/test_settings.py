@@ -35,7 +35,7 @@ def test_operational_settings_read_environment(monkeypatch: pytest.MonkeyPatch) 
     assert settings.retry_attempts == 4
     assert settings.retry_backoff_seconds == 0.25
     assert settings.retention_hours == 36
-    assert settings.history_hours == 2.5
+    assert not hasattr(settings, "history_hours")
     assert settings.product_delay_seconds == 0.75
 
 
@@ -44,4 +44,7 @@ def test_operational_settings_default_to_three_hours_fifty_minutes(
 ) -> None:
     monkeypatch.delenv("AEMET_HISTORY_HOURS", raising=False)
 
-    assert OperationalSettings.from_environment().history_hours == 23 / 6
+    from aemet_radar.temporal import HISTORY_MINUTES
+
+    assert HISTORY_MINUTES == 230
+    assert not hasattr(OperationalSettings.from_environment(), "history_hours")

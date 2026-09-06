@@ -14,12 +14,11 @@ from aemet_radar.errors import AemetRadarError, DownloadValidationError, is_no_d
 from aemet_radar.health import HealthPublisher, PollObservation
 from aemet_radar.history import isoformat_utc, scan_product_history
 from aemet_radar.hybrid_service import IngestionOutcome
-from aemet_radar.manifests import ManifestPublisher, select_history_frames
+from aemet_radar.manifests import ManifestPublisher
 from aemet_radar.products import RadarProduct
 from aemet_radar.retention import RetentionManager
 from aemet_radar.retry import RetryPolicy, call_with_retry
-from aemet_radar.temporal import HISTORY_HOURS
-from aemet_radar.timeline_processing import RegionalTimelineProcessor
+from aemet_radar.timeline_processing import RegionalTimelineProcessor, frames_for_processing
 
 
 class IngestionServiceProtocol(Protocol):
@@ -82,7 +81,7 @@ class HistoryWorker:
         products: tuple[RadarProduct, ...],
         retry_policy: RetryPolicy,
         retention_hours: float = 24.0,
-        history_hours: float = HISTORY_HOURS,
+        publication_products: tuple[RadarProduct, ...] | None = None,
         timeline_processor: RegionalTimelineProcessor | None = None,
         product_delay_seconds: float = 1.0,
         sleeper: Callable[[float], None] = time.sleep,
@@ -91,6 +90,7 @@ class HistoryWorker:
             raise ValueError("product_delay_seconds debe ser cero o mayor.")
         self.service = service
         self.products = products
+        self.publication_products = publication_products or products
         self.retry_policy = retry_policy
         self.sleeper = sleeper
         self.data_dir = data_dir.resolve()
@@ -98,7 +98,6 @@ class HistoryWorker:
         self.product_delay_seconds = product_delay_seconds
         self.manifests = ManifestPublisher(
             data_dir,
-            history_hours=history_hours,
             image_resolver=(
                 timeline_processor.frame_image if timeline_processor is not None else None
             ),
@@ -118,7 +117,7 @@ class HistoryWorker:
         if callable(begin_cycle):
             begin_cycle()
 
-        for product in self.products:
+        for product in self.publication_products:
             if not self.manifests.manifest_path(product).is_file():
                 self.manifests.rebuild_product(product, generated_at=cycle_time)
 
@@ -265,9 +264,9 @@ class HistoryWorker:
             )
             self._pause_between_products(product_index)
 
-        self.manifests.rebuild_index(self.products, generated_at=cycle_time)
+        self.manifests.rebuild_index(self.publication_products, generated_at=cycle_time)
         self.health.publish(
-            self.products,
+            self.publication_products,
             generated_at=cycle_time,
             polls=observations,
         )
@@ -279,20 +278,19 @@ class HistoryWorker:
         *,
         cycle_time: datetime,
     ) -> tuple[int, int]:
-        retention = self.retention.prune_product(
-            product,
-            reference_time=cycle_time,
-        )
         if self.timeline_processor is not None:
             scan = scan_product_history(self.data_dir, product)
             self.timeline_processor.ensure_frames(
                 product,
-                select_history_frames(scan.frames, self.manifests.history_hours),
+                frames_for_processing(product, scan),
             )
         manifest = self.manifests.rebuild_product(
             product,
             generated_at=cycle_time,
         )
+        retention = self.retention.prune_product(product, reference_time=cycle_time)
+        if retention.removed_frames:
+            manifest = self.manifests.rebuild_product(product, generated_at=cycle_time)
         frames = manifest.payload.get("frames")
         published_frames = len(frames) if isinstance(frames, list) else 0
         return retention.removed_frames, published_frames

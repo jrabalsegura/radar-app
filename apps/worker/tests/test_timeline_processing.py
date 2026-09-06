@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -49,16 +50,37 @@ def test_murcia_timeline_processor_publishes_and_reuses_derived_frame(
     assert processor.ensure_frames(MURCIA, (frame,)) == 0
     image = processor.frame_image(MURCIA, frame)
     assert image is not None
-    assert image.url == (f"/radar/regional-mu/frames/{digest}/overlay-3857.png")
+    assert image.url.startswith(f"/radar/regional-mu/frames/{digest}/")
+    assert image.url.endswith("/overlay-3857.png")
     assert len(image.coordinates) == 4
 
-    output_dir = tmp_path / "radar" / MURCIA.id / "frames" / digest
+    output_dir = (tmp_path / image.url.lstrip("/")).parent
     with Image.open(output_dir / "overlay-3857.png") as output:
         output.load()
         assert output.mode == "RGBA"
         assert output.size == (630, 618)
     report = json.loads((output_dir / "georeferencing.json").read_text())
     assert report["output"]["resampling"] == "nearest"
+
+    # Cambiar la máscara produce otra URL sin reescribir la imagen ya cacheada.
+    original_bytes = (output_dir / "overlay-3857.png").read_bytes()
+    changed_mask = tmp_path / "changed-mask.png"
+    Image.new("L", (480, 480), 0).save(changed_mask)
+    catalog = load_radar_catalog(RADAR_CATALOG)
+    changed_catalog = replace(
+        catalog,
+        definitions=tuple(
+            replace(item, static_mask_path=changed_mask) if item.product.id == MURCIA.id else item
+            for item in catalog.definitions
+        ),
+    )
+    updated = RegionalTimelineProcessor(tmp_path, catalog=changed_catalog)
+    assert updated.ensure_frames(MURCIA, (frame,)) == 1
+    new_image = updated.frame_image(MURCIA, frame)
+    assert new_image is not None and new_image.url != image.url
+    assert new_image.coordinates == image.coordinates
+    assert (output_dir / "overlay-3857.png").read_bytes() == original_bytes
+    assert updated.ensure_frames(MURCIA, (frame,)) == 0
 
 
 def test_viewer_timeline_processor_uses_official_png_bounds_without_masks(
@@ -101,9 +123,10 @@ def test_viewer_timeline_processor_uses_official_png_bounds_without_masks(
     image = processor.frame_image(MURCIA, frame)
 
     assert image is not None
-    assert image.url == f"/radar/regional-mu/frames/{digest}/overlay.png"
+    assert image.url.startswith(f"/radar/regional-mu/frames/{digest}/")
+    assert image.url.endswith("/overlay.png")
     assert image.coordinates == tuple(tuple(value) for value in coordinates)
-    with Image.open(tmp_path / "radar" / MURCIA.id / "frames" / digest / "overlay.png") as overlay:
+    with Image.open(tmp_path / image.url.lstrip("/")) as overlay:
         overlay.load()
         assert overlay.size == (1000, 1000)
         background_pixel = overlay.getpixel((0, 0))

@@ -42,6 +42,11 @@ def test_builds_dynamic_mask_and_preserves_exact_reflectivity(
         (255, 255, 0),
     )
     assert report["processor"] == "national-v1"
+    with Image.open(tmp_path / "output" / "no-coverage.png") as coverage:
+        assert coverage.getpixel((13, 10)) == (83, 91, 105, 255)
+        for position in ((0, 0), (10, 10), (11, 10), (12, 10)):
+            pixel = coverage.getpixel(position)
+            assert isinstance(pixel, tuple) and pixel[3] == 0
     with Image.open(tmp_path / "output" / "mask.png") as mask:
         assert mask.mode == "L"
         assert mask.getpixel((10, 10)) == 255
