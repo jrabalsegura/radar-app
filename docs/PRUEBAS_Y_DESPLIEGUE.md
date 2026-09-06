@@ -5,118 +5,131 @@ Esta guía corresponde a `codex/radar-review-fixes`. El repositorio es
 [DEPLOY.md](DEPLOY.md); los pasos de servidor de esta guía actualizan la
 instalación existente mediante `ssh remote`.
 
-## 1. Preparar y validar en el Mac
+## 1. Preparar Docker y la configuración
+
+La prueba local usa **Docker Compose con dos contenedores**: `web` sirve el
+frontend mediante nginx y `worker` consulta AEMET y procesa las imágenes. Los
+archivos de construcción siguen presentes; se llaman `Containerfile`, un nombre
+alternativo a `Dockerfile` que Compose ya tiene configurado:
+
+- [web.Containerfile](../deploy/containers/web.Containerfile)
+- [worker.Containerfile](../deploy/containers/worker.Containerfile)
+- [compose.yaml](../compose.yaml)
+
+Node, Python y las dependencias de la aplicación se instalan dentro de las
+imágenes. Para este recorrido necesitas Docker Desktop en marcha, Make y, para
+la comprobación automática, `curl` y `jq` en el Mac.
+
+Abre Docker Desktop y espera a que indique que el motor está en ejecución.
+Después, en una terminal:
 
 ```bash
 cd /Users/jraba/Desktop/aemet-radar-app-planning
-git branch --show-current
-git status --short
-make install
-make check
-cd apps/web
-npx playwright install chrome
-npm run test:e2e
-cd ../..
+docker info --format '{{.ServerVersion}}'
+docker compose version
 ```
 
-Se recomiendan Node 24 y Python 3.13, como en CI. `make install` reinstala también
-el código del worker: no basta con editar `src/` y ejecutar una CLI instalada
-anteriormente. Las pruebas unitarias no necesitan una API key. Playwright usa
-Chrome, un servidor local y cartografía pública OpenFreeMap; necesita conexión
-para comprobar el fondo real. Guarda capturas en `apps/web/test-results/` y,
-ante fallos, trazas que puedes abrir con `npx playwright show-trace ruta/trace.zip`.
-
-La CI ejecuta lint, formato, tipado, unidades, build, Playwright en escritorio y
-móvil, construcción de ambas imágenes y un smoke test contra nginx del
-contenedor. Comprueba las 16 fuentes y todas las URLs de imágenes y coberturas
-publicadas. No consulta AEMET ni recibe la key. Los resultados del navegador se
-conservan durante siete días como artefacto `browser-results`.
-
-## 2. Revisar la interfaz con las muestras incluidas
+Ambos comandos deben terminar correctamente. Si ya tienes `.env` configurado,
+úsalo. Si todavía no existe, créalo sin sobrescribir uno anterior:
 
 ```bash
-make dev-web
+if [ ! -f .env ]; then
+  cp .env.example .env
+fi
+chmod 600 .env
 ```
 
-Abre la URL que imprime Vite. Las imágenes incluidas son históricas: es correcto
-que aparezcan como **Retrasado**. La muestra nacional procede de originales del
-24 de agosto de 2026: tiene 23 observaciones y un hueco a las 10:30 UTC
-—12:30 en Madrid—. No se ha creado una imagen para rellenarlo.
+Edita `.env` con tu editor y configura `AEMET_API_KEY`. El secreto lo recibe
+únicamente el worker. Conserva Liberty como estilo. Si tienes un worker nativo
+arrancado con `make run-worker`, detenlo con Ctrl+C antes de continuar: debe haber
+un solo escritor sobre `data/`.
 
-Prueba en escritorio y en un móvil, incluyendo una anchura de 360 px:
+## 2. Construir y arrancar la prueba
+
+```bash
+make container-up
+make container-status
+```
+
+`container-up` construye las imágenes desde el código actual y arranca ambos
+servicios en segundo plano. El primer build necesita descargar las imágenes
+base y dependencias. Los siguientes reutilizan la caché de construcción.
+
+Abre **<http://127.0.0.1:8080>**. Es la aplicación con el nginx del contenedor y
+los datos reales del worker. Las muestras históricas de `apps/web/public/radar/`
+no se incluyen en la imagen web. Ambos servicios usan `./data/` como directorio
+persistente; el web lo monta en solo lectura.
+
+Si faltan imágenes al principio, consulta el avance:
+
+```bash
+make container-logs
+```
+
+El primer ciclo puede tardar varios minutos. Ctrl+C cierra el seguimiento del
+log; los contenedores continúan funcionando. Cuando termine el primer ciclo:
+
+```bash
+make container-check
+```
+
+Debe indicar `Smoke test correcto`. Comprueba las 16 fuentes, sus manifiestos,
+las URLs de imágenes y coberturas, las cabeceras de caché y el aislamiento de la
+key. `health: starting` puede aparecer durante el arranque. Un estado de datos
+`degraded` puede deberse a radares sin datos recientes, aunque los contenedores
+estén sanos.
+
+Si el puerto 8080 ya está ocupado, usa el mismo puerto alternativo en los
+comandos de esa prueba:
+
+```bash
+make container-up RADAR_HTTP_PORT=8081
+make container-check RADAR_HTTP_PORT=8081
+```
+
+En ese caso abre <http://127.0.0.1:8081>.
+
+## 3. Comprobar los cambios en el navegador
+
+Prueba la ventana de escritorio y la vista de dispositivo de las herramientas
+de desarrollo del navegador —por ejemplo, 360 o 393 px de ancho—. El puerto
+publicado está limitado al propio Mac: `127.0.0.1` en un teléfono apuntaría al
+propio teléfono.
 
 | Acción | Resultado esperado |
 | --- | --- |
-| Abrir Murcia | Ciudades legibles en la primera vista; botones Cerca de mí y Nacional visibles. |
-| Aumentar zoom | Más poblaciones progresivamente; Liberty conserva carreteras, costa y relieve. Los nombres dependen también de las teselas disponibles y de las colisiones. |
+| Abrir Murcia | Ciudades legibles en la primera vista; Cerca de mí y Nacional visibles. |
+| Aumentar zoom | Más poblaciones progresivamente; Liberty conserva carreteras, costa y relieve. |
 | Mover/alejar el mapa y pulsar Centrar radar | Recupera centro y zoom iniciales. |
 | Explorar una hora y esperar diez minutos o desconectar/reconectar | Conserva encuadre y hora explorada mientras exista; si estabas en la última, sigue la nueva última. |
-| Elegir otra hora | La línea Imagen indica la hora realmente dibujada; durante la carga conserva la hora anterior y avisa. |
-| Volver rápidamente de A a B y a A con red lenta | B no aparece después; prueba también un hueco sin imagen anterior. |
-| Seleccionar el hueco nacional de 12:30 | Marca «intervalo sin dato» y conserva la imagen de 12:20 con su hora real. |
-| Pulsar Ir a la última | Vuelve al extremo más reciente y pausa la reproducción; el fotograma dice Última. |
-| Elegir Las Palmas en las muestras | Indica Obtenida cuando no hay hora de producto, y fuente alternativa. |
+| Elegir otra hora | Imagen indica la hora realmente dibujada; durante la carga conserva la anterior y avisa. |
+| Volver rápidamente de A a B y a A con red lenta | B no aparece después de volver a A. |
+| Seleccionar un hueco, si lo hay en los datos actuales | Marca el intervalo sin dato y conserva la imagen anterior con su hora real. |
+| Pulsar Ir a la última | Vuelve al extremo más reciente y pausa; el fotograma dice Última. |
+| Ver una imagen de fallback sin hora de producto, si la hay | Indica Obtenida, hora del producto desconocida y fuente alternativa. |
 | Cerca de mí junto al radar ya seleccionado, dos veces | Conserva el historial; la ubicación se procesa en el dispositivo. |
-| Cerca de mí junto a un radar sin imágenes | Va directamente a la composición nacional. Un radar con imágenes antiguas sigue siendo consultable y muestra su antigüedad. |
-| Opciones → Ver zonas sin cobertura, en nacional | Superpone en gris las zonas marcadas por AEMET para esa imagen, si las hay; no sombrea el fondo claro sin ecos. |
-| La misma opción en un regional | Sombrea el exterior del alcance nominal de 240 km. No afirma conocer bloqueos ni cobertura efectiva dentro del círculo. |
+| Cerca de mí junto a un radar sin imágenes | Va directamente a composición nacional. Un radar con imágenes antiguas sigue siendo consultable y muestra su antigüedad. |
+| Opciones → Ver zonas sin cobertura, en nacional | Superpone las zonas marcadas por AEMET para esa imagen, si las hay; no sombrea el fondo claro sin ecos. |
+| La misma opción en un regional | Sombrea el exterior del alcance nominal de 240 km. |
 | Abrir la leyenda dBZ | Muestra los once umbrales; no convierte a mm/h. |
 | Desconectar tras cargar y recargar | Mantiene la copia guardada, informa de la desconexión y no la declara actualizada. |
-| Teclado y movimiento reducido | Conserva atajos, foco, reproducción y ausencia de transiciones al pedir movimiento reducido. |
+| Teclado y movimiento reducido | Conserva atajos, foco y reproducción. |
 
-La calibración continúa en `config/georeferencing/`, `config/masks/` y
-`config/radars.yaml`. Los cambios de etiquetas no alteran coordenadas, proyección,
-recorte ni remuestreo de las imágenes. El control anterior «Ver cobertura»
-conserva el perímetro de diagnóstico y el emplazamiento.
-
-## 3. Probar el worker sin modificar los datos originales
-
-Reconstruye en una copia que solo contiene los originales y sus informes:
+Para comprobar que los datos siguen actualizándose:
 
 ```bash
-mkdir -p tmp/review-data/raw
-rsync -a data/raw/ tmp/review-data/raw/
-.venv/bin/aemet-radar rebuild-manifests --data-dir tmp/review-data
-.venv/bin/aemet-radar rebuild-manifests --data-dir tmp/review-data --product regional-mu
-jq '.radars | length' tmp/review-data/radar/index.json
-jq '.window.minutes' tmp/review-data/radar/regional-mu/manifest.json
-jq '.frames[-1] | {time, imageUrl, noCoverageUrl, sourceProvider}' \
-  tmp/review-data/radar/national/manifest.json
+curl -fsS http://127.0.0.1:8080/status/health.json \
+  | jq '{generatedAt, status, products: [.products[] | {id, status, lastPollAt, lastFrameTime}]}'
 ```
 
-Espera **16 fuentes** y **230 minutos**, también tras la reconstrucción parcial.
-Las nuevas imágenes tienen la ruta
-`/radar/<producto>/frames/<hash-original>/<version-procesado>/...png`.
-`rebuild-manifests` no consulta AEMET y no ejecuta limpieza. La copia puede ocupar
-más que `raw/` porque genera derivados.
-
-Para ver esa publicación con el build, en un directorio temporal nuevo:
-
-```bash
-make build
-preview_dir=$(mktemp -d "$PWD/tmp/review-preview.XXXXXX")
-rsync -a apps/web/dist/ "$preview_dir/"
-rm -rf "$preview_dir/radar" "$preview_dir/status"
-ln -s "$PWD/tmp/review-data/radar" "$preview_dir/radar"
-ln -s "$PWD/tmp/review-data/status" "$preview_dir/status"
-python3 -m http.server 4174 --bind 127.0.0.1 --directory "$preview_dir"
-```
-
-Abre <http://127.0.0.1:4174>. Para datos nuevos, configura `.env` siguiendo el
-README y ejecuta **un único** worker. No ejecutes `poll-once`, reconstrucciones y
-el scheduler a la vez sobre el mismo directorio.
-
-La ventana de 230 minutos es fija. Se ha retirado `--history-hours` y la lectura
-de `AEMET_HISTORY_HOURS`; una variable antigua se ignora. La retención de
-originales continúa siendo configurable, con 24 horas por defecto. La limpieza
-protege las publicaciones y hashes compartidos; solo recoge derivados huérfanos
-tras 24 horas desde que detectó que dejaron de estar referenciados. En el primer
-ciclo no debe desaparecer de golpe todo el material antiguo. Si encuentra
-informes o un manifiesto ilegibles, evita limpiar sin referencias fiables.
+Repite tras un ciclo y comprueba que avanza `generatedAt`. La hora del último
+fotograma puede permanecer igual si AEMET no ha publicado otro. La calibración
+no cambia con el estilo de etiquetas; el control «Ver cobertura» conserva el
+perímetro de diagnóstico y el emplazamiento.
 
 ## 4. Medir arranque y transporte
 
-Sobre el build, abre la consola del navegador:
+En la aplicación de <http://127.0.0.1:8080>, abre la consola del navegador:
 
 ```javascript
 JSON.stringify(window.__RADAR_PERFORMANCE__, null, 2)
@@ -140,27 +153,53 @@ conexión. Conservamos PNG y sus clases exactas; cambiar formato requiere medir 
 comparar los píxeles primero. nginx comprime JavaScript, CSS y JSON; las imágenes
 conservan caché inmutable y las publicaciones JSON siguen con `no-store`.
 
-## 5. Prueba con el servidor de producción en local
+## 5. Reconstruir, repetir y detener la prueba
 
-Con Docker Desktop u otro motor Docker en ejecución y `.env` configurado:
+**Si ya tenías datos de la versión anterior** y quieres probar inmediatamente
+las nuevas URLs y coberturas, puedes regenerarlos desde sus originales dentro
+del contenedor. Esto no consulta AEMET ni ejecuta limpieza:
+
+```bash
+docker compose stop worker
+RADAR_UID="$(id -u)" RADAR_GID="$(id -g)" \
+  docker compose run --rm --no-deps worker rebuild-manifests --data-dir /data
+make container-up
+make container-check
+```
+
+Ejecuta este bloque después de haber construido las imágenes con el paso 2.
+Si la reconstrucción falla, revisa su error; `make container-up` permite volver
+a arrancar el worker. No ejecutes la reconstrucción mientras otro worker esté
+escribiendo. Para probar la operación parcial puedes añadir
+`--product regional-mu` al comando de reconstrucción: el catálogo debe seguir
+teniendo 16 fuentes y la ventana, 230 minutos.
+
+**Después de cambiar código**, vuelve a ejecutar:
 
 ```bash
 make container-up
-make container-status
 make container-check
-make container-logs
 ```
 
-Abre <http://127.0.0.1:8080>. Al terminar:
+Compose reconstruye y reemplaza los contenedores que cambien. Un simple reinicio
+no incorpora cambios de código: estos están dentro de las imágenes.
+
+**Para detener la prueba:**
 
 ```bash
 make container-down
 ```
 
-No elimina `data/`. La comprobación verifica HTTP, las 16 fuentes, manifiestos,
-URLs publicadas, cabeceras de imágenes y el aislamiento de la key. El directorio
-real se modifica al ejecutar el worker; usa los pasos anteriores si solo quieres
-probar una reconstrucción aislada.
+Elimina los contenedores de esta aplicación y su red, conservando `./data/`.
+Durante la ejecución, el worker sí aplica la política normal de retención sobre
+ese directorio: 24 horas de originales por defecto, protección de imágenes
+publicadas y hashes compartidos, y 24 horas adicionales desde que detecta que
+un derivado quedó huérfano. La ventana pública es fija de 230 minutos.
+
+La CI se encarga además de lint, formato, tipado, unidades, build, Playwright en
+escritorio/móvil y construcción de contenedores. Los resultados del navegador
+se guardan siete días como artefacto `browser-results`. Este recorrido local
+comprueba la aplicación ejecutándose en contenedores con datos reales.
 
 ## 6. Publicar el código en GitHub
 
