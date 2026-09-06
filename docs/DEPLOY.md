@@ -1,5 +1,9 @@
 # Despliegue
 
+Para probar y actualizar la revisión de septiembre en el servidor ya instalado,
+incluida la regeneración de URLs inmutables y conservación de Certbot, sigue
+[PRUEBAS_Y_DESPLIEGUE.md](PRUEBAS_Y_DESPLIEGUE.md).
+
 Esta guía cubre dos destinos distintos:
 
 1. una prueba prolongada en el Mac de desarrollo con Docker Compose;
@@ -241,7 +245,6 @@ AEMET_POLL_INTERVAL_SECONDS=300
 AEMET_RETRY_ATTEMPTS=3
 AEMET_RETRY_BACKOFF_SECONDS=1
 AEMET_RETENTION_HOURS=24
-AEMET_HISTORY_HOURS=3.8333333333333335
 AEMET_PRODUCT_DELAY_SECONDS=1
 AEMET_HEALTH_MAX_AGE_SECONDS=1800
 ```

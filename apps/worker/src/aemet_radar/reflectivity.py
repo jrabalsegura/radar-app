@@ -813,7 +813,7 @@ def _classify(
         if item.ambiguous and config.ambiguous_class_policy == "discard":
             discarded_ambiguous_counts[palette_index] += 1
             continue
-        if mask[position] == 0:
+        if item.ambiguous and mask[position] == 0:
             discarded_counts[palette_index] += 1
             continue
         if coverage[position] == 0:

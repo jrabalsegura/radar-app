@@ -165,9 +165,21 @@ atómica.
 
 ## Retención y espacio
 
-El worker conserva por defecto 24 horas de originales y al menos el último
-fotograma válido de cada producto. Publica una ventana de 3 horas y 50 minutos.
-Los valores efectivos están en `/etc/aemet-radar/worker.env`.
+El worker conserva por defecto 24 horas de originales y protege los originales
+y hashes de los manifiestos publicados, incluido el último fotograma realmente
+publicable aunque después lleguen GIF nacionales de fallback. Publica una
+ventana fija de 230 minutos; `AEMET_HISTORY_HOURS` ya no se lee y
+`--history-hours` ya no se admite. La retención de originales se configura en
+`/etc/aemet-radar/worker.env`.
+
+Los derivados de `processed/<producto>/<hash>` y
+`radar/<producto>/frames/<hash>` se recogen cuando no hay referencias archivadas
+ni publicadas, con un margen adicional de 24 horas desde que se detectó la
+orfandad. El registro se guarda en `data/state/retention/`. Se conservan las
+versiones anteriores de un hash mientras esté referenciado; no se borran
+enlaces simbólicos ni se limpia si los informes no permiten reconstruir las
+referencias. La primera ejecución crea el registro, no elimina inmediatamente
+los derivados huérfanos anteriores.
 
 ```bash
 sudo du -sh /var/lib/aemet-radar/data
@@ -178,6 +190,11 @@ sudo df -h /var/lib/aemet-radar/data
 No añadas una limpieza externa sobre `data/raw`: el propio worker elimina el
 original y su informe como una pareja y protege el último válido. Los backups
 sí tienen una retención independiente de 14 días.
+
+El smoke test comprueba también la existencia y cabeceras de todas las imágenes
+y capas sin cobertura anunciadas por los 16 manifiestos. El frontend recalcula
+la edad con el reloj del dispositivo cada minuto: un `health.json` congelado
+puede aparecer como «Retrasado» aunque nginx siga respondiendo HTTP 200.
 
 ## Backups
 

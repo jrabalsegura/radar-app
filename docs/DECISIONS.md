@@ -534,3 +534,78 @@ desastre y no forma parte del rollback habitual.
 **Motivo:** código y estado tienen ciclos de vida distintos. Acoplar un rollback
 de imagen a una copia antigua de datos perdería observaciones válidas sin
 necesidad.
+
+---
+
+## ADR-029 — Publicabilidad antes de deduplicación y retención
+
+**Estado:** aceptada por el usuario el 6 de septiembre de 2026.
+
+Se conservan las representaciones archivadas hasta resolver cuáles tienen una
+imagen pública válida. A igual hora se prefiere el visor oficial entre las
+representaciones publicables. El GIF nacional sigue siendo un archivo de
+fallback, nunca un sustituto visual del PNG. La ventana de procesamiento
+nacional se ancla en candidatos PNG del visor nacional.
+
+Se publica antes de limpiar; se protegen las referencias del manifiesto y los
+hashes compartidos. Los derivados sin referencias se registran y solo se
+recogen tras 24 horas adicionales, sin seguir symlinks y suspendiendo la
+limpieza si no pueden reconstruirse las referencias. Las URLs incluyen la
+versión efectiva del procesamiento y configuración. Cambiar un algoritmo
+requiere cambiar su revisión de publicación; cambiar máscara, paleta,
+coordenadas o georreferenciación invalida la URL automáticamente.
+
+La ventana pública es fija, 230 minutos. Se retiran `--history-hours` y la
+lectura de `AEMET_HISTORY_HOURS`. Las operaciones parciales reconstruyen el
+índice completo de 16 fuentes y conservan los manifiestos de las demás.
+
+**Motivo:** impedir que una representación no publicable esconda o elimine la
+última imagen válida y cumplir el contrato de caché inmutable sin alterar la
+calibración.
+
+## ADR-030 — Hora visible, selección cercana y cobertura opcional
+
+**Estado:** aceptada por el usuario el 6 de septiembre de 2026.
+
+La hora visible identifica el fotograma realmente renderizado. Durante un hueco
+se conserva el anterior y se indica el intervalo sin dato; durante una carga o
+un error se informa sin atribuir a la imagen anterior una hora nueva. Se usa
+«Obtenida» si no hay hora de producto y «Última» para el extremo del historial.
+
+«Cerca de mí» sigue eligiendo por distancia: si el más cercano no tiene imágenes
+publicadas, selecciona composición nacional directamente. Un radar con imágenes
+antiguas conserva su disponibilidad, y su edad queda indicada. La ubicación se
+procesa en el dispositivo. Repetir la selección actual conserva su manifiesto.
+
+La cobertura es una capa opcional independiente de la reflectividad. En el PNG
+nacional usa únicamente el negro validado que marca ausencia de cobertura
+operativa; el fondo claro sin ecos no se sombrea. En regional muestra el exterior
+del círculo nominal y explicita que la cobertura real puede ser menor. No se
+infiere ausencia de cobertura a partir de píxeles transparentes. Referencia:
+[ayuda oficial del radar AEMET](https://www.aemet.es/es/eltiempo/observacion/radar/ayuda).
+
+**Motivo:** hacer inequívoco qué dato se está viendo sin inventar observaciones
+ni cobertura efectiva.
+
+## ADR-031 — Liberty con rótulos visibles y mediciones del radar
+
+**Estado:** aceptada por el usuario el 6 de septiembre de 2026.
+
+Se conserva OpenFreeMap Liberty, la cartografía plana, la geometría y los
+parámetros de calibración existentes. Se colocan las etiquetas por encima de
+los ecos, se refuerza su halo y se adelantan pueblos a zoom 5 y aldeas a zoom 7.
+Se respetan la disponibilidad de las teselas y las colisiones de textos.
+
+Nacional, Cerca de mí, Centrar radar e Ir a la última son accesibles en la vista
+principal. La leyenda presenta los once umbrales dBZ sin convertirlos a mm/h.
+Catálogo/manifiesto y geolocalización se extraen a hooks; las fuentes pendientes
+del mapa se cancelan por selección y no se muestran hasta cargar realmente.
+
+Se mide el primer render radar además de `appReady`, y el transporte de imágenes
+mediante Resource Timing, sin telemetría remota. Conservamos PNG antes de
+plantear cambios de formato. CI incorpora Playwright con cartografía real y
+smoke tests de imágenes con nginx de producción; una caída de OpenFreeMap puede
+hacer fallar el E2E aunque las unidades y publicación sigan siendo correctas.
+
+**Motivo:** mejorar la lectura y verificar comportamiento real manteniendo el
+trabajo previo de calibración y la arquitectura estática.

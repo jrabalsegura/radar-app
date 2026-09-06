@@ -2,16 +2,22 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "codex/**"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: apps/web
@@ -44,9 +50,27 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Install Chrome for browser tests
+        run: npx playwright install --with-deps chrome
+
+      - name: Browser tests (desktop and mobile)
+        run: npx playwright test --workers=2
+
+      - name: Browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-results
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
   worker:
     name: Worker
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,6 +102,7 @@ jobs:
   containers:
     name: Container images
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [frontend, worker]
     steps:
       - name: Checkout
@@ -101,6 +126,21 @@ jobs:
         run: |
           test "$(docker image inspect aemet-radar-worker:ci --format '{{.Config.User}}')" = "10001:10001"
           test "$(docker image inspect aemet-radar-web:ci --format '{{.Config.User}}')" = "10001:10001"
+
+      - name: Serve fixtures with production nginx and verify public image references
+        run: |
+          docker run --detach --name radar-web-ci --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            --publish 127.0.0.1:8080:8080 \
+            --volume "$GITHUB_WORKSPACE/apps/web/public:/data:ro" \
+            aemet-radar-web:ci
+          curl --fail --silent --retry 10 --retry-connrefused --retry-delay 1 \
+            http://127.0.0.1:8080/healthz
+          ./deploy/scripts/smoke-test.sh http://127.0.0.1:8080
+
+      - name: Container logs
+        if: failure()
+        run: docker logs radar-web-ci
 
       - name: Validate Quadlets with Podman 4.9
         run: >-

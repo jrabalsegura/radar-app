@@ -21,6 +21,8 @@ from aemet_radar.national_processing import (
 from aemet_radar.products import ProductKind, RadarProduct
 from aemet_radar.viewer_client import MapCoordinates
 
+NATIONAL_PUBLICATION_REVISION = "national-public-v2-coverage"
+
 
 class NationalTimelineProcessor:
     """Genera máscara y overlay nacional sin reutilizar parámetros regionales."""
@@ -87,7 +89,14 @@ class NationalTimelineProcessor:
         if coordinates is None:
             return None
         return FrameImage(
-            url=f"/radar/{product.id}/frames/{frame.source_hash}/overlay.png",
+            url="/"
+            + (self._frame_dir(product, frame) / "overlay.png")
+            .relative_to(self.data_dir)
+            .as_posix(),
+            no_coverage_url="/"
+            + (self._frame_dir(product, frame) / "no-coverage.png")
+            .relative_to(self.data_dir)
+            .as_posix(),
             coordinates=coordinates,
         )
 
@@ -144,7 +153,7 @@ class NationalTimelineProcessor:
         )
 
     def _is_current(self, frame: ArchivedFrame) -> bool:
-        frame_dir = self._frame_dir_for_id(frame.product_id, frame.source_hash)
+        frame_dir = self._versioned_frame_dir(frame)
         report = _load_json(frame_dir / "national-processing.json")
         if report is None:
             return False
@@ -162,6 +171,7 @@ class NationalTimelineProcessor:
             and _map_coordinates(output.get("maplibreCoordinates")) is not None
             and (frame_dir / "mask.png").is_file()
             and (frame_dir / "overlay.png").is_file()
+            and (frame_dir / "no-coverage.png").is_file()
         )
 
     def _viewer_coordinates(
@@ -177,10 +187,24 @@ class NationalTimelineProcessor:
         product: RadarProduct,
         frame: ArchivedFrame,
     ) -> Path:
-        return self._frame_dir_for_id(product.id, frame.source_hash)
+        return self._versioned_frame_dir(frame)
 
-    def _frame_dir_for_id(self, product_id: str, source_hash: str) -> Path:
-        return self.data_dir / "radar" / product_id / "frames" / source_hash
+    def _versioned_frame_dir(self, frame: ArchivedFrame) -> Path:
+        config = self.configuration
+        version = hashlib.sha256(
+            json.dumps(
+                [
+                    NATIONAL_PUBLICATION_REVISION,
+                    PROCESSOR_ID,
+                    config.palette_sha256,
+                    config.mask_sha256,
+                    config.georeferencing_sha256,
+                    self._viewer_coordinates(frame),
+                ],
+                sort_keys=True,
+            ).encode()
+        ).hexdigest()
+        return self.data_dir / "radar" / frame.product_id / "frames" / frame.source_hash / version
 
 
 def _load_json(path: Path) -> dict[str, object] | None:

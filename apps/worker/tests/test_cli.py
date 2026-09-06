@@ -87,6 +87,9 @@ def test_rebuild_manifests_does_not_require_api_key(
     assert (tmp_path / "radar" / "regional-mu" / "manifest.json").is_file()
     assert (tmp_path / "radar" / "index.json").is_file()
     assert (tmp_path / "status" / "health.json").is_file()
+    index = json.loads((tmp_path / "radar" / "index.json").read_text())
+    assert len(index["radars"]) == 16
+    assert all((tmp_path / item["manifestUrl"].lstrip("/")).is_file() for item in index["radars"])
 
 
 def test_analyze_reflectivity_does_not_require_api_key(
@@ -113,7 +116,7 @@ def test_analyze_reflectivity_does_not_require_api_key(
     payload = json.loads(capfd.readouterr().out)
     assert payload["status"] == "ok"
     assert payload["processor"] == "regional-v1"
-    assert payload["reflectivityPixels"] == 15
+    assert payload["reflectivityPixels"] == 16
     assert (tmp_path / "overlay.png").is_file()
     assert (tmp_path / "report.json").is_file()
 
@@ -148,3 +151,10 @@ def test_georeference_murcia_does_not_require_api_key(
     assert payload["maximumErrorKilometres"] == pytest.approx(0.699806)
     assert (tmp_path / "output" / "overlay-3857.png").is_file()
     assert (tmp_path / "output" / "georeferencing.json").is_file()
+
+
+@pytest.mark.parametrize("command", ["run", "rebuild-manifests"])
+def test_history_duration_is_not_a_misleading_cli_option(command: str) -> None:
+    with pytest.raises(SystemExit) as captured:
+        main([command, "--history-hours", "2"])
+    assert captured.value.code == 2

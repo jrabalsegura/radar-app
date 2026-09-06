@@ -1,6 +1,5 @@
 import {
   AttributionControl,
-  ImageSource,
   Map as MapLibreMap,
   Marker,
   NavigationControl,
@@ -9,10 +8,10 @@ import {
 } from 'maplibre-gl';
 import mapLibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { useEffect, useRef, useState } from 'react';
-
 import 'maplibre-gl/dist/maplibre-gl.css';
-
-import { preloadFrame } from './framePreloader';
+import { prepareMapImage, removeMapImage } from './mapImage';
+import { improvePlaceLabels, firstLabelLayer } from './mapStyle';
+import { recordRadarRendered } from './performanceMetrics';
 import {
   initialRadarZoom,
   radarCameraCenter,
@@ -22,78 +21,84 @@ import {
 import type { RadarIndexEntry, RegionalRadarIndexEntry } from './radarIndex';
 import type { LongitudeLatitude } from './radarLocation';
 import type { RadarTimelineFrame } from './radarManifest';
-
 setWorkerUrl(mapLibreWorkerUrl);
-
 const DEFAULT_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
-const RADAR_SOURCE_IDS = ['regional-frame-a', 'regional-frame-b'] as const;
-const RADAR_LAYER_IDS = ['regional-frame-a', 'regional-frame-b'] as const;
+const RADAR_IDS = ['regional-frame-a', 'regional-frame-b'] as const;
 const DEBUG_SOURCE_ID = 'calibration-debug';
 const DEBUG_LAYER_ID = 'coverage-debug';
-const CROSSFADE_MILLISECONDS = 180;
-
+const NO_COVERAGE_ID = 'no-coverage';
+const NOMINAL_ID = 'outside-nominal-coverage';
 interface RadarMapProps {
   radar: RadarIndexEntry;
   selectedFrame: RadarTimelineFrame | null;
   opacity: number;
   showDebug: boolean;
+  showNoCoverage: boolean;
   reducedMotion: boolean;
   userCoordinates: LongitudeLatitude | null;
   cameraInsets: RadarCameraInsets;
+  recenterRequest: number;
+  onDisplayedFrame: (frame: RadarTimelineFrame | null) => void;
+  onFailedImage: (url: string) => void;
 }
-
 export function RadarMap({
   radar,
   selectedFrame,
   opacity,
   showDebug,
+  showNoCoverage,
   reducedMotion,
   userCoordinates,
   cameraInsets,
+  recenterRequest,
+  onDisplayedFrame,
+  onFailedImage,
 }: RadarMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const debugMarkerRef = useRef<Marker | null>(null);
-  const userMarkerRef = useRef<Marker | null>(null);
-  const activeLayerRef = useRef<0 | 1>(0);
-  const activeUrlRef = useRef<string | null>(null);
-  const initialFrameRef = useRef(selectedFrame);
-  const transitionSequenceRef = useRef(0);
-  const initialOpacityRef = useRef(opacity);
-  const initialDebugRef = useRef(showDebug);
-  const initialCameraInsetsRef = useRef(cameraInsets);
+  const initial = useRef({ radar, cameraInsets });
+  const active = useRef<{
+    slot: 0 | 1;
+    key: string;
+    frame: RadarTimelineFrame;
+  } | null>(null);
+  const sequence = useRef(0);
+  const presentation = useRef({
+    opacity,
+    reducedMotion,
+    onDisplayedFrame,
+    onFailedImage,
+  });
   const [mapReady, setMapReady] = useState(false);
+  const [displayed, setDisplayed] = useState<RadarTimelineFrame | null>(null);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const [coverageError, setCoverageError] = useState(false);
 
   useEffect(() => {
-    if (!containerRef.current) {
-      return;
-    }
-
-    activeLayerRef.current = 0;
-    activeUrlRef.current = initialFrameRef.current?.imageUrl ?? null;
-    const configuredStyle = import.meta.env.VITE_MAP_STYLE_URL?.trim();
-    const initialZoom = initialRadarZoom(
-      radar,
-      containerRef.current.clientWidth,
-    );
-    const initialCenter = radarCameraCenter(radar);
+    presentation.current = {
+      opacity,
+      reducedMotion,
+      onDisplayedFrame,
+      onFailedImage,
+    };
+  }, [opacity, reducedMotion, onDisplayedFrame, onFailedImage]);
+  // App da al mapa key=radar.id. Renovar el catálogo no recrea el mapa ni su cámara.
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const { radar: firstRadar, cameraInsets: firstInsets } = initial.current;
     const map = new MapLibreMap({
       container: containerRef.current,
-      style: configuredStyle || DEFAULT_STYLE_URL,
-      center: initialCenter,
-      zoom: initialZoom,
+      style: import.meta.env.VITE_MAP_STYLE_URL?.trim() || DEFAULT_STYLE_URL,
+      center: radarCameraCenter(firstRadar),
+      zoom: initialRadarZoom(firstRadar, containerRef.current.clientWidth),
       minZoom: 4,
       maxZoom: 12,
       bearing: 0,
       pitch: 0,
       attributionControl: false,
     });
-    map.jumpTo({
-      center: initialCenter,
-      zoom: initialZoom,
-      padding: radarCameraPadding(radar, initialCameraInsetsRef.current),
-    });
+    map.setPadding(radarCameraPadding(firstRadar, firstInsets));
     mapRef.current = map;
     map.addControl(
       new NavigationControl({ showCompass: false, visualizePitch: false }),
@@ -107,161 +112,246 @@ export function RadarMap({
       }),
       'bottom-right',
     );
-
     map.once('style.load', () => {
-      const initialFrame = initialFrameRef.current;
-      if (initialFrame) {
-        ensureRadarLayers(map, initialFrame, initialOpacityRef.current);
-      }
-      map.addSource(DEBUG_SOURCE_ID, debugSource(radar));
+      improvePlaceLabels(map);
+      map.addSource(DEBUG_SOURCE_ID, debugSource(firstRadar));
       map.addLayer({
         id: DEBUG_LAYER_ID,
         type: 'line',
         source: DEBUG_SOURCE_ID,
-        layout: {
-          visibility: initialDebugRef.current ? 'visible' : 'none',
-        },
+        layout: { visibility: 'none' },
         paint: {
           'line-color': '#ff6a3d',
           'line-width': 2,
           'line-dasharray': [2, 2],
         },
       });
-      debugMarkerRef.current =
-        radar.kind === 'regional'
-          ? createDebugMarker(map, radar, initialDebugRef.current)
-          : null;
+      if (firstRadar.kind === 'regional') {
+        debugMarkerRef.current = createDebugMarker(map, firstRadar, false);
+        map.addSource(NOMINAL_ID, {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Polygon',
+              coordinates: [
+                [
+                  [-179.99, -85],
+                  [179.99, -85],
+                  [179.99, 85],
+                  [-179.99, 85],
+                  [-179.99, -85],
+                ],
+                firstRadar.coverageRing,
+              ],
+            },
+          },
+        });
+        map.addLayer(
+          {
+            id: NOMINAL_ID,
+            type: 'fill',
+            source: NOMINAL_ID,
+            layout: { visibility: 'none' },
+            paint: { 'fill-color': '#535b69', 'fill-opacity': 0.22 },
+          },
+          firstLabelLayer(map.getStyle()),
+        );
+      }
       setMapReady(true);
     });
-
     return () => {
-      transitionSequenceRef.current += 1;
-      setMapReady(false);
-      debugMarkerRef.current = null;
-      userMarkerRef.current = null;
+      sequence.current += 1;
       mapRef.current = null;
+      debugMarkerRef.current = null;
       map.remove();
     };
-  }, [radar]);
+  }, []);
 
   useEffect(() => {
+    mapRef.current?.setPadding(radarCameraPadding(radar, cameraInsets));
+  }, [radar, cameraInsets]);
+  const lastRecenter = useRef(recenterRequest);
+  useEffect(() => {
+    if (lastRecenter.current === recenterRequest) return;
+    lastRecenter.current = recenterRequest;
     mapRef.current?.jumpTo({
       center: radarCameraCenter(radar),
       zoom: initialRadarZoom(radar, containerRef.current?.clientWidth ?? 0),
       padding: radarCameraPadding(radar, cameraInsets),
+      bearing: 0,
+      pitch: 0,
     });
-  }, [cameraInsets, radar]);
+  }, [recenterRequest, radar, cameraInsets]);
 
   useEffect(() => {
+    const attempt = ++sequence.current; // También invalida B al volver a A o a un hueco.
     const map = mapRef.current;
-    if (!mapReady || !map) {
-      return;
-    }
-
+    if (!mapReady || !map) return;
+    setFailedImageUrl(null);
+    const announce = (frame: RadarTimelineFrame | null) => {
+      if (sequence.current !== attempt || mapRef.current !== map) return;
+      setDisplayed(frame);
+      presentation.current.onDisplayedFrame(frame);
+      if (frame) recordRadarRendered(frame.imageUrl);
+    };
     if (!selectedFrame) {
-      activeUrlRef.current = null;
-      setLayerOpacities(map, 0, 0, reducedMotion);
-      return;
+      for (const id of RADAR_IDS)
+        if (map.getLayer(id)) map.setPaintProperty(id, 'raster-opacity', 0);
+      active.current = null;
+      const cleared = () => announce(null);
+      map.once('render', cleared);
+      map.triggerRepaint();
+      return () => {
+        map.off('render', cleared);
+      };
     }
-    if (!map.getSource(RADAR_SOURCE_IDS[0])) {
-      ensureRadarLayers(map, selectedFrame, opacity);
-      activeLayerRef.current = 0;
-      activeUrlRef.current = selectedFrame.imageUrl;
-      return;
+    const key = JSON.stringify([
+      selectedFrame.imageUrl,
+      selectedFrame.imageCoordinates,
+    ]);
+    if (active.current?.key === key) {
+      active.current.frame = selectedFrame;
+      const unchanged = () => announce(selectedFrame);
+      map.once('render', unchanged);
+      map.triggerRepaint();
+      return () => {
+        map.off('render', unchanged);
+      };
     }
-    if (activeUrlRef.current === selectedFrame.imageUrl) {
-      const active = activeLayerRef.current;
-      updateActiveCoordinates(map, active, selectedFrame);
-      setLayerOpacities(
-        map,
-        active === 0 ? opacity : 0,
-        active === 1 ? opacity : 0,
-        reducedMotion,
-      );
-      return;
-    }
-
-    const sequence = transitionSequenceRef.current + 1;
-    transitionSequenceRef.current = sequence;
-    void preloadFrame(selectedFrame.imageUrl)
+    const controller = new AbortController();
+    const incoming = active.current?.slot === 0 ? 1 : 0;
+    const id = RADAR_IDS[incoming];
+    let committed = false;
+    const acknowledge = () => {
+      if (sequence.current !== attempt || mapRef.current !== map) return;
+      setDisplayed(selectedFrame);
+      presentation.current.onDisplayedFrame(selectedFrame);
+      recordRadarRendered(selectedFrame.imageUrl);
+    };
+    void prepareMapImage(
+      map,
+      id,
+      selectedFrame.imageUrl,
+      selectedFrame.imageCoordinates,
+      controller.signal,
+    )
       .then(() => {
-        if (sequence !== transitionSequenceRef.current || !mapRef.current) {
+        if (
+          sequence.current !== attempt ||
+          controller.signal.aborted ||
+          mapRef.current !== map
+        )
           return;
-        }
-        const active = activeLayerRef.current;
-        const incoming = active === 0 ? 1 : 0;
-        const source = map.getSource(
-          RADAR_SOURCE_IDS[incoming],
-        ) as ImageSource | null;
-        source?.updateImage({
-          url: selectedFrame.imageUrl,
-          coordinates: selectedFrame.imageCoordinates,
-        });
-        setLayerOpacities(
-          map,
-          incoming === 0 ? opacity : 0,
-          incoming === 1 ? opacity : 0,
-          reducedMotion,
-        );
-        activeLayerRef.current = incoming;
-        activeUrlRef.current = selectedFrame.imageUrl;
-        setFailedImageUrl(null);
+        const { opacity: alpha, reducedMotion: reduced } = presentation.current;
+        for (const layer of RADAR_IDS)
+          if (map.getLayer(layer)) {
+            map.setPaintProperty(layer, 'raster-opacity-transition', {
+              duration: reduced ? 0 : 180,
+              delay: 0,
+            });
+            map.setPaintProperty(
+              layer,
+              'raster-opacity',
+              layer === id ? alpha : 0,
+            );
+          }
+        active.current = { slot: incoming, key, frame: selectedFrame };
+        committed = true;
+        map.once('render', acknowledge);
+        map.triggerRepaint();
       })
-      .catch(() => {
-        if (sequence === transitionSequenceRef.current) {
+      .catch((error: unknown) => {
+        if (
+          !controller.signal.aborted &&
+          sequence.current === attempt &&
+          mapRef.current === map
+        ) {
           setFailedImageUrl(selectedFrame.imageUrl);
+          presentation.current.onFailedImage(selectedFrame.imageUrl);
+          removeMapImage(map, id);
         }
+        void error;
       });
-  }, [mapReady, opacity, reducedMotion, selectedFrame]);
+    return () => {
+      controller.abort();
+      map.off('render', acknowledge);
+      if (!committed && mapRef.current === map) removeMapImage(map, id);
+    };
+  }, [mapReady, selectedFrame]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!mapReady || !map || !selectedFrame) {
-      return;
-    }
-    const active = activeLayerRef.current;
-    setLayerOpacities(
-      map,
-      active === 0 ? opacity : 0,
-      active === 1 ? opacity : 0,
-      reducedMotion,
-    );
-  }, [mapReady, opacity, reducedMotion, selectedFrame]);
+    if (!mapReady || !map || !active.current) return;
+    for (const [slot, id] of RADAR_IDS.entries())
+      if (map.getLayer(id))
+        map.setPaintProperty(
+          id,
+          'raster-opacity',
+          slot === active.current.slot ? opacity : 0,
+        );
+  }, [mapReady, opacity]);
 
   useEffect(() => {
-    if (!mapReady || !mapRef.current) {
-      return;
-    }
-    if (mapRef.current.getLayer(DEBUG_LAYER_ID)) {
-      mapRef.current.setLayoutProperty(
-        DEBUG_LAYER_ID,
-        'visibility',
-        showDebug ? 'visible' : 'none',
-      );
-    }
-    const marker = debugMarkerRef.current;
-    if (marker) {
-      marker.getElement().hidden = !showDebug;
-    }
+    const map = mapRef.current;
+    if (!mapReady || !map) return;
+    map.setLayoutProperty(
+      DEBUG_LAYER_ID,
+      'visibility',
+      showDebug ? 'visible' : 'none',
+    );
+    if (debugMarkerRef.current)
+      debugMarkerRef.current.getElement().hidden = !showDebug;
   }, [mapReady, showDebug]);
 
   useEffect(() => {
     const map = mapRef.current;
-    userMarkerRef.current?.remove();
-    userMarkerRef.current = null;
-    if (!mapReady || !map || !userCoordinates) {
-      return;
-    }
+    if (!mapReady || !map) return;
+    setCoverageError(false);
+    if (map.getLayer(NOMINAL_ID))
+      map.setLayoutProperty(
+        NOMINAL_ID,
+        'visibility',
+        showNoCoverage ? 'visible' : 'none',
+      );
+    removeMapImage(map, NO_COVERAGE_ID);
+    if (!showNoCoverage || !displayed?.noCoverageUrl) return;
+    const controller = new AbortController();
+    void prepareMapImage(
+      map,
+      NO_COVERAGE_ID,
+      displayed.noCoverageUrl,
+      displayed.imageCoordinates,
+      controller.signal,
+    )
+      .then(() => {
+        if (controller.signal.aborted || mapRef.current !== map) return;
+        const radarLayer = RADAR_IDS.find((id) => map.getLayer(id));
+        if (radarLayer) map.moveLayer(NO_COVERAGE_ID, radarLayer);
+        map.setPaintProperty(NO_COVERAGE_ID, 'raster-opacity', 0.3);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setCoverageError(true);
+      });
+    return () => {
+      controller.abort();
+      if (mapRef.current === map) removeMapImage(map, NO_COVERAGE_ID);
+    };
+  }, [mapReady, showNoCoverage, displayed]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map || !userCoordinates) return;
     const element = document.createElement('div');
     element.className = 'user-location-marker';
     element.setAttribute('aria-label', 'Tu ubicación aproximada');
     element.title = 'Tu ubicación aproximada';
-    userMarkerRef.current = new Marker({ element })
+    const marker = new Marker({ element })
       .setLngLat(userCoordinates)
       .addTo(map);
     return () => {
-      userMarkerRef.current?.remove();
-      userMarkerRef.current = null;
+      marker.remove();
     };
   }, [mapReady, userCoordinates]);
 
@@ -269,6 +359,7 @@ export function RadarMap({
     <div
       className="map-stage"
       data-map-ready={mapReady ? 'true' : 'false'}
+      data-frame-ready={displayed?.imageUrl ?? ''}
       data-top-inset={cameraInsets.top}
       data-bottom-inset={cameraInsets.bottom}
     >
@@ -285,72 +376,25 @@ export function RadarMap({
       )}
       {selectedFrame && failedImageUrl === selectedFrame.imageUrl && (
         <p className="map-error" role="alert">
-          No se pudo cargar este fotograma. El historial sigue disponible.
+          No se pudo cargar este fotograma.{' '}
+          {displayed
+            ? 'Se conserva la imagen indicada en la línea de tiempo.'
+            : 'El historial sigue disponible.'}
+        </p>
+      )}
+      {showNoCoverage && (
+        <p className="coverage-caption">
+          {radar.kind === 'regional'
+            ? `Gris: fuera del alcance nominal de ${radar.rangeKilometres} km. La cobertura real puede ser menor.`
+            : coverageError
+              ? 'No se pudo cargar la capa sin cobertura.'
+              : displayed?.noCoverageUrl
+                ? 'Gris: sin cobertura operativa según AEMET.'
+                : 'Sin capa de cobertura para esta imagen.'}
         </p>
       )}
     </div>
   );
-}
-
-function ensureRadarLayers(
-  map: MapLibreMap,
-  frame: RadarTimelineFrame,
-  opacity: number,
-) {
-  for (const sourceId of RADAR_SOURCE_IDS) {
-    map.addSource(sourceId, {
-      type: 'image',
-      url: frame.imageUrl,
-      coordinates: frame.imageCoordinates,
-    });
-  }
-  for (const [index, layerId] of RADAR_LAYER_IDS.entries()) {
-    map.addLayer({
-      id: layerId,
-      type: 'raster',
-      source: RADAR_SOURCE_IDS[index]!,
-      paint: {
-        'raster-opacity': index === 0 ? opacity : 0,
-        'raster-fade-duration': 0,
-        'raster-resampling': 'nearest',
-      },
-    });
-  }
-}
-
-function updateActiveCoordinates(
-  map: MapLibreMap,
-  active: 0 | 1,
-  frame: RadarTimelineFrame,
-) {
-  const source = map.getSource(RADAR_SOURCE_IDS[active]) as ImageSource | null;
-  source?.updateImage({
-    url: frame.imageUrl,
-    coordinates: frame.imageCoordinates,
-  });
-}
-
-function setLayerOpacities(
-  map: MapLibreMap,
-  first: number,
-  second: number,
-  reducedMotion: boolean,
-) {
-  const duration = reducedMotion ? 0 : CROSSFADE_MILLISECONDS;
-  for (const [index, layerId] of RADAR_LAYER_IDS.entries()) {
-    if (!map.getLayer(layerId)) {
-      continue;
-    }
-    map.setPaintProperty(layerId, 'raster-opacity-transition', {
-      duration,
-      delay: 0,
-    });
-    map.setPaintProperty(
-      layerId,
-      'raster-opacity',
-      index === 0 ? first : second,
-    );
-  }
 }
 
 function createDebugMarker(

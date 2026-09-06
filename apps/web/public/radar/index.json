@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-27T12:08:00.359675Z",
+  "generatedAt": "2026-09-06T12:18:46.113829Z",
   "radars": [
     {
       "available": true,
@@ -35,7 +35,7 @@
       "includesCanaryIslands": false,
       "kind": "national",
       "label": "Composición nacional",
-      "latestFrameTime": "2026-07-27T11:50:00Z",
+      "latestFrameTime": "2026-08-24T10:50:00Z",
       "manifestUrl": "/radar/national/manifest.json",
       "mapZoom": 4.4,
       "regionCode": "PB",

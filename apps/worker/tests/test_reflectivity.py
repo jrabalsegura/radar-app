@@ -63,12 +63,12 @@ def test_small_golden_overlay_and_mask_are_deterministic(tmp_path: Path) -> None
         "sourcePixels": 30,
         "croppedPixels": 24,
         "classifiedPixelsBeforeStaticMask": 19,
-        "reflectivityPixels": 15,
-        "discardedByStaticMask": 3,
+        "reflectivityPixels": 16,
+        "discardedByStaticMask": 2,
         "discardedOutsideCoverage": 1,
         "discardedByAmbiguousPolicy": 0,
         "unclassifiedPixels": 5,
-        "transparentPixels": 9,
+        "transparentPixels": 8,
     }
     assert isinstance(classes, list)
     ambiguities = cast(dict[str, object], first.report["ambiguities"])
@@ -77,6 +77,9 @@ def test_small_golden_overlay_and_mask_are_deterministic(tmp_path: Path) -> None
     assert yellow["classifiedPixels"] == 4
     assert yellow["keptPixels"] == 2
     assert yellow["discardedByStaticMask"] == 2
+    # Una frontera amarilla estática no puede borrar lluvia de otro color.
+    with Image.open(first.output_dir / "overlay.png") as overlay:
+        assert overlay.getpixel((4, 0)) == (0, 255, 0, 255)
     outputs = cast(dict[str, object], first.report["outputs"])
     assert set(outputs) == {
         "normalized",

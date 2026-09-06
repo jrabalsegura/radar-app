@@ -25,8 +25,8 @@ from aemet_radar.georeferencing import (
     georeference_overlay,
     load_georeferencing_config,
 )
-from aemet_radar.history import ArchivedFrame
-from aemet_radar.manifests import FrameImage, MapCoordinates
+from aemet_radar.history import ArchivedFrame, HistoryScan
+from aemet_radar.manifests import FrameImage, MapCoordinates, select_history_frames
 from aemet_radar.national_timeline_processing import NationalTimelineProcessor
 from aemet_radar.products import ProductKind, RadarProduct
 from aemet_radar.radar_catalog import RadarCatalog, RadarDefinition
@@ -35,8 +35,24 @@ from aemet_radar.reflectivity import (
     process_reflectivity_sample,
 )
 from aemet_radar.storage import atomic_write_bytes, atomic_write_json
+from aemet_radar.temporal import HISTORY_HOURS
 from aemet_radar.viewer_processing import PROCESSOR_ID as VIEWER_PROCESSOR
 from aemet_radar.viewer_processing import publish_viewer_overlay
+
+# Debe cambiar al modificar el algoritmo; forma parte de la URL pública inmutable.
+REGIONAL_PROCESSING_REVISION = "regional-public-v2-ambiguous-mask"
+
+
+def frames_for_processing(product: RadarProduct, scan: HistoryScan) -> tuple[ArchivedFrame, ...]:
+    candidates = scan.candidates or scan.frames
+    if product.kind is ProductKind.NATIONAL:
+        candidates = tuple(
+            frame
+            for frame in candidates
+            if frame.raw_path.suffix == ".png" and frame.source_provider == "aemet-viewer-national"
+        )
+    ordered = tuple(sorted(candidates, key=lambda frame: frame.timeline_time))
+    return select_history_frames(ordered, HISTORY_HOURS)
 
 
 class RegionalTimelineProcessor:
@@ -111,7 +127,10 @@ class RegionalTimelineProcessor:
             if coordinates is None:
                 return None
             return FrameImage(
-                url=f"/radar/{product.id}/frames/{frame.source_hash}/overlay.png",
+                url="/"
+                + (self._public_frame_dir(product, frame) / "overlay.png")
+                .relative_to(self.data_dir)
+                .as_posix(),
                 coordinates=coordinates,
             )
         if not self._is_current(definition, frame):
@@ -122,7 +141,10 @@ class RegionalTimelineProcessor:
         if coordinates is None:
             return None
         return FrameImage(
-            url=f"/radar/{product.id}/frames/{frame.source_hash}/overlay-3857.png",
+            url="/"
+            + (self._public_frame_dir(product, frame) / "overlay-3857.png")
+            .relative_to(self.data_dir)
+            .as_posix(),
             coordinates=coordinates,
         )
 
@@ -274,7 +296,7 @@ class RegionalTimelineProcessor:
 
     def _viewer_is_current(self, frame: ArchivedFrame) -> bool:
         report = _load_json(
-            self._public_frame_dir_for_id(frame.product_id, frame.source_hash)
+            self._public_frame_dir(self.catalog.definition_for(frame.product_id).product, frame)
             / "viewer-processing.json"
         )
         if report is None:
@@ -286,7 +308,8 @@ class RegionalTimelineProcessor:
             and source.get("sha256") == f"sha256:{frame.source_hash}"
             and _map_coordinates(output.get("maplibreCoordinates")) is not None
             and (
-                self._public_frame_dir_for_id(frame.product_id, frame.source_hash) / "overlay.png"
+                self._public_frame_dir(self.catalog.definition_for(frame.product_id).product, frame)
+                / "overlay.png"
             ).is_file()
         )
 
@@ -312,10 +335,21 @@ class RegionalTimelineProcessor:
         product: RadarProduct,
         frame: ArchivedFrame,
     ) -> Path:
-        return self._public_frame_dir_for_id(product.id, frame.source_hash)
-
-    def _public_frame_dir_for_id(self, product_id: str, source_hash: str) -> Path:
-        return self.data_dir / "radar" / product_id / "frames" / source_hash
+        definition = self.catalog.definition_for(product.id)
+        if frame.raw_path.suffix.lower() == ".png":
+            configuration = [VIEWER_PROCESSOR, self._viewer_coordinates(frame)]
+        else:
+            configuration = [
+                REGIONAL_PROCESSING_REVISION,
+                _prefixed_sha256(definition.reflectivity_config_path),
+                _prefixed_sha256(definition.static_mask_path)
+                if definition.static_mask_path
+                else None,
+                definition.ambiguous_class_policy,
+                self._georeferencing_sha256(definition),
+            ]
+        version = hashlib.sha256(json.dumps(configuration, sort_keys=True).encode()).hexdigest()
+        return self.data_dir / "radar" / product.id / "frames" / frame.source_hash / version
 
 
 def _catalog_georeferencing(

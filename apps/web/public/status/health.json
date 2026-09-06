@@ -1,27 +1,27 @@
 {
-  "generatedAt": "2026-07-27T12:08:00.359675Z",
+  "generatedAt": "2026-09-06T12:18:46.113829Z",
   "products": [
     {
-      "ageSeconds": 1080,
-      "archivedFrames": 24,
+      "ageSeconds": 1128526,
+      "archivedFrames": 23,
       "attempts": 1,
-      "dataStatus": "current",
+      "dataStatus": "delayed",
       "id": "national",
       "label": "Composición nacional",
       "lastError": null,
-      "lastFrameTime": "2026-07-27T11:50:00Z",
+      "lastFrameTime": "2026-08-24T10:50:00Z",
       "lastOutcome": "duplicate",
       "lastPollAt": "2026-07-27T12:08:00.359675Z",
       "lastSuccessAt": "2026-07-27T12:08:00.359675Z",
-      "latestProductTime": "2026-07-27T11:50:00Z",
+      "latestProductTime": "2026-08-24T10:50:00Z",
       "manifestUrl": "/radar/national/manifest.json",
-      "publishableFrames": 24,
+      "publishableFrames": 23,
       "staleAfterSeconds": 1200,
-      "status": "current",
+      "status": "delayed",
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -40,7 +40,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -59,7 +59,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -78,7 +78,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -97,7 +97,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -116,7 +116,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -135,7 +135,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -154,7 +154,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 3,
       "attempts": null,
       "dataStatus": "delayed",
@@ -173,7 +173,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -192,7 +192,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -211,7 +211,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 1521,
+      "ageSeconds": 3555773,
       "archivedFrames": 1,
       "attempts": null,
       "dataStatus": "delayed",
@@ -230,7 +230,7 @@
       "timeBasis": "retrievedAt"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -268,7 +268,7 @@
       "timeBasis": null
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",
@@ -287,7 +287,7 @@
       "timeBasis": "productTime"
     },
     {
-      "ageSeconds": 3074,
+      "ageSeconds": 3557326,
       "archivedFrames": 24,
       "attempts": null,
       "dataStatus": "delayed",

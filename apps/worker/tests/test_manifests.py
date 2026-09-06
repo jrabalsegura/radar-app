@@ -2,8 +2,11 @@ import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from aemet_radar.manifests import ManifestPublisher
+from aemet_radar.history import ArchivedFrame, scan_product_history
+from aemet_radar.manifests import FrameImage, ManifestPublisher
 from aemet_radar.products import MURCIA, NATIONAL, RadarProduct
+from aemet_radar.retention import RetentionManager
+from aemet_radar.timeline_processing import frames_for_processing
 
 
 def test_manifest_orders_twenty_four_frames_and_publishes_three_hours_fifty(
@@ -309,3 +312,45 @@ def _archive_report(
 
 def _isoformat(value: datetime) -> str:
     return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+
+def test_national_fallback_cannot_hide_publishable_png_or_shift_processing_window(
+    tmp_path: Path,
+) -> None:
+    now = datetime(2026, 7, 26, 12, tzinfo=UTC)
+    observed = now - timedelta(hours=30)
+    primary = _archive_report(
+        tmp_path,
+        index=1,
+        product=NATIONAL,
+        product_time=observed,
+        source_provider="aemet-viewer-national",
+    )
+    _archive_report(
+        tmp_path,
+        index=2,
+        product=NATIONAL,
+        product_time=observed,
+        retrieved_at=observed + timedelta(minutes=1),
+    )
+    _archive_report(tmp_path, index=3, product=NATIONAL, product_time=now)
+
+    def resolve(product: RadarProduct, frame: ArchivedFrame) -> FrameImage | None:
+        if frame.raw_path.suffix != ".png":
+            return None
+        return FrameImage(
+            f"/radar/{product.id}/frames/{frame.source_hash}/v2/overlay.png",
+            ((-10, 44), (5, 44), (5, 35), (-10, 35)),
+        )
+
+    publisher = ManifestPublisher(tmp_path, image_resolver=resolve)
+    result = publisher.rebuild_product(NATIONAL, generated_at=now)
+    frames = result.payload["frames"]
+    assert isinstance(frames, list) and len(frames) == 1
+    assert frames[0]["sourceHash"] == f"sha256:{primary}"
+    assert result.payload["latestFrameTime"] == _isoformat(observed)
+    processable = frames_for_processing(NATIONAL, scan_product_history(tmp_path, NATIONAL))
+    assert [frame.source_hash for frame in processable] == [primary]
+    RetentionManager(tmp_path).prune_product(NATIONAL, reference_time=now)
+    assert (tmp_path / frames[0]["rawUrl"].lstrip("/")).is_file()
+    assert publisher.rebuild_product(NATIONAL, generated_at=now).payload["frames"] == frames

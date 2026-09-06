@@ -1,4 +1,4 @@
-const VERSION = 'phase-8-v1';
+const VERSION = 'review-2026-09-v2';
 const APP_CACHE = `radar-app-${VERSION}`;
 const DATA_CACHE = `radar-data-${VERSION}`;
 const IMAGE_CACHE = `radar-images-${VERSION}`;
@@ -90,9 +90,7 @@ async function networkFirst(request, cacheName) {
   try {
     const response = await fetch(request);
     if (isCacheable(response)) {
-      const cache = await caches.open(cacheName);
-      await cache.put(request, response.clone());
-      await trimCache(cacheName);
+      await storeResponse(request, response, cacheName);
     }
     return response;
   } catch (error) {
@@ -111,9 +109,7 @@ async function cacheFirst(request, cacheName) {
   }
   const response = await fetch(request);
   if (isCacheable(response)) {
-    const cache = await caches.open(cacheName);
-    await cache.put(request, response.clone());
-    await trimCache(cacheName);
+    await storeResponse(request, response, cacheName);
   }
   return response;
 }
@@ -147,5 +143,15 @@ async function trimCache(cacheName) {
     await Promise.all(
       requests.slice(0, overflow).map((request) => cache.delete(request)),
     );
+  }
+}
+
+async function storeResponse(request, response, cacheName) {
+  try {
+    const cache = await caches.open(cacheName);
+    await cache.put(request, response.clone());
+    await trimCache(cacheName);
+  } catch {
+    // Una cuota agotada no convierte una descarga correcta en un fallo de red.
   }
 }

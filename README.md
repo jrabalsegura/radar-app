@@ -19,6 +19,11 @@ preferencias, atajos visibles para cambiar de radar y accesibilidad. La
 composición nacional de Península y Baleares y los 15 radares regionales son
 productos independientes.
 
+La revisión de septiembre añade controles Nacional/Centrar/Última, hora de la
+imagen visible, leyenda dBZ y cobertura opcional. Mantiene OpenFreeMap Liberty
+con rótulos más visibles. La guía de comprobación y actualización del servidor
+existente está en [PRUEBAS_Y_DESPLIEGUE.md](docs/PRUEBAS_Y_DESPLIEGUE.md).
+
 ## Requisitos
 
 - Node.js 22.12 o posterior y npm 10 o posterior.
@@ -173,14 +178,16 @@ La publicación estática se genera en:
 ```text
 data/radar/index.json
 data/radar/<producto>/manifest.json
-data/radar/<radar>/frames/<sha256>/overlay.png
+data/radar/<radar>/frames/<sha256>/<version-procesado>/overlay.png
 data/status/health.json
 ```
 
 El manifiesto conserva una ventana pública de 3 horas y 50 minutos anclada en el último
 fotograma disponible, mientras el archivo mantiene inicialmente 24 horas. Cada
 observación regional publicable incorpora un `imageUrl` y cuatro
-`imageCoordinates` oficiales, generados una sola vez por hash. El PPI aporta
+`imageCoordinates` oficiales, generados una sola vez por hash y configuración. La
+composición nacional añade `noCoverageUrl` con una máscara de ausencia de
+cobertura operativa; los manifiestos antiguos siguen siendo compatibles. El PPI aporta
 `productTime`; en el fallback solo se usa si existe evidencia y, en caso
 contrario, se usa `retrievedAt` y se declara como
 `timeSource: "retrievedAt"`. Los huecos se enumeran sin crear fotogramas
@@ -215,7 +222,9 @@ La muestra real versionada del frontend publica 16 manifiestos bajo
 `apps/web/public/radar/`: la composición nacional y trece radares reproducen
 PNG del visor, Las Palmas conserva un GIF de fallback y Valencia permanece sin
 datos. Los productos disponibles incluyen hasta 24 observaciones; Málaga
-refleja honestamente los huecos de AEMET. Puede verse con `make dev-web`. La
+refleja honestamente los huecos de AEMET. La muestra nacional se ha regenerado
+desde originales del 24 de agosto de 2026, con 23 imágenes y un hueco, e incluye
+las coberturas y URLs versionadas. Puede verse con `make dev-web`. La
 calibración se documenta en [`docs/PHASE_4.md`](docs/PHASE_4.md) y la
 reproducción en [`docs/PHASE_5.md`](docs/PHASE_5.md). El contrato nacional,
 su máscara y su cobertura están en [`docs/PHASE_7.md`](docs/PHASE_7.md).

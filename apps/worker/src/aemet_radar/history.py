@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -37,6 +37,8 @@ class HistoryScan:
     frames: tuple[ArchivedFrame, ...]
     issues: tuple[str, ...]
     discarded_duplicates: int
+    # Conserva las representaciones alternativas para resolver publicación y retención.
+    candidates: tuple[ArchivedFrame, ...] = ()
 
 
 def scan_product_history(data_dir: Path, product: RadarProduct) -> HistoryScan:
@@ -53,26 +55,28 @@ def scan_product_history(data_dir: Path, product: RadarProduct) -> HistoryScan:
         except (OSError, ValueError, TypeError, json.JSONDecodeError):
             issues.append(report_path.relative_to(resolved_data_dir).as_posix())
 
+    frames = select_observations(candidates)
+    return HistoryScan(
+        frames=frames,
+        issues=tuple(issues),
+        discarded_duplicates=len(candidates) - len(frames),
+        candidates=tuple(candidates),
+    )
+
+
+def select_observations(candidates: Iterable[ArchivedFrame]) -> tuple[ArchivedFrame, ...]:
+    """Elige una representación por observación, después de filtrar publicabilidad."""
     by_source: dict[str, ArchivedFrame] = {}
-    discarded = 0
     for frame in candidates:
         previous = by_source.get(frame.source_id)
-        if previous is None or frame.last_retrieved_at > previous.last_retrieved_at:
-            if previous is not None:
-                discarded += 1
+        if previous is None or _observation_rank(frame) > _observation_rank(previous):
             by_source[frame.source_id] = frame
-        else:
-            discarded += 1
 
     by_time: dict[datetime, ArchivedFrame] = {}
     for frame in by_source.values():
         previous = by_time.get(frame.timeline_time)
-        if previous is None or frame.last_retrieved_at > previous.last_retrieved_at:
-            if previous is not None:
-                discarded += 1
+        if previous is None or _observation_rank(frame) > _observation_rank(previous):
             by_time[frame.timeline_time] = frame
-        else:
-            discarded += 1
 
     frames = tuple(
         sorted(
@@ -80,10 +84,14 @@ def scan_product_history(data_dir: Path, product: RadarProduct) -> HistoryScan:
             key=lambda frame: (frame.timeline_time, frame.retrieved_at, frame.source_hash),
         )
     )
-    return HistoryScan(
-        frames=frames,
-        issues=tuple(issues),
-        discarded_duplicates=discarded,
+    return frames
+
+
+def _observation_rank(frame: ArchivedFrame) -> tuple[bool, datetime, str]:
+    return (
+        bool(frame.source_provider and frame.source_provider.startswith("aemet-viewer")),
+        frame.last_retrieved_at,
+        frame.source_hash,
     )
 
 

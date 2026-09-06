@@ -1,5 +1,11 @@
 export interface RadarPerformanceMetrics {
   appReadyMilliseconds?: number;
+  radarReadyMilliseconds?: number;
+  firstRadarImageUrl?: string;
+  radarImageRequests?: number;
+  radarImageTransferBytes?: number;
+  radarImageEncodedBytes?: number;
+  radarImageDurationMilliseconds?: number;
   cumulativeLayoutShift?: number;
   firstContentfulPaintMilliseconds?: number;
   interactionToNextPaintMilliseconds?: number;
@@ -18,6 +24,26 @@ let appReadyRecorded = false;
 
 export function startPerformanceMetrics(): void {
   window.__RADAR_PERFORMANCE__ = {};
+  appReadyRecorded = false;
+  observe('resource', (entries) => {
+    for (const entry of entries) {
+      const resource = entry as PerformanceResourceTiming;
+      const url = new URL(resource.name, window.location.href);
+      if (
+        url.origin !== window.location.origin ||
+        !/^\/radar\/.+\.(png|webp)$/.test(url.pathname)
+      )
+        continue;
+      const current = metrics();
+      current.radarImageRequests = (current.radarImageRequests ?? 0) + 1;
+      current.radarImageTransferBytes =
+        (current.radarImageTransferBytes ?? 0) + resource.transferSize;
+      current.radarImageEncodedBytes =
+        (current.radarImageEncodedBytes ?? 0) + resource.encodedBodySize;
+      current.radarImageDurationMilliseconds =
+        (current.radarImageDurationMilliseconds ?? 0) + resource.duration;
+    }
+  });
   performance.mark(APP_START_MARK);
 
   const firstContentfulPaint = performance
@@ -76,6 +102,15 @@ export function recordAppReady(): void {
   if (measure) {
     metrics().appReadyMilliseconds = measure.duration;
   }
+}
+
+export function recordRadarRendered(imageUrl: string): void {
+  if (metrics().radarReadyMilliseconds !== undefined) return;
+  const start =
+    performance.getEntriesByName(APP_START_MARK).at(-1)?.startTime ?? 0;
+  metrics().radarReadyMilliseconds = performance.now() - start;
+  metrics().firstRadarImageUrl = imageUrl;
+  performance.mark('radar-first-image-rendered');
 }
 
 function metrics(): RadarPerformanceMetrics {

@@ -143,8 +143,9 @@ No se utilizará OCR general como dependencia central. La hora del producto se i
 - Mapa interactivo con MapLibre.
 - Zoom, desplazamiento y ajuste automático al radar seleccionado.
 - Mapa base configurable mediante variable de entorno.
-- Botón para centrar en la ubicación actual.
+- Botón para centrar el radar seleccionado.
 - Control de opacidad de la capa radar.
+- Leyenda dBZ compacta desplegable y capa opcional sin cobertura.
 - Atribuciones siempre visibles.
 
 #### Fuentes de radar
@@ -152,7 +153,9 @@ No se utilizará OCR general como dependencia central. La hora del producto se i
 - Composición nacional.
 - Todos los radares regionales que exponga AEMET y que hayan sido configurados y validados.
 - Selector explícito de fuente.
-- Opción futura de selección automática según ubicación, sin ocultar qué radar está activo.
+- «Cerca de mí» selecciona el regional más cercano procesando la ubicación solo
+  en el dispositivo. Si no tiene imágenes publicadas, va directamente a nacional.
+- Acceso visible «Nacional» junto a «Cerca de mí» en escritorio y móvil.
 
 #### Historial
 
@@ -171,18 +174,21 @@ No se utilizará OCR general como dependencia central. La hora del producto se i
 - Barra temporal deslizable.
 - Botones individuales para seleccionar cada imagen de reflectividad.
 - Cada botón mostrará la hora local, por ejemplo `12:10`.
-- Indicación diferenciada del fotograma más reciente.
+- Indicación «Última» y acceso «Ir a la última», aunque el dato sea antiguo.
 - Velocidad de reproducción configurable al menos entre lenta, normal y rápida.
 - Pausa breve en el último fotograma antes de reiniciar el bucle.
 - Teclas de flecha para avanzar o retroceder un fotograma en escritorio.
 
 #### Estado del dato
 
-- Hora del fotograma.
+- Hora de la imagen realmente dibujada, fecha y zona horaria; «Obtenida» cuando
+  solo se conoce `retrievedAt`. Los huecos y cargas pendientes quedan visibles.
 - Antigüedad del último dato.
 - Estado: actualizado, retrasado, sin datos o error de procesamiento.
 - El fallo de AEMET no debe borrar los fotogramas ya publicados.
 - El frontend no debe mostrar como reciente una imagen antigua.
+- La frescura se recalcula cada minuto usando la cadencia y la edad del dato y
+  de `health.json`, sin confiar indefinidamente en un `status` guardado.
 
 #### PWA y responsive
 
@@ -225,7 +231,7 @@ La aplicación será de una sola pantalla:
 │                                                   [ubicación] │
 │                                                   [opacidad]  │
 ├──────────────────────────────────────────────────────────────┤
-│ 11:20 · hace 4 min                              [−3 h … ahora]│
+│ Imagen 11:20 · hace 4 min                         [Última]  │
 │ [▶] ─────────────────────●────────────────────────── [1×]     │
 │ [09:20] [09:30] [09:40] … [11:10] [11:20]                    │
 └──────────────────────────────────────────────────────────────┘
@@ -439,6 +445,13 @@ Las muestras originales de AEMET no se versionarán masivamente. Solo se conserv
 
 Las coordenadas del ejemplo son ficticias y nunca deben pasar a producción. Cada producto se calibrará y validará.
 
+El contrato ejecutable está en `radarManifest.ts` y `manifests.py`. Las imágenes
+publicadas usan `imageUrl` e `imageCoordinates`, con una URL que incluye hash del
+original y versión efectiva del procesamiento/configuración. `sourceProvider`
+identifica la fuente; `noCoverageUrl` es opcional y referencia la cobertura de
+esa observación nacional. Se conserva compatibilidad con los manifiestos
+anteriores sin estos campos adicionales.
+
 ### 9.4 Publicación atómica
 
 El worker escribirá primero un archivo temporal y lo renombrará al finalizar:
@@ -474,8 +487,17 @@ Si la identidad de observación y el hash coinciden con un fotograma archivado:
 - Interfaz: últimas 3 horas y 50 minutos.
 - Almacenamiento inicial: 24 horas para facilitar diagnóstico.
 - Retención configurable.
+- La duración pública es fija: 230 minutos. No se configura con una opción
+  independiente del worker.
 - Los originales y derivados se eliminarán de forma coordinada.
 - Nunca se eliminará el último fotograma válido de un radar debido a un fallo temporal de AEMET.
+
+La selección pública filtra primero representaciones utilizables; a igual hora
+prefiere la fuente del visor sobre OpenData. Un GIF nacional archivado no puede
+desplazar ni cambiar la ventana del último PNG nacional publicable. La limpieza
+ocurre tras publicar y protege originales, hashes compartidos y rutas del
+manifiesto. Los derivados huérfanos reciben 24 horas adicionales desde que se
+detecta la pérdida de referencias, registradas en `state/retention/`.
 
 ---
 
@@ -612,6 +634,12 @@ Objetivos iniciales:
 - en móvil, limitar memoria y liberar texturas antiguas al cambiar de radar.
 
 La elección entre una imagen completa georreferenciada, WebP con alfa, teselas raster o una capa WebGL personalizada se tomará con mediciones, no por anticipación.
+
+Se miden por separado la disponibilidad del manifiesto y el primer render con
+reflectividad cargada en MapLibre, además de peticiones, bytes y duraciones del
+transporte de imágenes. Las métricas permanecen en el dispositivo. El mapa se
+conserva al renovar el catálogo; cambiar el tamaño de sus controles no reinicia
+el encuadre.
 
 ---
 

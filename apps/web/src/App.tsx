@@ -10,33 +10,26 @@ import {
 } from 'react';
 
 import { formatDataAge } from './dataFreshness';
+import { radarStatus } from './radarStatus';
+import { DbzLegend } from './DbzLegend';
 import { preloadInPriorityOrder } from './framePreloader';
 import { recordAppReady } from './performanceMetrics';
 import type { RadarCameraInsets } from './radarCamera';
-import {
-  isRadarHealth,
-  RADAR_HEALTH_URL,
-  type RadarHealth,
-  type RadarHealthStatus,
-} from './radarHealth';
-import {
-  isRadarIndex,
-  RADAR_INDEX_URL,
-  type RadarIndex,
-  type RadarIndexEntry,
-} from './radarIndex';
+import type { RadarHealthStatus } from './radarHealth';
 import { radarIdForHotkey, radarLabelWithHotkey } from './radarHotkeys';
-import { closestRegionalRadar, type LongitudeLatitude } from './radarLocation';
 import {
   buildTimelineSlots,
   formatMadridTime,
+  formatMadridDate,
+  formatMadridTimeZoneName,
   HISTORY_LABEL,
-  isRadarManifest,
   type RadarManifest,
   type RadarTimelineFrame,
   type TimelineSlot,
 } from './radarManifest';
-import { loadResilientJson, type DataSource } from './resilientData';
+import { useRadarData } from './useRadarData';
+import { useRadarLocation } from './useRadarLocation';
+import { readStoredNumber, writeStoredValue } from './preferences';
 
 const SPEEDS = {
   slow: { label: 'Lenta', milliseconds: 1500 },
@@ -44,15 +37,9 @@ const SPEEDS = {
   fast: { label: 'Rápida', milliseconds: 420 },
 } as const;
 const LAST_FRAME_PAUSE_FACTOR = 2.4;
-const PREFERRED_RADAR_ID = 'regional-mu';
-const SELECTED_RADAR_KEY = 'aemet-radar:selected-radar';
 const OPACITY_KEY = 'aemet-radar:opacity';
-const CATALOG_CACHE_ID = 'catalog';
-const HEALTH_CACHE_ID = 'health';
-const AUTO_REFRESH_MILLISECONDS = 10 * 60 * 1000;
 
 type PlaybackSpeed = keyof typeof SPEEDS;
-type LocationStatus = 'idle' | 'locating' | 'located' | 'error';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -65,27 +52,42 @@ const LazyRadarMap = lazy(async () => {
 });
 
 export function App() {
-  const [index, setIndex] = useState<RadarIndex | null>(null);
-  const [health, setHealth] = useState<RadarHealth | null>(null);
-  const [selectedRadarId, setSelectedRadarId] = useState('');
-  const [manifest, setManifest] = useState<RadarManifest | null>(null);
-  const [catalogError, setCatalogError] = useState(false);
-  const [manifestError, setManifestError] = useState(false);
-  const [catalogSource, setCatalogSource] = useState<DataSource>('network');
-  const [manifestSource, setManifestSource] = useState<DataSource>('network');
-  const [reloadVersion, setReloadVersion] = useState(0);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const {
+    index,
+    health,
+    selectedRadarId,
+    selectedRadar,
+    manifest,
+    catalogError,
+    manifestError,
+    catalogSource,
+    manifestSource,
+    selectedIndex,
+    setSelectedIndex,
+    online,
+    selectRadar: selectRadarData,
+    reload,
+  } = useRadarData();
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<PlaybackSpeed>('normal');
   const [opacity, setOpacity] = useState(() =>
     readStoredNumber(OPACITY_KEY, 0.72, 0, 1),
   );
   const [showDebug, setShowDebug] = useState(false);
-  const [online, setOnline] = useState(() => navigator.onLine);
-  const [locationStatus, setLocationStatus] = useState<LocationStatus>('idle');
-  const [locationMessage, setLocationMessage] = useState('');
-  const [userCoordinates, setUserCoordinates] =
-    useState<LongitudeLatitude | null>(null);
+  const [showNoCoverage, setShowNoCoverage] = useState(false);
+  const [recenterRequest, setRecenterRequest] = useState(0);
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const [displayedImage, setDisplayedImage] = useState<{
+    radarId: string;
+    frame: RadarTimelineFrame | null;
+  } | null>(null);
+  const onDisplayedFrame = useCallback(
+    (frame: RadarTimelineFrame | null) => {
+      setDisplayedImage({ radarId: selectedRadarId, frame });
+      setFailedImage(null);
+    },
+    [selectedRadarId],
+  );
   const [fullscreen, setFullscreen] = useState(false);
   const [mapMenuOpen, setMapMenuOpen] = useState(false);
   const [installPrompt, setInstallPrompt] =
@@ -97,18 +99,35 @@ export function App() {
   const mapMenuRef = useRef<HTMLDivElement | null>(null);
   const mapMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const timelinePanelRef = useRef<HTMLElement | null>(null);
-  const manifestRef = useRef<RadarManifest | null>(null);
-  const selectedIndexRef = useRef(0);
   const [mapInsets, setMapInsets] = useState<RadarCameraInsets>({
     top: 0,
     bottom: 0,
   });
   const reducedMotion = useReducedMotion();
   const now = useMinuteClock();
-  const selectedRadar =
-    index?.radars.find((radar) => radar.id === selectedRadarId) ?? null;
-  const selectedHealth =
-    health?.products.find((product) => product.id === selectedRadarId) ?? null;
+  const chooseRadar = useCallback(
+    (radarId: string) => {
+      if (radarId === selectedRadarId) return;
+      selectRadarData(radarId);
+      setPlaying(false);
+      setMapMenuOpen(false);
+    },
+    [selectRadarData, selectedRadarId],
+  );
+  const {
+    locationStatus,
+    locationMessage,
+    userCoordinates,
+    locateNearestRadar,
+    resetLocation,
+  } = useRadarLocation(index, chooseRadar);
+  const selectRadar = useCallback(
+    (radarId: string) => {
+      resetLocation();
+      chooseRadar(radarId);
+    },
+    [chooseRadar, resetLocation],
+  );
   const slots = useMemo(
     () => (manifest ? buildTimelineSlots(manifest) : []),
     [manifest],
@@ -116,130 +135,8 @@ export function App() {
   const selectedSlot = slots[selectedIndex] ?? null;
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    async function loadCatalog() {
-      setCatalogError(false);
-      try {
-        const [indexResult, healthResult] = await Promise.all([
-          loadResilientJson(
-            RADAR_INDEX_URL,
-            CATALOG_CACHE_ID,
-            isRadarIndex,
-            controller.signal,
-          ),
-          loadResilientJson(
-            RADAR_HEALTH_URL,
-            HEALTH_CACHE_ID,
-            isRadarHealth,
-            controller.signal,
-          ).catch(() => null),
-        ]);
-        setIndex(indexResult.data);
-        setHealth(healthResult?.data ?? null);
-        setCatalogSource(
-          indexResult.source === 'cache' || healthResult?.source === 'cache'
-            ? 'cache'
-            : 'network',
-        );
-        const storedRadarId = readStoredString(SELECTED_RADAR_KEY);
-        const preferred =
-          indexResult.data.radars.find((radar) => radar.id === storedRadarId) ??
-          indexResult.data.radars.find(
-            (radar) => radar.id === PREFERRED_RADAR_ID,
-          );
-        setSelectedRadarId(
-          (current) =>
-            indexResult.data.radars.find((radar) => radar.id === current)?.id ??
-            preferred?.id ??
-            indexResult.data.radars[0]?.id ??
-            '',
-        );
-      } catch (error) {
-        if (!isAbortError(error)) {
-          setCatalogError(true);
-        }
-      }
-    }
-
-    void loadCatalog();
-    return () => controller.abort();
-  }, [reloadVersion]);
-
-  const manifestRadarId = selectedRadar?.id;
-  const selectedManifestUrl = selectedRadar?.manifestUrl;
-
-  useEffect(() => {
-    if (!manifestRadarId || !selectedManifestUrl) {
-      return;
-    }
-    const controller = new AbortController();
-    const radarId = manifestRadarId;
-    const manifestUrl = selectedManifestUrl;
-
-    async function loadManifest() {
-      setManifestError(false);
-      try {
-        const result = await loadResilientJson(
-          manifestUrl,
-          `manifest:${radarId}`,
-          (value): value is RadarManifest =>
-            isRadarManifest(value) && value.radar.id === radarId,
-          controller.signal,
-        );
-        const previousSlots = manifestRef.current
-          ? buildTimelineSlots(manifestRef.current)
-          : [];
-        const currentIndex = selectedIndexRef.current;
-        const selectedTime = previousSlots[currentIndex]?.time;
-        const wasFollowingLatest =
-          previousSlots.length === 0 ||
-          currentIndex >= previousSlots.length - 1;
-        const nextSlots = buildTimelineSlots(result.data);
-        const matchingIndex = selectedTime
-          ? nextSlots.findIndex((slot) => slot.time === selectedTime)
-          : -1;
-        const nextIndex = wasFollowingLatest
-          ? Math.max(0, nextSlots.length - 1)
-          : matchingIndex >= 0
-            ? matchingIndex
-            : Math.min(currentIndex, Math.max(0, nextSlots.length - 1));
-        manifestRef.current = result.data;
-        selectedIndexRef.current = nextIndex;
-        setManifest(result.data);
-        setManifestSource(result.source);
-        setSelectedIndex(nextIndex);
-      } catch (error) {
-        if (!isAbortError(error)) {
-          setManifestError(true);
-        }
-      }
-    }
-
-    void loadManifest();
-    return () => controller.abort();
-  }, [manifestRadarId, reloadVersion, selectedManifestUrl]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setReloadVersion((current) => current + 1);
-    }, AUTO_REFRESH_MILLISECONDS);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
     writeStoredValue(OPACITY_KEY, String(opacity));
   }, [opacity]);
-
-  useEffect(() => {
-    if (selectedRadarId) {
-      writeStoredValue(SELECTED_RADAR_KEY, selectedRadarId);
-    }
-  }, [selectedRadarId]);
-
-  useEffect(() => {
-    selectedIndexRef.current = selectedIndex;
-  }, [selectedIndex]);
 
   useEffect(() => {
     const layout = mapLayoutRef.current;
@@ -314,22 +211,6 @@ export function App() {
   }, [mapMenuOpen]);
 
   useEffect(() => {
-    function updateConnection() {
-      const connected = navigator.onLine;
-      setOnline(connected);
-      if (connected) {
-        setReloadVersion((current) => current + 1);
-      }
-    }
-    window.addEventListener('online', updateConnection);
-    window.addEventListener('offline', updateConnection);
-    return () => {
-      window.removeEventListener('online', updateConnection);
-      window.removeEventListener('offline', updateConnection);
-    };
-  }, []);
-
-  useEffect(() => {
     function updateFullscreen() {
       setFullscreen(document.fullscreenElement === mapLayoutRef.current);
     }
@@ -393,7 +274,7 @@ export function App() {
       );
     }, delay);
     return () => window.clearTimeout(timer);
-  }, [playing, selectedIndex, slots.length, speed]);
+  }, [playing, selectedIndex, slots.length, speed, setSelectedIndex]);
 
   useEffect(() => {
     function navigateWithKeyboard(event: KeyboardEvent) {
@@ -421,7 +302,7 @@ export function App() {
     }
     document.addEventListener('keydown', navigateWithKeyboard);
     return () => document.removeEventListener('keydown', navigateWithKeyboard);
-  }, [slots.length]);
+  }, [slots.length, setSelectedIndex]);
 
   useEffect(() => {
     function pauseWhenHidden() {
@@ -439,20 +320,6 @@ export function App() {
       recordAppReady();
     }
   }, [manifest]);
-
-  const selectRadar = useCallback((radarId: string) => {
-    manifestRef.current = null;
-    selectedIndexRef.current = 0;
-    setManifest(null);
-    setManifestError(false);
-    setManifestSource('network');
-    setPlaying(false);
-    setLocationStatus('idle');
-    setLocationMessage('');
-    setMapMenuOpen(false);
-    setSelectedIndex(0);
-    setSelectedRadarId(radarId);
-  }, []);
 
   useEffect(() => {
     if (!index) {
@@ -487,45 +354,6 @@ export function App() {
     document.addEventListener('keydown', selectRadarWithHotkey);
     return () => document.removeEventListener('keydown', selectRadarWithHotkey);
   }, [index, selectRadar, selectedRadarId]);
-
-  function locateNearestRadar() {
-    if (!index || !('geolocation' in navigator)) {
-      setLocationStatus('error');
-      setLocationMessage('La geolocalización no está disponible.');
-      return;
-    }
-    setLocationStatus('locating');
-    setLocationMessage('Buscando el radar más cercano…');
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const coordinates: LongitudeLatitude = [
-          position.coords.longitude,
-          position.coords.latitude,
-        ];
-        const nearest = closestRegionalRadar(index.radars, coordinates);
-        if (!nearest) {
-          setLocationStatus('error');
-          setLocationMessage('No hay radares regionales configurados.');
-          return;
-        }
-        setUserCoordinates(coordinates);
-        selectRadar(nearest.id);
-        setLocationStatus('located');
-        setLocationMessage(`Radar más cercano: ${nearest.label}.`);
-      },
-      () => {
-        setLocationStatus('error');
-        setLocationMessage(
-          'No se pudo obtener tu ubicación. Puedes elegir el radar manualmente.',
-        );
-      },
-      {
-        enableHighAccuracy: false,
-        maximumAge: 10 * 60 * 1000,
-        timeout: 10_000,
-      },
-    );
-  }
 
   async function toggleFullscreen() {
     const target = mapLayoutRef.current;
@@ -568,7 +396,7 @@ export function App() {
             <button
               className="retry-button"
               type="button"
-              onClick={() => setReloadVersion((current) => current + 1)}
+              onClick={() => reload()}
             >
               Reintentar
             </button>
@@ -579,12 +407,16 @@ export function App() {
   }
 
   const mapFrame = selectedSlot ? mostRecentFrame(slots, selectedIndex) : null;
-  const baseStatus = selectedHealth?.status ?? radarAvailability(selectedRadar);
-  const status: RadarHealthStatus = manifestError
-    ? 'error'
-    : manifestSource === 'cache' && baseStatus === 'current'
-      ? 'delayed'
-      : baseStatus;
+  const status = radarStatus(
+    selectedRadar,
+    manifest,
+    health,
+    now,
+    catalogSource === 'cache' || manifestSource === 'cache' || !online,
+    manifestError,
+  );
+  const displayedFrame =
+    displayedImage?.radarId === selectedRadarId ? displayedImage.frame : null;
   const freshness = manifest?.latestFrameTime
     ? `Último dato ${formatMadridTime(manifest.latestFrameTime)} · ${formatDataAge(manifest.latestFrameTime, now)}`
     : 'Sin dato publicado';
@@ -592,7 +424,6 @@ export function App() {
     catalogSource === 'cache' || manifestSource === 'cache';
 
   function selectSlot(indexValue: number) {
-    selectedIndexRef.current = indexValue;
     setPlaying(false);
     setSelectedIndex(indexValue);
   }
@@ -654,6 +485,15 @@ export function App() {
             >
               {locationStatus === 'locating' ? 'Localizando…' : 'Cerca de mí'}
             </button>
+            <button
+              className="national-button"
+              type="button"
+              aria-label="Ir a composición nacional"
+              aria-pressed={selectedRadar.id === 'national'}
+              onClick={() => selectRadar('national')}
+            >
+              Nacional
+            </button>
           </div>
           <span aria-live="polite">
             {locationMessage ||
@@ -711,6 +551,10 @@ export function App() {
             selectedFrame={mapFrame}
             opacity={opacity}
             showDebug={showDebug}
+            showNoCoverage={showNoCoverage}
+            recenterRequest={recenterRequest}
+            onDisplayedFrame={onDisplayedFrame}
+            onFailedImage={setFailedImage}
             reducedMotion={reducedMotion}
             userCoordinates={userCoordinates}
             cameraInsets={mapInsets}
@@ -752,7 +596,7 @@ export function App() {
               <button
                 className="retry-button"
                 type="button"
-                onClick={() => setReloadVersion((current) => current + 1)}
+                onClick={() => reload()}
               >
                 Reintentar
               </button>
@@ -760,6 +604,15 @@ export function App() {
           </div>
         ) : null}
 
+        <div className="map-quick-actions">
+          <button
+            type="button"
+            onClick={() => setRecenterRequest((value) => value + 1)}
+          >
+            Centrar radar
+          </button>
+          <DbzLegend />
+        </div>
         <div ref={mapMenuRef} className="map-options">
           <button
             ref={mapMenuButtonRef}
@@ -806,6 +659,16 @@ export function App() {
                   <output>{Math.round(opacity * 100)}%</output>
                 </span>
               </label>
+              <button
+                className="no-coverage-button"
+                type="button"
+                aria-pressed={showNoCoverage}
+                onClick={() => setShowNoCoverage((visible) => !visible)}
+              >
+                {showNoCoverage
+                  ? 'Ocultar zonas sin cobertura'
+                  : 'Ver zonas sin cobertura'}
+              </button>
               <div className="map-options__actions">
                 <button
                   className="coverage-button"
@@ -845,7 +708,9 @@ export function App() {
             slots={slots}
             selectedIndex={selectedIndex}
             selectedSlot={selectedSlot}
-            mapFrame={mapFrame}
+            mapFrame={displayedFrame}
+            requestedFrame={mapFrame}
+            failedImage={failedImage}
             playing={playing}
             speed={speed}
             panelRef={timelinePanelRef}
@@ -867,6 +732,8 @@ interface TimelineProps {
   selectedIndex: number;
   selectedSlot: TimelineSlot;
   mapFrame: RadarTimelineFrame | null;
+  requestedFrame: RadarTimelineFrame | null;
+  failedImage: string | null;
   playing: boolean;
   speed: PlaybackSpeed;
   panelRef: RefObject<HTMLElement | null>;
@@ -883,6 +750,8 @@ function Timeline({
   selectedIndex,
   selectedSlot,
   mapFrame,
+  requestedFrame,
+  failedImage,
   playing,
   speed,
   panelRef,
@@ -903,6 +772,52 @@ function Timeline({
       className="timeline-panel"
       aria-label="Controles temporales"
     >
+      <div className="timeline-current">
+        <p data-testid="visible-frame-time">
+          {mapFrame ? (
+            <>
+              <strong>
+                {mapFrame.timeSource === 'retrievedAt' ? 'Obtenida' : 'Imagen'}:{' '}
+                {formatMadridTime(mapFrame.time)}
+              </strong>
+              <span>
+                {' '}
+                · {formatMadridDate(mapFrame.time)} ·{' '}
+                {formatMadridTimeZoneName(mapFrame.time)}
+              </span>
+              {mapFrame.timeSource === 'retrievedAt' && (
+                <span> · hora del producto desconocida</span>
+              )}
+              {(mapFrame.sourceProvider === 'aemet-opendata' ||
+                (!mapFrame.sourceProvider &&
+                  mapFrame.rawUrl.endsWith('.gif'))) && (
+                <span> · fuente alternativa</span>
+              )}
+            </>
+          ) : (
+            <strong>Sin imagen visible</strong>
+          )}
+          {selectedSlot.kind === 'gap' && (
+            <span className="timeline-current__gap">
+              {' '}
+              · {formatMadridTime(selectedSlot.time)}: intervalo sin dato
+            </span>
+          )}
+          {requestedFrame && requestedFrame.imageUrl !== mapFrame?.imageUrl && (
+            <span>
+              {' '}
+              ·{' '}
+              {failedImage === requestedFrame.imageUrl
+                ? 'no se pudo cargar'
+                : 'cargando'}{' '}
+              {formatMadridTime(requestedFrame.time)}
+            </span>
+          )}
+        </p>
+        <button type="button" onClick={() => onSelect(slots.length - 1)}>
+          Ir a la última
+        </button>
+      </div>
       <div className="playback-row">
         <button
           className="play-button"
@@ -986,7 +901,7 @@ function Timeline({
             >
               <span className="frame-button__dot" aria-hidden="true" />
               <time dateTime={slot.time}>{formatMadridTime(slot.time)}</time>
-              {latest && <small>Ahora</small>}
+              {latest && <small>Última</small>}
               {slot.kind === 'gap' && <small>Sin dato</small>}
             </button>
           );
@@ -1008,10 +923,6 @@ function Timeline({
       </p>
     </section>
   );
-}
-
-function radarAvailability(radar: RadarIndexEntry): RadarHealthStatus {
-  return radar.available ? 'current' : 'no-data';
 }
 
 function shouldIgnoreRadarHotkeyTarget(target: EventTarget | null): boolean {
@@ -1088,40 +999,4 @@ function useMinuteClock(): number {
   }, []);
 
   return now;
-}
-
-function readStoredString(key: string): string | null {
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function readStoredNumber(
-  key: string,
-  fallback: number,
-  minimum: number,
-  maximum: number,
-): number {
-  const stored = readStoredString(key);
-  if (stored === null) {
-    return fallback;
-  }
-  const value = Number(stored);
-  return Number.isFinite(value) && value >= minimum && value <= maximum
-    ? value
-    : fallback;
-}
-
-function writeStoredValue(key: string, value: string): void {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // Las preferencias son opcionales en contextos con almacenamiento bloqueado.
-  }
-}
-
-function isAbortError(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'AbortError';
 }

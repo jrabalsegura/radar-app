@@ -8,6 +8,7 @@ import {
 } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { useEffect } from 'react';
 import { App } from './App';
 import { formatDataAge } from './dataFreshness';
 import type { RadarIndexEntry } from './radarIndex';
@@ -33,22 +34,30 @@ vi.mock('./RadarMap', () => ({
     opacity,
     showDebug,
     reducedMotion,
+    onDisplayedFrame,
   }: {
     radar: RadarIndexEntry;
     selectedFrame: RadarTimelineFrame | null;
     opacity: number;
     showDebug: boolean;
     reducedMotion: boolean;
-  }) => (
-    <div
-      data-testid="radar-map"
-      data-radar={radar.id}
-      data-frame={selectedFrame?.id ?? 'none'}
-      data-opacity={opacity}
-      data-debug={showDebug}
-      data-reduced-motion={reducedMotion}
-    />
-  ),
+    onDisplayedFrame: (frame: RadarTimelineFrame | null) => void;
+  }) => {
+    useEffect(
+      () => onDisplayedFrame(selectedFrame),
+      [selectedFrame, onDisplayedFrame],
+    );
+    return (
+      <div
+        data-testid="radar-map"
+        data-radar={radar.id}
+        data-frame={selectedFrame?.id ?? 'none'}
+        data-opacity={opacity}
+        data-debug={showDebug}
+        data-reduced-motion={reducedMotion}
+      />
+    );
+  },
 }));
 
 const regionalCodes = [
@@ -638,6 +647,84 @@ describe('App radar', () => {
     expect(screen.getByText('Radar más cercano: Almería.')).toBeInTheDocument();
   });
 
+  it('Cerca de mí en el radar actual conserva el historial y permite repetir la acción', async () => {
+    const fetchMock = mockRadarFetches();
+    mockPosition(-2, 39.2);
+    render(<App />);
+    await screen.findByRole('slider', { name: 'Instante del radar' });
+    const button = screen.getByRole('button', {
+      name: 'Usar mi ubicación para elegir el radar más cercano',
+    });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(screen.getByLabelText('Fuente radar')).toHaveValue('regional-mu');
+    expect(screen.getByTestId('radar-map')).toHaveAttribute(
+      'data-frame',
+      'mu-three',
+    );
+    expect(screen.getByLabelText('Instante del radar')).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url]) => url === '/radar/regional-mu/manifest.json',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('si el radar más cercano no tiene imágenes va directamente a nacional', async () => {
+    mockRadarFetches();
+    mockPosition(-3.5, 38);
+    render(<App />);
+    await screen.findByRole('slider', { name: 'Instante del radar' });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Usar mi ubicación para elegir el radar más cercano',
+      }),
+    );
+    await screen.findByRole('heading', { name: 'Composición nacional' });
+    expect(screen.getByText(/A Coruña no tiene imágenes/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('radar-map')).toHaveAttribute(
+        'data-frame',
+        'national-only',
+      ),
+    );
+  });
+
+  it('expone la hora real en los huecos, Última y los accesos directos', async () => {
+    mockRadarFetches();
+    render(<App />);
+    await screen.findByRole('slider', { name: 'Instante del radar' });
+    fireEvent.change(screen.getByLabelText('Instante del radar'), {
+      target: { value: '2' },
+    });
+    expect(screen.getByTestId('visible-frame-time')).toHaveTextContent(
+      'Obtenida: 19:10',
+    );
+    expect(screen.getByTestId('visible-frame-time')).toHaveTextContent(
+      '19:20: intervalo sin dato',
+    );
+    expect(screen.getByTestId('visible-frame-time')).toHaveTextContent(
+      'hora del producto desconocida',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Ir a la última' }));
+    expect(screen.getByTestId('radar-map')).toHaveAttribute(
+      'data-frame',
+      'mu-three',
+    );
+    expect(screen.getByText('Última')).toBeInTheDocument();
+    expect(screen.queryByText('Ahora')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Centrar radar' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Leyenda de reflectividad en dBZ'),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Ir a composición nacional' }),
+    );
+    await screen.findByRole('heading', { name: 'Composición nacional' });
+  });
+
   it('mantiene la interfaz con el último manifiesto válido sin red', async () => {
     seedCache('catalog', radarIndex);
     seedCache('health', health);
@@ -804,4 +891,27 @@ function seedCache(cacheId: string, value: unknown) {
       value,
     }),
   );
+}
+
+function mockPosition(longitude: number, latitude: number) {
+  Object.defineProperty(navigator, 'geolocation', {
+    configurable: true,
+    value: {
+      getCurrentPosition: (success: PositionCallback) =>
+        success({
+          coords: {
+            longitude,
+            latitude,
+            accuracy: 100,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+            toJSON: () => ({}),
+          },
+          timestamp: Date.now(),
+          toJSON: () => ({}),
+        }),
+    },
+  });
 }

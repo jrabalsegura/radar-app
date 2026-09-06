@@ -15,6 +15,7 @@ from aemet_radar.history import (
     HistoryScan,
     isoformat_utc,
     scan_product_history,
+    select_observations,
 )
 from aemet_radar.products import RadarProduct
 from aemet_radar.storage import atomic_write_json
@@ -33,6 +34,7 @@ MapCoordinates = tuple[
 class FrameImage:
     url: str
     coordinates: MapCoordinates
+    no_coverage_url: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,8 +56,8 @@ class ManifestPublisher:
         image_resolver: Callable[[RadarProduct, ArchivedFrame], FrameImage | None] | None = None,
         radar_metadata_resolver: Callable[[RadarProduct], dict[str, object]] | None = None,
     ) -> None:
-        if history_hours <= 0:
-            raise ValueError("history_hours debe ser mayor que cero.")
+        if history_hours != HISTORY_HOURS:
+            raise ValueError("La ventana pública es fija: 230 minutos.")
         self.data_dir = data_dir.resolve()
         self.history_hours = history_hours
         self.image_resolver = image_resolver
@@ -146,13 +148,13 @@ def build_product_manifest(
         frames = archived_frames
     else:
         publishable: list[ArchivedFrame] = []
-        for frame in archived_frames:
+        for frame in scan.candidates or archived_frames:
             image = image_resolver(product, frame)
             if image is None:
                 continue
             publishable.append(frame)
             resolved_images[frame.report_path] = image
-        frames = tuple(publishable)
+        frames = select_observations(publishable)
     selected: tuple[ArchivedFrame, ...] = ()
     window_start: datetime | None = None
     window_end: datetime | None = None
@@ -252,6 +254,8 @@ def _public_frame(
         "imageCoordinates": (
             [list(coordinate) for coordinate in image.coordinates] if image is not None else None
         ),
+        "noCoverageUrl": image.no_coverage_url if image is not None else None,
+        "sourceProvider": frame.source_provider or "aemet-opendata",
         "status": "available",
     }
 
