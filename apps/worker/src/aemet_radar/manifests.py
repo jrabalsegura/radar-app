@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import cast
 from urllib.parse import quote
 
+from aemet_radar.common import MapCoordinates, load_json_object
 from aemet_radar.history import (
     ArchivedFrame,
     HistoryScan,
@@ -22,12 +21,6 @@ from aemet_radar.storage import atomic_write_json
 from aemet_radar.temporal import HISTORY_HOURS
 
 _GAP_JITTER_TOLERANCE_SECONDS = 1.0
-MapCoordinates = tuple[
-    tuple[float, float],
-    tuple[float, float],
-    tuple[float, float],
-    tuple[float, float],
-]
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,14 +45,10 @@ class ManifestPublisher:
         self,
         data_dir: Path,
         *,
-        history_hours: float = HISTORY_HOURS,
         image_resolver: Callable[[RadarProduct, ArchivedFrame], FrameImage | None] | None = None,
         radar_metadata_resolver: Callable[[RadarProduct], dict[str, object]] | None = None,
     ) -> None:
-        if history_hours != HISTORY_HOURS:
-            raise ValueError("La ventana pública es fija: 230 minutos.")
         self.data_dir = data_dir.resolve()
-        self.history_hours = history_hours
         self.image_resolver = image_resolver
         self.radar_metadata_resolver = radar_metadata_resolver
 
@@ -74,7 +63,7 @@ class ManifestPublisher:
             product,
             scan,
             generated_at=generated_at,
-            history_hours=self.history_hours,
+            history_hours=HISTORY_HOURS,
             image_resolver=self.image_resolver,
         )
         path = self.manifest_path(product)
@@ -95,7 +84,7 @@ class ManifestPublisher:
         radars: list[dict[str, object]] = []
         for product in products:
             manifest_path = self.manifest_path(product)
-            manifest = _load_json_object(manifest_path)
+            manifest = load_json_object(manifest_path)
             metadata = (
                 self.radar_metadata_resolver(product)
                 if self.radar_metadata_resolver is not None
@@ -131,7 +120,7 @@ class ManifestPublisher:
         return self.data_dir / "radar" / product.id / "manifest.json"
 
     def read_product(self, product: RadarProduct) -> dict[str, object] | None:
-        return _load_json_object(self.manifest_path(product))
+        return load_json_object(self.manifest_path(product))
 
 
 def build_product_manifest(
@@ -320,13 +309,3 @@ def _detect_gaps(
             }
         )
     return gaps
-
-
-def _load_json_object(path: Path) -> dict[str, object] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    if not isinstance(payload, dict):
-        return None
-    return cast(dict[str, object], payload)

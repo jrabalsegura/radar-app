@@ -122,147 +122,11 @@ class HistoryWorker:
                 self.manifests.rebuild_product(product, generated_at=cycle_time)
 
         for product_index, product in enumerate(self.products):
-            attempt_count = 0
-
-            def fetch() -> IngestionOutcome:
-                nonlocal attempt_count
-                attempt_count += 1
-                return self.service.fetch_once(product)
-
-            try:
-                outcome, _ = call_with_retry(
-                    fetch,
-                    self.retry_policy,
-                    sleeper=self.sleeper,
-                )
-            except AemetRadarError as exc:
-                if is_no_data_error(exc):
-                    try:
-                        removed_frames, published_frames = self._refresh_publication(
-                            product,
-                            cycle_time=cycle_time,
-                        )
-                    except (AemetRadarError, OSError, ValueError):
-                        message = "No se pudo actualizar de forma segura el archivo público."
-                        observations[product.id] = PollObservation(
-                            status="error",
-                            checked_at=cycle_time,
-                            attempts=attempt_count,
-                            error_code="publication_error",
-                            error_message=message,
-                        )
-                        results.append(
-                            ProductCycleResult(
-                                product_id=product.id,
-                                status="error",
-                                attempts=attempt_count,
-                                removed_frames=0,
-                                published_frames=None,
-                                error_code="publication_error",
-                                error_message=message,
-                            )
-                        )
-                    else:
-                        observations[product.id] = PollObservation(
-                            status="no-data",
-                            checked_at=cycle_time,
-                            attempts=attempt_count,
-                            outcome_status="no-data",
-                        )
-                        results.append(
-                            ProductCycleResult(
-                                product_id=product.id,
-                                status="no-data",
-                                attempts=attempt_count,
-                                removed_frames=removed_frames,
-                                published_frames=published_frames,
-                            )
-                        )
-                    self._pause_between_products(product_index)
-                    continue
-                error_details = exc.safe_details() or None
-                diagnostic_report: str | None = None
-                if isinstance(exc, DownloadValidationError):
-                    try:
-                        diagnostic_path = self.failures.record_download_validation(
-                            product=product,
-                            checked_at=cycle_time,
-                            attempts=attempt_count,
-                            error=exc,
-                        )
-                    except OSError:
-                        diagnostic_path = None
-                    if diagnostic_path is not None:
-                        diagnostic_report = diagnostic_path.relative_to(self.data_dir).as_posix()
-                observations[product.id] = PollObservation(
-                    status="error",
-                    checked_at=cycle_time,
-                    attempts=attempt_count,
-                    error_code=exc.code,
-                    error_message=str(exc),
-                    error_details=error_details,
-                    diagnostic_report=diagnostic_report,
-                )
-                results.append(
-                    ProductCycleResult(
-                        product_id=product.id,
-                        status="error",
-                        attempts=attempt_count,
-                        removed_frames=0,
-                        published_frames=None,
-                        error_code=exc.code,
-                        error_message=str(exc),
-                        error_details=error_details,
-                        diagnostic_report=diagnostic_report,
-                    )
-                )
-                self._pause_between_products(product_index)
-                continue
-
-            try:
-                removed_frames, published_frames = self._refresh_publication(
-                    product,
-                    cycle_time=cycle_time,
-                )
-            except (AemetRadarError, OSError, ValueError):
-                message = "No se pudo actualizar de forma segura el archivo público."
-                observations[product.id] = PollObservation(
-                    status="error",
-                    checked_at=cycle_time,
-                    attempts=attempt_count,
-                    error_code="publication_error",
-                    error_message=message,
-                )
-                results.append(
-                    ProductCycleResult(
-                        product_id=product.id,
-                        status="error",
-                        attempts=attempt_count,
-                        removed_frames=0,
-                        published_frames=None,
-                        error_code="publication_error",
-                        error_message=message,
-                    )
-                )
-                self._pause_between_products(product_index)
-                continue
-
-            observations[product.id] = PollObservation(
-                status="success",
-                checked_at=cycle_time,
-                attempts=attempt_count,
-                outcome_status=outcome.status,
-            )
-            results.append(
-                ProductCycleResult(
-                    product_id=product.id,
-                    status=outcome.status,
-                    attempts=attempt_count,
-                    removed_frames=removed_frames,
-                    published_frames=published_frames,
-                )
-            )
-            self._pause_between_products(product_index)
+            if product_index > 0 and self.product_delay_seconds > 0:
+                self.sleeper(self.product_delay_seconds)
+            result, observation = self._poll_product(product, cycle_time)
+            results.append(result)
+            observations[product.id] = observation
 
         self.manifests.rebuild_index(self.publication_products, generated_at=cycle_time)
         self.health.publish(
@@ -271,6 +135,108 @@ class HistoryWorker:
             polls=observations,
         )
         return CycleResult(generated_at=cycle_time, products=tuple(results))
+
+    def _poll_product(
+        self,
+        product: RadarProduct,
+        cycle_time: datetime,
+    ) -> tuple[ProductCycleResult, PollObservation]:
+        attempt_count = 0
+
+        def fetch() -> IngestionOutcome:
+            nonlocal attempt_count
+            attempt_count += 1
+            return self.service.fetch_once(product)
+
+        def failure(
+            code: str,
+            message: str,
+            details: dict[str, object] | None = None,
+            diagnostic_report: str | None = None,
+        ) -> tuple[ProductCycleResult, PollObservation]:
+            return (
+                ProductCycleResult(
+                    product_id=product.id,
+                    status="error",
+                    attempts=attempt_count,
+                    removed_frames=0,
+                    published_frames=None,
+                    error_code=code,
+                    error_message=message,
+                    error_details=details,
+                    diagnostic_report=diagnostic_report,
+                ),
+                PollObservation(
+                    status="error",
+                    checked_at=cycle_time,
+                    attempts=attempt_count,
+                    error_code=code,
+                    error_message=message,
+                    error_details=details,
+                    diagnostic_report=diagnostic_report,
+                ),
+            )
+
+        status: str
+        try:
+            outcome, _ = call_with_retry(fetch, self.retry_policy, sleeper=self.sleeper)
+            status = outcome.status
+        except AemetRadarError as exc:
+            if not is_no_data_error(exc):
+                return failure(
+                    exc.code,
+                    str(exc),
+                    exc.safe_details() or None,
+                    self._record_diagnostic(product, cycle_time, attempt_count, exc),
+                )
+            status = "no-data"
+
+        try:
+            removed_frames, published_frames = self._refresh_publication(
+                product,
+                cycle_time=cycle_time,
+            )
+        except (AemetRadarError, OSError, ValueError):
+            return failure(
+                "publication_error",
+                "No se pudo actualizar de forma segura el archivo público.",
+            )
+
+        return (
+            ProductCycleResult(
+                product_id=product.id,
+                status=status,
+                attempts=attempt_count,
+                removed_frames=removed_frames,
+                published_frames=published_frames,
+            ),
+            PollObservation(
+                status="no-data" if status == "no-data" else "success",
+                checked_at=cycle_time,
+                attempts=attempt_count,
+                outcome_status=status,
+            ),
+        )
+
+    def _record_diagnostic(
+        self,
+        product: RadarProduct,
+        cycle_time: datetime,
+        attempts: int,
+        error: AemetRadarError,
+    ) -> str | None:
+        if not isinstance(error, DownloadValidationError):
+            return None
+        try:
+            path = self.failures.record_download_validation(
+                product=product,
+                checked_at=cycle_time,
+                attempts=attempts,
+                error=error,
+            )
+        except OSError:
+            return None
+        return path.relative_to(self.data_dir).as_posix()
 
     def _refresh_publication(
         self,
@@ -294,10 +260,6 @@ class HistoryWorker:
         frames = manifest.payload.get("frames")
         published_frames = len(frames) if isinstance(frames, list) else 0
         return retention.removed_frames, published_frames
-
-    def _pause_between_products(self, product_index: int) -> None:
-        if product_index < len(self.products) - 1 and self.product_delay_seconds > 0:
-            self.sleeper(self.product_delay_seconds)
 
 
 def run_periodically(

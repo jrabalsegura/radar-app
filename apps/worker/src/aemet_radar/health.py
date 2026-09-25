@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Literal, cast
 
+from aemet_radar.common import load_json_object
 from aemet_radar.history import isoformat_utc, parse_utc_datetime
 from aemet_radar.manifests import ManifestPublisher
 from aemet_radar.products import RadarProduct
 from aemet_radar.storage import atomic_write_json
+
+# AEMET publica cada observación unos 18 min después de su hora. Con cadencia de
+# 10 min y sondeo cada 5 min, el último dato llega a tener ~33 min sin retraso real.
+STALE_AFTER_CADENCES = 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,7 +43,7 @@ class HealthPublisher:
         polls: dict[str, PollObservation] | None = None,
     ) -> Path:
         observations = polls or {}
-        previous = _load_json_object(self.path)
+        previous = load_json_object(self.path)
         previous_products = _previous_products(previous)
         product_states = [
             self._product_state(
@@ -100,7 +104,7 @@ class HealthPublisher:
                 0,
                 int((generated_at - parse_utc_datetime(latest_time)).total_seconds()),
             )
-        stale_after_seconds = product.cadence_minutes * 2 * 60
+        stale_after_seconds = product.cadence_minutes * STALE_AFTER_CADENCES * 60
         if latest_time is None:
             data_status = "no-data"
         elif age_seconds is not None and age_seconds > stale_after_seconds:
@@ -169,16 +173,6 @@ class HealthPublisher:
             "lastError": last_error,
             "manifestUrl": f"/radar/{product.id}/manifest.json",
         }
-
-
-def _load_json_object(path: Path) -> dict[str, object] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    if not isinstance(payload, dict):
-        return None
-    return cast(dict[str, object], payload)
 
 
 def _previous_products(

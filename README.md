@@ -78,7 +78,8 @@ make georeference-murcia OVERLAY=ruta/overlay.png # salida Web Mercator
 make check         # lint, formato, tipado, tests y build
 make format        # aplica los formateadores
 make test-e2e      # flujos principales en Chrome de escritorio y móvil
-make container-up  # build y despliegue local en http://127.0.0.1:8080
+make docker-test   # build, arranque y smoke test en http://127.0.0.1:8080
+make container-up  # build y despliegue local sin comprobaciones
 make container-check # smoke test y comprobación de aislamiento de la key
 make container-down # detiene contenedores sin borrar data/
 ```
@@ -237,10 +238,12 @@ la operación diaria están en [`docs/DEPLOY.md`](docs/DEPLOY.md) y
 
 ## Estrategia Git
 
-`main` debe permanecer estable. Cada fase se desarrolla en una rama
-`phase/<numero>-<descripcion>`, se valida con `make check` y se integra mediante
-una revisión que confirme los criterios de aceptación. Los commits deben ser
-pequeños, coherentes y no mezclar trabajo de fases posteriores.
+`main` debe permanecer estable. Cada cambio se desarrolla en una rama
+`claude/<descripcion>` creada desde `origin/main`, se valida con `make check` y
+`make docker-test` y se integra mediante un PR con la CI en verde. Los commits
+deben ser pequeños y coherentes. El contexto para Claude Code está en
+[`CLAUDE.md`](CLAUDE.md) y el flujo completo de prueba y despliegue en
+[`docs/PRUEBAS_Y_DESPLIEGUE.md`](docs/PRUEBAS_Y_DESPLIEGUE.md).
 
 Las decisiones que cambien arquitectura, alcance o comportamiento se registran
 como ADR en `docs/DECISIONS.md`; no se reescribe la historia de decisiones.

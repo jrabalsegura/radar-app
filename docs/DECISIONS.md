@@ -609,3 +609,21 @@ hacer fallar el E2E aunque las unidades y publicación sigan siendo correctas.
 
 **Motivo:** mejorar la lectura y verificar comportamiento real manteniendo el
 trabajo previo de calibración y la arquitectura estática.
+
+## ADR-032 — Umbral de retraso acorde con la latencia real de AEMET
+
+**Estado:** propuesta el 25 de septiembre de 2026.
+
+Se consideraba retrasado un producto cuyo último fotograma superaba dos
+cadencias (20 minutos). El 25 de septiembre de 2026 se midió en el visor de
+AEMET que la observación de las 17:50 UTC apareció entre las 18:07:15 y las
+18:07:45 UTC: unos 18 minutos de latencia. Con cadencia de 10 minutos, el último
+dato normal oscila entre ~18 y ~28 minutos, más hasta 5 minutos de sondeo del
+worker. Producción mostraba `degraded` y «Retrasado» casi siempre sin fallo real.
+
+El umbral pasa a cuatro cadencias (40 minutos) en `health.json` y en el cliente.
+El navegador refresca catálogo y manifiesto cada 5 minutos, igual que el sondeo
+del worker, para no sumar otros 10 minutos de antigüedad aparente.
+
+**Motivo:** que «Retrasado» y `degraded` indiquen un problema real y no la
+cadencia de publicación normal de AEMET.

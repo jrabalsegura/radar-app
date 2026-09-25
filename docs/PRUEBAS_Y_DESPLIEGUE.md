@@ -1,9 +1,9 @@
-# Probar y desplegar la revisión del radar
+# Probar en local y desplegar
 
-Esta guía corresponde a `codex/radar-review-fixes`. El repositorio es
+Flujo para cualquier cambio: prueba en Docker Desktop, PR en GitHub y
+actualización del servidor existente mediante `ssh remote`. El repositorio es
 <https://github.com/jrabalsegura/radar-app>. Para una instalación nueva, usa
-[DEPLOY.md](DEPLOY.md); los pasos de servidor de esta guía actualizan la
-instalación existente mediante `ssh remote`.
+[DEPLOY.md](DEPLOY.md).
 
 ## 1. Preparar Docker y la configuración
 
@@ -44,16 +44,26 @@ Edita `.env` con tu editor y configura `AEMET_API_KEY`. El secreto lo recibe
 arrancado con `make run-worker`, detenlo con Ctrl+C antes de continuar: debe haber
 un solo escritor sobre `data/`.
 
-## 2. Construir y arrancar la prueba
+## 2. Construir, arrancar y comprobar
+
+Antes, valida el código fuera de contenedores:
 
 ```bash
-make container-up
-make container-status
+make check
 ```
 
-`container-up` construye las imágenes desde el código actual y arranca ambos
-servicios en segundo plano. El primer build necesita descargar las imágenes
-base y dependencias. Los siguientes reutilizan la caché de construcción.
+Después, un solo comando construye las imágenes desde el código actual, arranca
+ambos servicios en segundo plano, espera a que nginx responda y ejecuta el smoke
+test:
+
+```bash
+make docker-test
+```
+
+El primer build necesita descargar las imágenes base y dependencias; los
+siguientes reutilizan la caché. Si `data/` está vacío, el smoke test falla hasta
+que el worker complete su primer ciclo: sigue el avance con `make container-logs`
+y repite `make container-check`.
 
 Abre **<http://127.0.0.1:8080>**. Es la aplicación con el nginx del contenedor y
 los datos reales del worker. Las muestras históricas de `apps/web/public/radar/`
@@ -67,13 +77,8 @@ make container-logs
 ```
 
 El primer ciclo puede tardar varios minutos. Ctrl+C cierra el seguimiento del
-log; los contenedores continúan funcionando. Cuando termine el primer ciclo:
-
-```bash
-make container-check
-```
-
-Debe indicar `Smoke test correcto`. Comprueba las 16 fuentes, sus manifiestos,
+log; los contenedores continúan funcionando. `make container-check` repite solo
+la comprobación y debe indicar `Smoke test correcto`. Comprueba las 16 fuentes, sus manifiestos,
 las URLs de imágenes y coberturas, las cabeceras de caché y el aislamiento de la
 key. `health: starting` puede aparecer durante el arranque. Un estado de datos
 `degraded` puede deberse a radares sin datos recientes, aunque los contenedores
@@ -83,8 +88,7 @@ Si el puerto 8080 ya está ocupado, usa el mismo puerto alternativo en los
 comandos de esa prueba:
 
 ```bash
-make container-up RADAR_HTTP_PORT=8081
-make container-check RADAR_HTTP_PORT=8081
+make docker-test RADAR_HTTP_PORT=8081
 ```
 
 En ese caso abre <http://127.0.0.1:8081>.
@@ -101,7 +105,7 @@ propio teléfono.
 | Abrir Murcia | Ciudades legibles en la primera vista; Cerca de mí y Nacional visibles. |
 | Aumentar zoom | Más poblaciones progresivamente; Liberty conserva carreteras, costa y relieve. |
 | Mover/alejar el mapa y pulsar Centrar radar | Recupera centro y zoom iniciales. |
-| Explorar una hora y esperar diez minutos o desconectar/reconectar | Conserva encuadre y hora explorada mientras exista; si estabas en la última, sigue la nueva última. |
+| Explorar una hora y esperar cinco minutos o desconectar/reconectar | Conserva encuadre y hora explorada mientras exista; si estabas en la última, sigue la nueva última. |
 | Elegir otra hora | Imagen indica la hora realmente dibujada; durante la carga conserva la anterior y avisa. |
 | Volver rápidamente de A a B y a A con red lenta | B no aparece después de volver a A. |
 | Seleccionar un hueco, si lo hay en los datos actuales | Marca el intervalo sin dato y conserva la imagen anterior con su hora real. |
@@ -177,8 +181,7 @@ teniendo 16 fuentes y la ventana, 230 minutos.
 **Después de cambiar código**, vuelve a ejecutar:
 
 ```bash
-make container-up
-make container-check
+make docker-test
 ```
 
 Compose reconstruye y reemplaza los contenedores que cambien. Un simple reinicio
@@ -203,15 +206,15 @@ comprueba la aplicación ejecutándose en contenedores con datos reales.
 
 ## 6. Publicar el código en GitHub
 
-Revisa el diff, conserva los cambios en un commit y sube la rama. Si todavía hay
-cambios sin commit, selecciona explícitamente los archivos revisados:
+Trabaja en una rama `claude/<descripcion>` creada desde `origin/main`. Revisa
+el diff, conserva los cambios en un commit y sube la rama:
 
 ```bash
 git status --short
 git diff --check
 git diff --stat
-# Si es necesario: git add <archivos revisados> y git commit -m "Fix radar publication and viewer"
-git push -u origin codex/radar-review-fixes
+# Si es necesario: git add <archivos revisados> y git commit
+git push -u origin HEAD
 ```
 
 Abre el PR hacia `main` y espera a que **Frontend**, **Worker** y **Container
@@ -249,9 +252,11 @@ sudo podman tag localhost/aemet-radar-worker:current localhost/aemet-radar-worke
 sudo podman tag localhost/aemet-radar-web:current localhost/aemet-radar-web:rollback
 ```
 
-La migración regenera derivados con URLs versionadas desde disco. Para evitar
-dos escritores, detén el worker y ejecuta la imagen nueva una sola vez. El web
-sigue sirviendo la publicación durante la operación:
+Regenera la publicación desde disco con la imagen nueva. Es imprescindible si el
+release cambia procesadores, revisiones de publicación o el formato de los
+manifiestos, e inocuo en otro caso. Para evitar dos escritores, detén el worker
+y ejecuta la imagen nueva una sola vez. El web sigue sirviendo la publicación
+durante la operación:
 
 ```bash
 sudo systemctl stop aemet-radar-worker.service

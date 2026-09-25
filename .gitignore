@@ -34,3 +34,6 @@ data/*
 # Salidas temporales
 tmp/
 *.log
+
+# Claude Code (configuración personal)
+.claude/settings.local.json

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(make check)",
+      "Bash(make lint)",
+      "Bash(make format)",
+      "Bash(make format-check)",
+      "Bash(make typecheck)",
+      "Bash(make test)",
+      "Bash(make test-e2e)",
+      "Bash(make build)",
+      "Bash(make container-status)",
+      "Bash(make container-check)",
+      "Bash(.venv/bin/pytest:*)",
+      "Bash(.venv/bin/ruff:*)",
+      "Bash(.venv/bin/mypy:*)",
+      "Bash(npm --prefix apps/web test:*)",
+      "Bash(npm --prefix apps/web run lint:*)",
+      "Bash(npm --prefix apps/web run typecheck:*)",
+      "Bash(npm --prefix apps/web run format:*)",
+      "Bash(npm --prefix apps/web run build:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose logs:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run view:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Edit(./.env)",
+      "Bash(cat .env:*)"
+    ]
+  }
+}

@@ -82,6 +82,3 @@ PRODUCTS: dict[str, RadarProduct] = {
     **{product.id: product for product in REGIONAL_PRODUCTS},
     NATIONAL.id: NATIONAL,
 }
-
-# Alias conservado para no romper integraciones anteriores a la Fase 6.
-SPIKE_PRODUCTS = PRODUCTS

@@ -9,11 +9,12 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from types import TracebackType
-from typing import cast
+from typing import Self, cast
 from urllib.parse import quote
 
 import httpx
 
+from aemet_radar.common import MapCoordinates as MapCoordinates
 from aemet_radar.errors import (
     AemetHttpError,
     AemetResponseError,
@@ -34,13 +35,6 @@ _CAPTURED_HEADERS = (
     "expires",
     "last-modified",
 )
-
-MapCoordinates = tuple[
-    tuple[float, float],
-    tuple[float, float],
-    tuple[float, float],
-    tuple[float, float],
-]
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,8 +64,8 @@ class ViewerImage:
     headers: dict[str, str]
 
 
-class AemetViewerClient:
-    """Descarga la cronología y los PNG públicos empleados por el visor de AEMET."""
+class ViewerHttpClient:
+    """Base HTTP común a las cronologías PPI y nacional del visor."""
 
     __slots__ = ("_client", "_max_image_bytes")
 
@@ -90,7 +84,7 @@ class AemetViewerClient:
             headers={"User-Agent": "aemet-radar-worker/0.9"},
         )
 
-    def __enter__(self) -> AemetViewerClient:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -104,66 +98,79 @@ class AemetViewerClient:
     def close(self) -> None:
         self._client.close()
 
-    def fetch_timeline(self) -> ViewerTimeline:
-        response = self._request(
-            "/radar/timeline/PPI/PB",
-            stage="consulta de la cronología PPI",
-        )
-        try:
-            payload = json.loads(response.text)
-        except (UnicodeDecodeError, ValueError) as exc:
-            raise AemetResponseError(
-                "El visor de AEMET no devolvió una cronología JSON válida."
-            ) from exc
-        frames = _parse_timeline(payload)
-        if not frames:
-            raise AemetResponseError("La cronología PPI de AEMET está vacía.")
-        return ViewerTimeline(frames=frames)
-
-    def fetch_image(self, frame: ViewerFrame) -> ViewerImage:
-        path = f"/radar/imagen-radar/PPI/{quote(frame.file_name, safe='')}"
-        response, content = self._download(path, stage=f"descarga PPI de {frame.site_code}")
-        return ViewerImage(
-            frame=frame,
-            content=content,
-            retrieved_at=datetime.now(UTC),
-            headers=_capture_headers(response.headers),
-        )
-
-    def fetch_bounds(self, frame: ViewerFrame) -> MapCoordinates:
-        path = f"/radar/bounds-radar/PPI/{quote(frame.file_name, safe='')}"
-        response = self._request(path, stage=f"límites PPI de {frame.site_code}")
-        try:
-            payload = json.loads(response.text)
-        except (UnicodeDecodeError, ValueError) as exc:
-            raise AemetResponseError("El visor de AEMET no devolvió límites JSON válidos.") from exc
-        return _parse_bounds(payload)
-
-    def _request(self, path: str, *, stage: str) -> httpx.Response:
+    def _get_json(self, path: str, *, stage: str, invalid_message: str) -> object:
         try:
             response = self._client.get(path, follow_redirects=False)
         except httpx.HTTPError as exc:
             raise AemetTransportError(stage) from exc
         if not 200 <= response.status_code < 300:
             raise AemetHttpError(stage, response.status_code)
-        return response
+        try:
+            return json.loads(response.text)
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise AemetResponseError(invalid_message) from exc
 
-    def _download(self, path: str, *, stage: str) -> tuple[httpx.Response, bytes]:
+    def _fetch_bounds(self, path: str, *, stage: str) -> MapCoordinates:
+        return parse_bounds(
+            self._get_json(
+                path,
+                stage=stage,
+                invalid_message="El visor de AEMET no devolvió límites JSON válidos.",
+            )
+        )
+
+    def _download(self, path: str, *, stage: str) -> tuple[bytes, dict[str, str]]:
+        too_large = "La imagen del visor supera el tamaño máximo permitido."
         try:
             with self._client.stream("GET", path, follow_redirects=False) as response:
                 if not 200 <= response.status_code < 300:
                     raise AemetHttpError(stage, response.status_code)
-                _ensure_content_length(response.headers, self._max_image_bytes)
+                _ensure_content_length(response.headers, self._max_image_bytes, too_large)
                 content = bytearray()
                 for chunk in response.iter_bytes():
                     content.extend(chunk)
                     if len(content) > self._max_image_bytes:
-                        raise AemetResponseError("La imagen PPI supera el tamaño máximo permitido.")
-                return response, bytes(content)
+                        raise AemetResponseError(too_large)
+                return bytes(content), _capture_headers(response.headers)
         except (AemetHttpError, AemetResponseError):
             raise
         except httpx.HTTPError as exc:
             raise AemetTransportError(stage) from exc
+
+
+class AemetViewerClient(ViewerHttpClient):
+    """Descarga la cronología y los PNG públicos empleados por el visor de AEMET."""
+
+    __slots__ = ()
+
+    def fetch_timeline(self) -> ViewerTimeline:
+        payload = self._get_json(
+            "/radar/timeline/PPI/PB",
+            stage="consulta de la cronología PPI",
+            invalid_message="El visor de AEMET no devolvió una cronología JSON válida.",
+        )
+        frames = _parse_timeline(payload)
+        if not frames:
+            raise AemetResponseError("La cronología PPI de AEMET está vacía.")
+        return ViewerTimeline(frames=frames)
+
+    def fetch_image(self, frame: ViewerFrame) -> ViewerImage:
+        content, headers = self._download(
+            f"/radar/imagen-radar/PPI/{quote(frame.file_name, safe='')}",
+            stage=f"descarga PPI de {frame.site_code}",
+        )
+        return ViewerImage(
+            frame=frame,
+            content=content,
+            retrieved_at=datetime.now(UTC),
+            headers=headers,
+        )
+
+    def fetch_bounds(self, frame: ViewerFrame) -> MapCoordinates:
+        return self._fetch_bounds(
+            f"/radar/bounds-radar/PPI/{quote(frame.file_name, safe='')}",
+            stage=f"límites PPI de {frame.site_code}",
+        )
 
 
 def _parse_timeline(payload: object) -> tuple[ViewerFrame, ...]:
@@ -229,13 +236,15 @@ def _parse_frame(payload: Mapping[str, object]) -> ViewerFrame:
     )
 
 
-def _parse_bounds(payload: object) -> MapCoordinates:
+def parse_bounds(payload: object) -> MapCoordinates:
+    """Valida las esquinas del visor y las reordena para MapLibre."""
+
     if not isinstance(payload, list) or len(payload) != 4:
-        raise AemetResponseError("Los límites PPI no contienen cuatro esquinas.")
+        raise AemetResponseError("Los límites del visor no contienen cuatro esquinas.")
     original: list[tuple[float, float]] = []
     for coordinate in payload:
         if not isinstance(coordinate, list) or len(coordinate) != 2:
-            raise AemetResponseError("Una esquina PPI no es una coordenada.")
+            raise AemetResponseError("Una esquina del visor no es una coordenada.")
         longitude, latitude = coordinate
         if (
             not isinstance(longitude, (int, float))
@@ -243,13 +252,13 @@ def _parse_bounds(payload: object) -> MapCoordinates:
             or not isinstance(latitude, (int, float))
             or isinstance(latitude, bool)
         ):
-            raise AemetResponseError("Una esquina PPI contiene valores no numéricos.")
+            raise AemetResponseError("Una esquina del visor contiene valores no numéricos.")
         lon = float(longitude)
         lat = float(latitude)
         if not math.isfinite(lon) or not math.isfinite(lat):
-            raise AemetResponseError("Una esquina PPI contiene valores no finitos.")
+            raise AemetResponseError("Una esquina del visor contiene valores no finitos.")
         if not -180 <= lon <= 180 or not -90 <= lat <= 90:
-            raise AemetResponseError("Una esquina PPI queda fuera del planeta.")
+            raise AemetResponseError("Una esquina del visor queda fuera del planeta.")
         original.append((lon, lat))
 
     # AEMET: SE, NE, NW, SW. MapLibre: NW, NE, SE, SW.
@@ -267,13 +276,13 @@ def _capture_headers(headers: httpx.Headers) -> dict[str, str]:
     return {name: headers[name] for name in _CAPTURED_HEADERS if name in headers}
 
 
-def _ensure_content_length(headers: httpx.Headers, maximum: int) -> None:
+def _ensure_content_length(headers: httpx.Headers, maximum: int, too_large: str) -> None:
     value = headers.get("content-length")
     if value is None:
         return
     try:
         length = int(value)
     except ValueError as exc:
-        raise AemetResponseError("AEMET devolvió un Content-Length PPI no válido.") from exc
+        raise AemetResponseError("AEMET devolvió un Content-Length no válido.") from exc
     if length > maximum:
-        raise AemetResponseError("La imagen PPI supera el tamaño máximo permitido.")
+        raise AemetResponseError(too_large)

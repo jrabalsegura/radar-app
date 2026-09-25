@@ -1,8 +1,6 @@
-# CODEX_PROMPTS_POST_MVP.md — Fases posteriores al MVP
+# Hoja de ruta posterior al MVP
 
 > Documento para continuar el desarrollo de la aplicación personal de radar AEMET una vez cerrado y estabilizado el MVP.
->
-> Debe copiarse al repositorio como `docs/CODEX_PROMPTS_POST_MVP.md`.
 >
 > Las fases aquí definidas sustituyen la antigua “Fase 10 — Mejoras posteriores al MVP” genérica por varias fases pequeñas, verificables e independientes.
 
@@ -190,9 +188,9 @@ Las fases 11, 12 y 13 pueden desarrollarse en paralelo después de la Fase 10. L
 
 ---
 
-# 4. Instrucción común para Codex
+# 4. Instrucción común para Claude Code
 
-Pegar este bloque al principio de cada prompt.
+`CLAUDE.md` ya carga el contexto general del proyecto; usa este bloque como lista de comprobación al iniciar cada fase.
 
 ```text
 Estás trabajando en el repositorio ya existente de la aplicación personal de radar AEMET. El MVP ya está implementado y no debes sustituir su arquitectura sin una razón demostrable.
@@ -205,7 +203,7 @@ Antes de modificar nada:
    - `docs/DECISIONS.md`;
    - `docs/OPERATIONS.md`, si existe;
    - `docs/DEPLOY.md`, si existe;
-   - `docs/CODEX_PROMPTS_POST_MVP.md`.
+   - `docs/ROADMAP_POST_MVP.md`.
 
 2. Lee `README.md`, inspecciona la estructura real del repositorio y localiza:
    - el modelo actual de radar y fotograma;
@@ -355,7 +353,7 @@ La forma concreta debe adaptarse al código existente.
 - La arquitectura permite añadir nuevas capas sin duplicar lógica de MapLibre.
 - Las funciones no disponibles pueden permanecer ocultas en producción.
 
-## Prompt para Codex
+## Prompt para Claude Code
 
 ```text
 [PEGA AQUÍ LA INSTRUCCIÓN COMÚN]
@@ -438,7 +436,7 @@ No debe utilizarse únicamente la comunidad autónoma como cobertura, porque un 
 - El usuario sabe qué radar está seleccionado y por qué.
 - La denegación del permiso no genera errores repetitivos.
 
-## Prompt para Codex
+## Prompt para Claude Code
 
 ```text
 [PEGA AQUÍ LA INSTRUCCIÓN COMÚN]
@@ -558,7 +556,7 @@ MapLibre fill + line + panel de detalle
 - El toggle no afecta al radar.
 - Un XML inválido no reemplaza la última publicación correcta.
 
-## Prompt para Codex
+## Prompt para Claude Code
 
 ```text
 [PEGA AQUÍ LA INSTRUCCIÓN COMÚN]
@@ -694,7 +692,7 @@ Las coordenadas se obtendrán mediante calibración y no se introducirán valore
 - No se anuncian posiciones o tiempos individuales que la fuente no proporciona.
 - El último producto válido sobrevive a un fallo temporal.
 
-## Prompt para Codex
+## Prompt para Claude Code
 
 ```text
 [PEGA AQUÍ LA INSTRUCCIÓN COMÚN]
@@ -843,7 +841,7 @@ Razones posibles:
 - No se expone todavía al usuario como función estable.
 - Un resultado malo no afecta al histórico observado.
 
-## Prompt para Codex
+## Prompt para Claude Code
 
 ```text
 [PEGA AQUÍ LA INSTRUCCIÓN COMÚN]
@@ -937,7 +935,7 @@ Garantizado
 - El radar básico sigue funcionando con el toggle desactivado.
 - Existen pruebas E2E para carga, éxito, rechazo, error e invalidación.
 
-## Prompt para Codex
+## Prompt para Claude Code
 
 ```text
 [PEGA AQUÍ LA INSTRUCCIÓN COMÚN]
@@ -1058,7 +1056,7 @@ Las notificaciones del sistema o push quedan fuera de alcance porque implican:
 - Los textos son prudentes y accesibles.
 - El usuario puede usar un punto manual sin conceder GPS.
 
-## Prompt para Codex
+## Prompt para Claude Code
 
 ```text
 [PEGA AQUÍ LA INSTRUCCIÓN COMÚN]
@@ -1170,7 +1168,7 @@ estimaciones propias
 - El menú no oculta los controles básicos.
 - La aplicación sigue siendo utilizable en móvil.
 
-## Prompt para Codex
+## Prompt para Claude Code
 
 ```text
 [PEGA AQUÍ LA INSTRUCCIÓN COMÚN]

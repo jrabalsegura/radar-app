@@ -11,6 +11,12 @@ from typing import cast
 
 from PIL import Image
 
+from aemet_radar.common import (
+    load_json_object,
+    mapping,
+    parse_map_coordinates,
+    stored_viewer_coordinates,
+)
 from aemet_radar.georeferencing import (
     PROCESSOR_ID as GEOREFERENCING_PROCESSOR,
 )
@@ -26,7 +32,7 @@ from aemet_radar.georeferencing import (
     load_georeferencing_config,
 )
 from aemet_radar.history import ArchivedFrame, HistoryScan
-from aemet_radar.manifests import FrameImage, MapCoordinates, select_history_frames
+from aemet_radar.manifests import FrameImage, select_history_frames
 from aemet_radar.national_timeline_processing import NationalTimelineProcessor
 from aemet_radar.products import ProductKind, RadarProduct
 from aemet_radar.radar_catalog import RadarCatalog, RadarDefinition
@@ -77,7 +83,7 @@ class RegionalTimelineProcessor:
             if frame.raw_path.suffix.lower() == ".png":
                 if self._viewer_is_current(frame):
                     continue
-                coordinates = self._viewer_coordinates(frame)
+                coordinates = stored_viewer_coordinates(frame.report_path)
                 if coordinates is None:
                     continue
                 publish_viewer_overlay(
@@ -121,9 +127,11 @@ class RegionalTimelineProcessor:
         if frame.raw_path.suffix.lower() == ".png":
             if not self._viewer_is_current(frame):
                 return None
-            report = _load_json(self._public_frame_dir(product, frame) / "viewer-processing.json")
-            output = _mapping(report.get("output")) if report is not None else {}
-            coordinates = _map_coordinates(output.get("maplibreCoordinates"))
+            report = load_json_object(
+                self._public_frame_dir(product, frame) / "viewer-processing.json"
+            )
+            output = mapping(report.get("output")) if report is not None else {}
+            coordinates = parse_map_coordinates(output.get("maplibreCoordinates"))
             if coordinates is None:
                 return None
             return FrameImage(
@@ -135,9 +143,9 @@ class RegionalTimelineProcessor:
             )
         if not self._is_current(definition, frame):
             return None
-        report = _load_json(self._public_frame_dir(product, frame) / "georeferencing.json")
-        output = _mapping(report.get("output")) if report is not None else {}
-        coordinates = _map_coordinates(output.get("maplibreCoordinates"))
+        report = load_json_object(self._public_frame_dir(product, frame) / "georeferencing.json")
+        output = mapping(report.get("output")) if report is not None else {}
+        coordinates = parse_map_coordinates(output.get("maplibreCoordinates"))
         if coordinates is None:
             return None
         return FrameImage(
@@ -265,8 +273,10 @@ class RegionalTimelineProcessor:
         frame: ArchivedFrame,
     ) -> bool:
         product = definition.product
-        reflectivity_report = _load_json(self._reflectivity_dir(product, frame) / "report.json")
-        georeferencing_report = _load_json(
+        reflectivity_report = load_json_object(
+            self._reflectivity_dir(product, frame) / "report.json"
+        )
+        georeferencing_report = load_json_object(
             self._public_frame_dir(product, frame) / "georeferencing.json"
         )
         if (
@@ -276,9 +286,9 @@ class RegionalTimelineProcessor:
         ):
             return False
 
-        source = _mapping(reflectivity_report.get("source"))
-        reflectivity_config = _mapping(reflectivity_report.get("configuration"))
-        georeferencing_config = _mapping(georeferencing_report.get("configuration"))
+        source = mapping(reflectivity_report.get("source"))
+        reflectivity_config = mapping(reflectivity_report.get("configuration"))
+        georeferencing_config = mapping(georeferencing_report.get("configuration"))
         expected_mask_sha256 = (
             _prefixed_sha256(definition.static_mask_path)
             if definition.static_mask_path is not None
@@ -295,28 +305,20 @@ class RegionalTimelineProcessor:
         )
 
     def _viewer_is_current(self, frame: ArchivedFrame) -> bool:
-        report = _load_json(
-            self._public_frame_dir(self.catalog.definition_for(frame.product_id).product, frame)
-            / "viewer-processing.json"
+        frame_dir = self._public_frame_dir(
+            self.catalog.definition_for(frame.product_id).product, frame
         )
+        report = load_json_object(frame_dir / "viewer-processing.json")
         if report is None:
             return False
-        source = _mapping(report.get("source"))
-        output = _mapping(report.get("output"))
+        source = mapping(report.get("source"))
+        output = mapping(report.get("output"))
         return (
             report.get("processor") == VIEWER_PROCESSOR
             and source.get("sha256") == f"sha256:{frame.source_hash}"
-            and _map_coordinates(output.get("maplibreCoordinates")) is not None
-            and (
-                self._public_frame_dir(self.catalog.definition_for(frame.product_id).product, frame)
-                / "overlay.png"
-            ).is_file()
+            and parse_map_coordinates(output.get("maplibreCoordinates")) is not None
+            and (frame_dir / "overlay.png").is_file()
         )
-
-    def _viewer_coordinates(self, frame: ArchivedFrame) -> MapCoordinates | None:
-        report = _load_json(frame.report_path)
-        viewer = _mapping(report.get("viewer")) if report is not None else {}
-        return _map_coordinates(viewer.get("maplibreCoordinates"))
 
     def _georeferencing_sha256(self, definition: RadarDefinition) -> str:
         if definition.georeferencing_config_path is not None:
@@ -337,7 +339,7 @@ class RegionalTimelineProcessor:
     ) -> Path:
         definition = self.catalog.definition_for(product.id)
         if frame.raw_path.suffix.lower() == ".png":
-            configuration = [VIEWER_PROCESSOR, self._viewer_coordinates(frame)]
+            configuration = [VIEWER_PROCESSOR, stored_viewer_coordinates(frame.report_path)]
         else:
             configuration = [
                 REGIONAL_PROCESSING_REVISION,
@@ -401,36 +403,6 @@ def _prefixed_sha256(path: Path) -> str:
     return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
-def _load_json(path: Path) -> dict[str, object] | None:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
-    return cast(dict[str, object], payload) if isinstance(payload, dict) else None
-
-
-def _mapping(value: object) -> dict[str, object]:
-    return cast(dict[str, object], value) if isinstance(value, dict) else {}
-
-
-def _map_coordinates(value: object) -> MapCoordinates | None:
-    if not isinstance(value, list) or len(value) != 4:
-        return None
-    result: list[tuple[float, float]] = []
-    for coordinate in value:
-        if (
-            not isinstance(coordinate, list)
-            or len(coordinate) != 2
-            or not all(
-                isinstance(component, (int, float)) and not isinstance(component, bool)
-                for component in coordinate
-            )
-        ):
-            return None
-        result.append((float(coordinate[0]), float(coordinate[1])))
-    return cast(MapCoordinates, tuple(result))
-
-
 def _write_boundary_layer(
     source_path: Path,
     *,
@@ -460,10 +432,6 @@ def _write_boundary_layer(
     buffer = BytesIO()
     image.save(buffer, format="PNG", compress_level=9)
     atomic_write_bytes(output_path, buffer.getvalue())
-
-
-# Nombre conservado para consumidores de la Fase 5.
-MurciaTimelineProcessor = RegionalTimelineProcessor
 
 
 class RadarTimelineProcessor(RegionalTimelineProcessor):
