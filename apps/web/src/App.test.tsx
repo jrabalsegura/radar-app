@@ -14,6 +14,7 @@ import { formatDataAge } from './dataFreshness';
 import type { RadarIndexEntry } from './radarIndex';
 import type { RadarTimelineFrame, TimelineSlot } from './radarManifest';
 import { cacheKey } from './resilientData';
+import { AUTO_REFRESH_MILLISECONDS } from './useRadarData';
 
 const { preloadSpy } = vi.hoisted(() => ({
   preloadSpy: vi.fn((slots: TimelineSlot[], selectedIndex: number) => {
@@ -576,7 +577,7 @@ describe('App radar', () => {
     opacitySlider.focus();
 
     await act(async () => {
-      vi.advanceTimersByTime(10 * 60 * 1000);
+      vi.advanceTimersByTime(AUTO_REFRESH_MILLISECONDS);
       await flushMicrotasks();
     });
     expect(screen.getByTestId('radar-map')).toHaveAttribute(
@@ -593,7 +594,7 @@ describe('App radar', () => {
     );
 
     await act(async () => {
-      vi.advanceTimersByTime(10 * 60 * 1000);
+      vi.advanceTimersByTime(AUTO_REFRESH_MILLISECONDS);
       await flushMicrotasks();
     });
     expect(screen.getByTestId('radar-map')).toHaveAttribute(

@@ -18,3 +18,7 @@ tmp
 .DS_Store
 **/.DS_Store
 *.log
+**/__pycache__
+apps/worker/build
+docs
+samples

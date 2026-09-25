@@ -41,11 +41,24 @@ describe('frescura con reloj del cliente', () => {
         radar,
         null,
         health,
-        Date.parse(time) + 21 * 60_000,
+        Date.parse(time) + 41 * 60_000,
         false,
         false,
       ),
     ).toBe('delayed');
+  });
+  it('no marca como retrasada la latencia normal de AEMET', () => {
+    const fresh = { ...health, generatedAt: '2026-09-06T12:30:00Z' };
+    expect(
+      radarStatus(
+        radar,
+        null,
+        fresh,
+        Date.parse(time) + 33 * 60_000,
+        false,
+        false,
+      ),
+    ).toBe('current');
   });
   it('sin health evalúa la edad y no confunde disponibilidad con actualidad', () => {
     expect(

@@ -2,28 +2,16 @@
 
 from __future__ import annotations
 
-import json
-import math
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from types import TracebackType
 from typing import cast
 from urllib.parse import quote
 
-import httpx
-
-from aemet_radar.errors import (
-    AemetHttpError,
-    AemetResponseError,
-    AemetTransportError,
-)
-from aemet_radar.viewer_client import (
-    DEFAULT_VIEWER_BASE_URL,
-    DEFAULT_VIEWER_MAX_IMAGE_BYTES,
-    MapCoordinates,
-)
+from aemet_radar.common import MapCoordinates
+from aemet_radar.errors import AemetResponseError
+from aemet_radar.viewer_client import ViewerHttpClient
 
 NATIONAL_PRODUCT = "Composicion radar"
 NATIONAL_REGION = "Penbal"
@@ -31,15 +19,6 @@ NATIONAL_PARAMETER = "compo"
 NATIONAL_CADENCE_MINUTES = 10
 NATIONAL_HISTORY_MINUTES = 230
 _FILENAME = re.compile(r"^radw(?P<timestamp>\d{12})_3857\.png$")
-_CAPTURED_HEADERS = (
-    "cache-control",
-    "content-length",
-    "content-type",
-    "date",
-    "etag",
-    "expires",
-    "last-modified",
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,101 +51,39 @@ class NationalImage:
     headers: dict[str, str]
 
 
-class AemetNationalClient:
+class AemetNationalClient(ViewerHttpClient):
     """Descarga la cronología y los PNG nacionales empleados por el visor."""
 
-    __slots__ = ("_client", "_max_image_bytes")
-
-    def __init__(
-        self,
-        *,
-        timeout_seconds: float = 15.0,
-        max_image_bytes: int = DEFAULT_VIEWER_MAX_IMAGE_BYTES,
-        http_client: httpx.Client | None = None,
-    ) -> None:
-        self._max_image_bytes = max_image_bytes
-        self._client = http_client or httpx.Client(
-            base_url=DEFAULT_VIEWER_BASE_URL,
-            follow_redirects=False,
-            timeout=httpx.Timeout(timeout_seconds),
-            headers={"User-Agent": "aemet-radar-worker/0.9"},
-        )
-
-    def __enter__(self) -> AemetNationalClient:
-        return self
-
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        self.close()
-
-    def close(self) -> None:
-        self._client.close()
+    __slots__ = ()
 
     def fetch_timeline(self) -> NationalTimeline:
-        response = self._request(
-            f"/radar/timeline/{NATIONAL_PARAMETER}/PB",
-            stage="consulta de la cronología nacional",
+        return _parse_timeline(
+            self._get_json(
+                f"/radar/timeline/{NATIONAL_PARAMETER}/PB",
+                stage="consulta de la cronología nacional",
+                invalid_message=(
+                    "El visor de AEMET no devolvió una cronología nacional JSON válida."
+                ),
+            )
         )
-        try:
-            payload = json.loads(response.text)
-        except (UnicodeDecodeError, ValueError) as exc:
-            raise AemetResponseError(
-                "El visor de AEMET no devolvió una cronología nacional JSON válida."
-            ) from exc
-        return _parse_timeline(payload)
 
     def fetch_image(self, frame: NationalFrame) -> NationalImage:
-        path = f"/radar/imagen-radar/{NATIONAL_PARAMETER}/{quote(frame.file_name, safe='')}"
-        response, content = self._download(path, stage="descarga de composición nacional")
+        content, headers = self._download(
+            f"/radar/imagen-radar/{NATIONAL_PARAMETER}/{quote(frame.file_name, safe='')}",
+            stage="descarga de composición nacional",
+        )
         return NationalImage(
             frame=frame,
             content=content,
             retrieved_at=datetime.now(UTC),
-            headers=_capture_headers(response.headers),
+            headers=headers,
         )
 
     def fetch_bounds(self, frame: NationalFrame) -> MapCoordinates:
-        path = f"/radar/bounds-radar/{NATIONAL_PARAMETER}/{quote(frame.file_name, safe='')}"
-        response = self._request(path, stage="límites de composición nacional")
-        try:
-            payload = json.loads(response.text)
-        except (UnicodeDecodeError, ValueError) as exc:
-            raise AemetResponseError(
-                "El visor de AEMET no devolvió límites nacionales JSON válidos."
-            ) from exc
-        return _parse_bounds(payload)
-
-    def _request(self, path: str, *, stage: str) -> httpx.Response:
-        try:
-            response = self._client.get(path, follow_redirects=False)
-        except httpx.HTTPError as exc:
-            raise AemetTransportError(stage) from exc
-        if not 200 <= response.status_code < 300:
-            raise AemetHttpError(stage, response.status_code)
-        return response
-
-    def _download(self, path: str, *, stage: str) -> tuple[httpx.Response, bytes]:
-        try:
-            with self._client.stream("GET", path, follow_redirects=False) as response:
-                if not 200 <= response.status_code < 300:
-                    raise AemetHttpError(stage, response.status_code)
-                _ensure_content_length(response.headers, self._max_image_bytes)
-                content = bytearray()
-                for chunk in response.iter_bytes():
-                    content.extend(chunk)
-                    if len(content) > self._max_image_bytes:
-                        raise AemetResponseError(
-                            "La composición nacional supera el tamaño máximo permitido."
-                        )
-                return response, bytes(content)
-        except (AemetHttpError, AemetResponseError):
-            raise
-        except httpx.HTTPError as exc:
-            raise AemetTransportError(stage) from exc
+        return self._fetch_bounds(
+            f"/radar/bounds-radar/{NATIONAL_PARAMETER}/{quote(frame.file_name, safe='')}",
+            stage="límites de composición nacional",
+        )
 
 
 def _parse_timeline(payload: object) -> NationalTimeline:
@@ -257,50 +174,8 @@ def _parse_zoned_datetime(value: object, label: str) -> datetime:
     return parsed.astimezone(UTC)
 
 
-def _parse_bounds(payload: object) -> MapCoordinates:
-    if not isinstance(payload, list) or len(payload) != 4:
-        raise AemetResponseError("Los límites nacionales no contienen cuatro esquinas.")
-    original: list[tuple[float, float]] = []
-    for coordinate in payload:
-        if not isinstance(coordinate, list) or len(coordinate) != 2:
-            raise AemetResponseError("Una esquina nacional no es una coordenada.")
-        longitude, latitude = coordinate
-        if (
-            not isinstance(longitude, (int, float))
-            or isinstance(longitude, bool)
-            or not isinstance(latitude, (int, float))
-            or isinstance(latitude, bool)
-        ):
-            raise AemetResponseError("Una esquina nacional contiene valores no numéricos.")
-        lon = float(longitude)
-        lat = float(latitude)
-        if not math.isfinite(lon) or not math.isfinite(lat):
-            raise AemetResponseError("Una esquina nacional contiene valores no finitos.")
-        if not -180 <= lon <= 180 or not -90 <= lat <= 90:
-            raise AemetResponseError("Una esquina nacional queda fuera del planeta.")
-        original.append((lon, lat))
-    # AEMET: SE, NE, NW, SW. MapLibre: NW, NE, SE, SW.
-    return (original[2], original[1], original[0], original[3])
-
-
 def _required_string(payload: Mapping[str, object], name: str) -> str:
     value = payload.get(name)
     if not isinstance(value, str) or not value:
         raise AemetResponseError(f"La observación nacional no contiene {name}.")
     return value
-
-
-def _capture_headers(headers: httpx.Headers) -> dict[str, str]:
-    return {name: headers[name] for name in _CAPTURED_HEADERS if name in headers}
-
-
-def _ensure_content_length(headers: httpx.Headers, maximum: int) -> None:
-    value = headers.get("content-length")
-    if value is None:
-        return
-    try:
-        length = int(value)
-    except ValueError as exc:
-        raise AemetResponseError("AEMET devolvió un Content-Length nacional no válido.") from exc
-    if length > maximum:
-        raise AemetResponseError("La composición nacional supera el tamaño máximo permitido.")

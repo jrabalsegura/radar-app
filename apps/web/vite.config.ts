@@ -6,6 +6,10 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['maplibre-gl'],
   },
+  build: {
+    // El único chunk grande es MapLibre, que ya se carga de forma diferida con RadarMap.
+    chunkSizeWarningLimit: 1100,
+  },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],

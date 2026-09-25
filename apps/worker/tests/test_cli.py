@@ -158,3 +158,28 @@ def test_history_duration_is_not_a_misleading_cli_option(command: str) -> None:
     with pytest.raises(SystemExit) as captured:
         main([command, "--history-hours", "2"])
     assert captured.value.code == 2
+
+
+def test_local_errors_report_their_cause(
+    tmp_path: Path,
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    data_dir = tmp_path / "not-a-directory"
+    data_dir.write_text("")
+
+    exit_code = main(
+        [
+            "rebuild-manifests",
+            "--data-dir",
+            str(data_dir),
+            "--env-file",
+            str(tmp_path / "missing.env"),
+            "--radar-config",
+            str(REPOSITORY_ROOT / "config" / "radars.yaml"),
+        ]
+    )
+
+    assert exit_code == 2
+    error = json.loads(capfd.readouterr().err)["error"]
+    assert error["code"] == "local_operation_error"
+    assert "not-a-directory" in error["cause"]

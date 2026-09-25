@@ -435,13 +435,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     except AemetRadarError as exc:
         _print_json({"status": "error", "error": _safe_error(exc)}, stream=sys.stderr)
         return 2
-    except (OSError, ValueError):
+    except (OSError, ValueError) as exc:
+        # Los errores locales no contienen la key: conservar la causa hace diagnosticables los logs.
         _print_json(
             {
                 "status": "error",
                 "error": {
                     "code": "local_operation_error",
                     "message": "No se pudo completar la operación local de forma segura.",
+                    "cause": f"{type(exc).__name__}: {exc}"[:500],
                 },
             },
             stream=sys.stderr,

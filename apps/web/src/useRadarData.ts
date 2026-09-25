@@ -16,7 +16,8 @@ const PREFERRED_RADAR_ID = 'regional-mu';
 const SELECTED_RADAR_KEY = 'aemet-radar:selected-radar';
 const CATALOG_CACHE_ID = 'catalog';
 const HEALTH_CACHE_ID = 'health';
-const AUTO_REFRESH_MILLISECONDS = 10 * 60 * 1000;
+// Coincide con el intervalo de sondeo del worker.
+export const AUTO_REFRESH_MILLISECONDS = 5 * 60 * 1000;
 
 export function useRadarData() {
   const [index, setIndex] = useState<RadarIndex | null>(null);
