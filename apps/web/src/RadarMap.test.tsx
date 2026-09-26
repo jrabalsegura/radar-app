@@ -41,7 +41,7 @@ const { maps, MockMap } = vi.hoisted(() => {
         layers: [{ id: 'place-label', type: 'symbol' }],
       };
     }
-    addSource = vi.fn((id: string) => {
+    addSource = vi.fn<(id: string, source?: unknown) => void>((id) => {
       this.sources.add(id);
     });
     addLayer = vi.fn((layer: { id: string }) => {
@@ -130,10 +130,10 @@ function props(): Parameters<typeof RadarMap>[0] {
       validation: { status: 'control-points', sampleVerified: true },
     },
     selectedFrame: frame('A'),
+    frames: [],
     opacity: 0.7,
     showDebug: false,
     showNoCoverage: false,
-    reducedMotion: true,
     userCoordinates: null,
     cameraInsets: { top: 0, bottom: 160 },
     recenterRequest: 0,
@@ -149,6 +149,11 @@ async function load(slot: string) {
     maps[0]!.fire('render');
   });
 }
+function frameSources(): string[] {
+  return maps[0]!.addSource.mock.calls
+    .filter(([id]) => String(id).startsWith('radar-frame-'))
+    .map(([, source]) => (source as { url: string }).url);
+}
 afterEach(() => {
   cleanup();
   maps.splice(0);
@@ -161,21 +166,80 @@ describe('RadarMap: fuentes reales y cámara', () => {
       maps[0]!.fire('style.load');
     });
     expect(input.onDisplayedFrame).not.toHaveBeenCalled();
-    await load('regional-frame-a');
+    await load('radar-frame-0');
     expect(input.onDisplayedFrame).toHaveBeenLastCalledWith(
       input.selectedFrame,
     );
     view.rerender(<RadarMap {...input} selectedFrame={frame('B')} />);
     view.rerender(<RadarMap {...input} />);
-    await load('regional-frame-b');
+    await load('radar-frame-1');
     expect(input.onDisplayedFrame).toHaveBeenLastCalledWith(
       input.selectedFrame,
     );
-    expect(maps[0]!.layers.has('regional-frame-b')).toBe(false);
+    // B queda cargada pero oculta para reutilizarla sin volver a descargarla.
+    expect(maps[0]!.setPaintProperty).not.toHaveBeenCalledWith(
+      'radar-frame-1',
+      'raster-opacity',
+      0.7,
+    );
     expect(maps[0]!.addLayer).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'regional-frame-a' }),
+      expect.objectContaining({ id: 'radar-frame-0' }),
       'place-label',
     );
+  });
+  it('volver a un fotograma cargado es instantáneo y no recrea su fuente', async () => {
+    const input = props();
+    const view = render(<RadarMap {...input} />);
+    act(() => {
+      maps[0]!.fire('style.load');
+    });
+    await load('radar-frame-0');
+    view.rerender(<RadarMap {...input} selectedFrame={frame('B')} />);
+    await load('radar-frame-1');
+    expect(frameSources()).toHaveLength(2);
+
+    view.rerender(<RadarMap {...input} />);
+    act(() => {
+      maps[0]!.fire('render');
+    });
+
+    expect(frameSources()).toHaveLength(2);
+    expect(input.onDisplayedFrame).toHaveBeenLastCalledWith(
+      input.selectedFrame,
+    );
+    expect(maps[0]!.setPaintProperty).toHaveBeenCalledWith(
+      'radar-frame-0',
+      'raster-opacity',
+      0.7,
+    );
+    expect(maps[0]!.setPaintProperty).toHaveBeenCalledWith(
+      'radar-frame-1',
+      'raster-opacity',
+      0,
+    );
+  });
+  it('precarga el historial como capas ocultas, de la más reciente a la más antigua', async () => {
+    const input = props();
+    render(
+      <RadarMap
+        {...input}
+        selectedFrame={frame('C')}
+        frames={[frame('A'), frame('B'), frame('C')]}
+      />,
+    );
+    act(() => {
+      maps[0]!.fire('style.load');
+    });
+    await load('radar-frame-0');
+    await load('radar-frame-1');
+    await load('radar-frame-2');
+
+    expect(frameSources()).toEqual([
+      '/radar/regional-mu/C.png',
+      '/radar/regional-mu/B.png',
+      '/radar/regional-mu/A.png',
+    ]);
+    expect(input.onDisplayedFrame).toHaveBeenLastCalledWith(frame('C'));
   });
   it('cancela una descarga al seleccionar un hueco sin imagen anterior', async () => {
     const input = props();
@@ -183,10 +247,10 @@ describe('RadarMap: fuentes reales y cámara', () => {
     act(() => {
       maps[0]!.fire('style.load');
     });
-    await load('regional-frame-a');
+    await load('radar-frame-0');
     view.rerender(<RadarMap {...input} selectedFrame={frame('B')} />);
     view.rerender(<RadarMap {...input} selectedFrame={null} />);
-    await load('regional-frame-b');
+    await load('radar-frame-1');
     expect(input.onDisplayedFrame).toHaveBeenLastCalledWith(null);
     expect(document.querySelector('.map-stage')).toHaveAttribute(
       'data-frame-ready',
@@ -217,7 +281,7 @@ describe('RadarMap: fuentes reales y cámara', () => {
     });
     await act(async () => {
       maps[0]!.fire('error', {
-        sourceId: 'regional-frame-a',
+        sourceId: 'radar-frame-0',
         error: new Error('404'),
       });
     });

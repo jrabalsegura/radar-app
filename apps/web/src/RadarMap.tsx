@@ -7,7 +7,7 @@ import {
   type GeoJSONSourceSpecification,
 } from 'maplibre-gl';
 import mapLibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { prepareMapImage, removeMapImage } from './mapImage';
 import { improvePlaceLabels, firstLabelLayer } from './mapStyle';
@@ -23,7 +23,6 @@ import type { LongitudeLatitude } from './radarLocation';
 import type { RadarTimelineFrame } from './radarManifest';
 setWorkerUrl(mapLibreWorkerUrl);
 const DEFAULT_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
-const RADAR_IDS = ['regional-frame-a', 'regional-frame-b'] as const;
 const DEBUG_SOURCE_ID = 'calibration-debug';
 const DEBUG_LAYER_ID = 'coverage-debug';
 const NO_COVERAGE_ID = 'no-coverage';
@@ -31,10 +30,11 @@ const NOMINAL_ID = 'outside-nominal-coverage';
 interface RadarMapProps {
   radar: RadarIndexEntry;
   selectedFrame: RadarTimelineFrame | null;
+  /** Fotogramas del historial: se precargan como capas ocultas para animar sin parpadeo. */
+  frames: readonly RadarTimelineFrame[];
   opacity: number;
   showDebug: boolean;
   showNoCoverage: boolean;
-  reducedMotion: boolean;
   userCoordinates: LongitudeLatitude | null;
   cameraInsets: RadarCameraInsets;
   recenterRequest: number;
@@ -44,10 +44,10 @@ interface RadarMapProps {
 export function RadarMap({
   radar,
   selectedFrame,
+  frames,
   opacity,
   showDebug,
   showNoCoverage,
-  reducedMotion,
   userCoordinates,
   cameraInsets,
   recenterRequest,
@@ -58,15 +58,14 @@ export function RadarMap({
   const mapRef = useRef<MapLibreMap | null>(null);
   const debugMarkerRef = useRef<Marker | null>(null);
   const initial = useRef({ radar, cameraInsets });
-  const active = useRef<{
-    slot: 0 | 1;
-    key: string;
-    frame: RadarTimelineFrame;
-  } | null>(null);
+  // Una capa oculta por fotograma cargado: cambiar de instante solo cambia opacidades.
+  const layers = useRef(new Map<string, FrameLayer>());
+  const nextLayerId = useRef(0);
+  const active = useRef<string | null>(null);
+  const selectedKey = useRef<string | null>(null);
   const sequence = useRef(0);
   const presentation = useRef({
     opacity,
-    reducedMotion,
     onDisplayedFrame,
     onFailedImage,
   });
@@ -78,11 +77,10 @@ export function RadarMap({
   useEffect(() => {
     presentation.current = {
       opacity,
-      reducedMotion,
       onDisplayedFrame,
       onFailedImage,
     };
-  }, [opacity, reducedMotion, onDisplayedFrame, onFailedImage]);
+  }, [opacity, onDisplayedFrame, onFailedImage]);
   // App da al mapa key=radar.id. Renovar el catálogo no recrea el mapa ni su cámara.
   useEffect(() => {
     if (!containerRef.current) return;
@@ -161,8 +159,11 @@ export function RadarMap({
       }
       setMapReady(true);
     });
+    const cachedLayers = layers.current;
     return () => {
       sequence.current += 1;
+      cachedLayers.clear();
+      active.current = null;
       mapRef.current = null;
       debugMarkerRef.current = null;
       map.remove();
@@ -185,112 +186,125 @@ export function RadarMap({
     });
   }, [recenterRequest, radar, cameraInsets]);
 
+  // Devuelve la capa del fotograma, creándola oculta si aún no existe.
+  const ensureLayer = useCallback(
+    (map: MapLibreMap, frame: RadarTimelineFrame): FrameLayer => {
+      const key = frameKey(frame);
+      const existing = layers.current.get(key);
+      if (existing) return existing;
+      const layer: FrameLayer = {
+        id: `radar-frame-${nextLayerId.current++}`,
+        loaded: false,
+        ready: Promise.resolve(),
+      };
+      layer.ready = prepareMapImage(
+        map,
+        layer.id,
+        frame.imageUrl,
+        frame.imageCoordinates,
+      ).then(
+        () => {
+          layer.loaded = true;
+          // Cambio instantáneo: un fundido cruzado atenúa ambas capas a la vez.
+          map.setPaintProperty(layer.id, 'raster-opacity-transition', {
+            duration: 0,
+            delay: 0,
+          });
+        },
+        (error: unknown) => {
+          if (layers.current.get(key) === layer) layers.current.delete(key);
+          if (mapRef.current === map) removeMapImage(map, layer.id);
+          throw error;
+        },
+      );
+      layers.current.set(key, layer);
+      return layer;
+    },
+    [],
+  );
+
   useEffect(() => {
-    const attempt = ++sequence.current; // También invalida B al volver a A o a un hueco.
+    const attempt = ++sequence.current; // Invalida cargas pendientes de selecciones previas.
+    selectedKey.current = selectedFrame ? frameKey(selectedFrame) : null;
     const map = mapRef.current;
     if (!mapReady || !map) return;
     setFailedImageUrl(null);
-    const announce = (frame: RadarTimelineFrame | null) => {
-      if (sequence.current !== attempt || mapRef.current !== map) return;
-      setDisplayed(frame);
-      presentation.current.onDisplayedFrame(frame);
-      if (frame) recordRadarRendered(frame.imageUrl);
+    let rendered: (() => void) | null = null;
+    const display = (
+      layerId: string | null,
+      frame: RadarTimelineFrame | null,
+    ) => {
+      active.current = layerId;
+      showLayer(map, layers.current, layerId, presentation.current.opacity);
+      rendered = () => {
+        if (sequence.current !== attempt || mapRef.current !== map) return;
+        setDisplayed(frame);
+        presentation.current.onDisplayedFrame(frame);
+        if (frame) recordRadarRendered(frame.imageUrl);
+      };
+      map.once('render', rendered);
+      map.triggerRepaint();
     };
     if (!selectedFrame) {
-      for (const id of RADAR_IDS)
-        if (map.getLayer(id)) map.setPaintProperty(id, 'raster-opacity', 0);
-      active.current = null;
-      const cleared = () => announce(null);
-      map.once('render', cleared);
-      map.triggerRepaint();
-      return () => {
-        map.off('render', cleared);
-      };
+      display(null, null);
+    } else {
+      const layer = ensureLayer(map, selectedFrame);
+      if (layer.loaded) {
+        display(layer.id, selectedFrame);
+      } else {
+        // Mientras carga se conserva visible el fotograma anterior.
+        layer.ready.then(
+          () => {
+            if (sequence.current === attempt && mapRef.current === map)
+              display(layer.id, selectedFrame);
+          },
+          () => {
+            if (sequence.current !== attempt || mapRef.current !== map) return;
+            setFailedImageUrl(selectedFrame.imageUrl);
+            presentation.current.onFailedImage(selectedFrame.imageUrl);
+          },
+        );
+      }
     }
-    const key = JSON.stringify([
-      selectedFrame.imageUrl,
-      selectedFrame.imageCoordinates,
-    ]);
-    if (active.current?.key === key) {
-      active.current.frame = selectedFrame;
-      const unchanged = () => announce(selectedFrame);
-      map.once('render', unchanged);
-      map.triggerRepaint();
-      return () => {
-        map.off('render', unchanged);
-      };
-    }
-    const controller = new AbortController();
-    const incoming = active.current?.slot === 0 ? 1 : 0;
-    const id = RADAR_IDS[incoming];
-    let committed = false;
-    const acknowledge = () => {
-      if (sequence.current !== attempt || mapRef.current !== map) return;
-      setDisplayed(selectedFrame);
-      presentation.current.onDisplayedFrame(selectedFrame);
-      recordRadarRendered(selectedFrame.imageUrl);
-    };
-    void prepareMapImage(
-      map,
-      id,
-      selectedFrame.imageUrl,
-      selectedFrame.imageCoordinates,
-      controller.signal,
-    )
-      .then(() => {
-        if (
-          sequence.current !== attempt ||
-          controller.signal.aborted ||
-          mapRef.current !== map
-        )
-          return;
-        const { opacity: alpha, reducedMotion: reduced } = presentation.current;
-        for (const layer of RADAR_IDS)
-          if (map.getLayer(layer)) {
-            map.setPaintProperty(layer, 'raster-opacity-transition', {
-              duration: reduced ? 0 : 180,
-              delay: 0,
-            });
-            map.setPaintProperty(
-              layer,
-              'raster-opacity',
-              layer === id ? alpha : 0,
-            );
-          }
-        active.current = { slot: incoming, key, frame: selectedFrame };
-        committed = true;
-        map.once('render', acknowledge);
-        map.triggerRepaint();
-      })
-      .catch((error: unknown) => {
-        if (
-          !controller.signal.aborted &&
-          sequence.current === attempt &&
-          mapRef.current === map
-        ) {
-          setFailedImageUrl(selectedFrame.imageUrl);
-          presentation.current.onFailedImage(selectedFrame.imageUrl);
-          removeMapImage(map, id);
-        }
-        void error;
-      });
     return () => {
-      controller.abort();
-      map.off('render', acknowledge);
-      if (!committed && mapRef.current === map) removeMapImage(map, id);
+      if (rendered) map.off('render', rendered);
     };
-  }, [mapReady, selectedFrame]);
+  }, [ensureLayer, mapReady, selectedFrame]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map) return;
+    const wanted = new Set(frames.map(frameKey));
+    for (const [key, layer] of layers.current)
+      if (
+        !wanted.has(key) &&
+        key !== selectedKey.current &&
+        layer.id !== active.current
+      ) {
+        layers.current.delete(key);
+        removeMapImage(map, layer.id);
+      }
+    let cancelled = false;
+    void (async () => {
+      // Del más reciente al más antiguo, uno a uno, para no competir con la selección.
+      for (const frame of [...frames].reverse()) {
+        if (cancelled || mapRef.current !== map) return;
+        try {
+          await ensureLayer(map, frame).ready;
+        } catch {
+          // El fallo se muestra solo si el usuario selecciona ese fotograma.
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ensureLayer, frames, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!mapReady || !map || !active.current) return;
-    for (const [slot, id] of RADAR_IDS.entries())
-      if (map.getLayer(id))
-        map.setPaintProperty(
-          id,
-          'raster-opacity',
-          slot === active.current.slot ? opacity : 0,
-        );
+    showLayer(map, layers.current, active.current, opacity);
   }, [mapReady, opacity]);
 
   useEffect(() => {
@@ -327,8 +341,8 @@ export function RadarMap({
     )
       .then(() => {
         if (controller.signal.aborted || mapRef.current !== map) return;
-        const radarLayer = RADAR_IDS.find((id) => map.getLayer(id));
-        if (radarLayer) map.moveLayer(NO_COVERAGE_ID, radarLayer);
+        if (active.current && map.getLayer(active.current))
+          map.moveLayer(NO_COVERAGE_ID, active.current);
         map.setPaintProperty(NO_COVERAGE_ID, 'raster-opacity', 0.3);
       })
       .catch(() => {
@@ -428,4 +442,29 @@ function debugSource(radar: RadarIndexEntry): GeoJSONSourceSpecification {
       },
     },
   };
+}
+
+interface FrameLayer {
+  id: string;
+  loaded: boolean;
+  ready: Promise<void>;
+}
+
+function frameKey(frame: RadarTimelineFrame): string {
+  return JSON.stringify([frame.imageUrl, frame.imageCoordinates]);
+}
+
+function showLayer(
+  map: MapLibreMap,
+  layers: Map<string, FrameLayer>,
+  visibleId: string | null,
+  opacity: number,
+): void {
+  for (const { id } of layers.values())
+    if (map.getLayer(id))
+      map.setPaintProperty(
+        id,
+        'raster-opacity',
+        id === visibleId ? opacity : 0,
+      );
 }

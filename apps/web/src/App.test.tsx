@@ -12,36 +12,24 @@ import { useEffect } from 'react';
 import { App } from './App';
 import { formatDataAge } from './dataFreshness';
 import type { RadarIndexEntry } from './radarIndex';
-import type { RadarTimelineFrame, TimelineSlot } from './radarManifest';
+import type { RadarTimelineFrame } from './radarManifest';
 import { cacheKey } from './resilientData';
 import { AUTO_REFRESH_MILLISECONDS } from './useRadarData';
-
-const { preloadSpy } = vi.hoisted(() => ({
-  preloadSpy: vi.fn((slots: TimelineSlot[], selectedIndex: number) => {
-    void slots;
-    void selectedIndex;
-    return vi.fn();
-  }),
-}));
-
-vi.mock('./framePreloader', () => ({
-  preloadInPriorityOrder: preloadSpy,
-}));
 
 vi.mock('./RadarMap', () => ({
   RadarMap: ({
     radar,
     selectedFrame,
+    frames,
     opacity,
     showDebug,
-    reducedMotion,
     onDisplayedFrame,
   }: {
     radar: RadarIndexEntry;
     selectedFrame: RadarTimelineFrame | null;
+    frames: readonly RadarTimelineFrame[];
     opacity: number;
     showDebug: boolean;
-    reducedMotion: boolean;
     onDisplayedFrame: (frame: RadarTimelineFrame | null) => void;
   }) => {
     useEffect(
@@ -55,7 +43,7 @@ vi.mock('./RadarMap', () => ({
         data-frame={selectedFrame?.id ?? 'none'}
         data-opacity={opacity}
         data-debug={showDebug}
-        data-reduced-motion={reducedMotion}
+        data-frames={frames.map((frame) => frame.imageUrl).join(' ')}
       />
     );
   },
@@ -239,7 +227,6 @@ describe('App radar', () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
-    preloadSpy.mockClear();
   });
 
   it('carga la composición y los 15 radares, y abre Murcia por defecto', async () => {
@@ -425,29 +412,27 @@ describe('App radar', () => {
     mockRadarFetches();
     render(<App />);
     await screen.findByRole('heading', { name: 'Radar Murcia' });
-    await waitFor(() => expect(preloadSpy).toHaveBeenCalled());
 
     fireEvent.change(screen.getByLabelText('Fuente radar'), {
       target: { value: 'regional-am' },
     });
     await screen.findByRole('heading', { name: 'Radar Almería' });
     await waitFor(() => {
-      const lastSlots = preloadSpy.mock.calls.at(-1)?.[0];
-      expect(
-        lastSlots?.every(
-          (slot) =>
-            slot.kind === 'gap' ||
-            slot.frame.imageUrl.includes('/radar/regional-am/'),
-        ),
-      ).toBe(true);
+      const urls = screen
+        .getByTestId('radar-map')
+        .getAttribute('data-frames')
+        ?.split(' ');
+      expect(urls?.length).toBeGreaterThan(0);
+      expect(urls?.every((url) => url.includes('/radar/regional-am/'))).toBe(
+        true,
+      );
     });
 
-    const callsWithData = preloadSpy.mock.calls.length;
     fireEvent.change(screen.getByLabelText('Fuente radar'), {
       target: { value: 'regional-co' },
     });
     await screen.findByText('Sin imágenes disponibles ahora');
-    expect(preloadSpy).toHaveBeenCalledTimes(callsWithData);
+    expect(screen.getByTestId('radar-map')).toHaveAttribute('data-frames', '');
   });
 
   it('mantiene seleccionable un radar sin datos y oculta el reproductor', async () => {
@@ -506,14 +491,13 @@ describe('App radar', () => {
       'data-radar',
       'national',
     );
-    expect(preloadSpy.mock.calls.at(-1)?.[0]).toSatisfy(
-      (slots: TimelineSlot[]) =>
-        slots.every(
-          (slot) =>
-            slot.kind === 'gap' ||
-            slot.frame.imageUrl.includes('/radar/national/'),
-        ),
-    );
+    expect(
+      screen
+        .getByTestId('radar-map')
+        .getAttribute('data-frames')
+        ?.split(' ')
+        .every((url) => url.includes('/radar/national/')),
+    ).toBe(true);
     expect(fetchMock).toHaveBeenCalledWith(
       '/radar/national/manifest.json',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),

@@ -12,7 +12,6 @@ import {
 import { formatDataAge } from './dataFreshness';
 import { radarStatus } from './radarStatus';
 import { DbzLegend } from './DbzLegend';
-import { preloadInPriorityOrder } from './framePreloader';
 import { recordAppReady } from './performanceMetrics';
 import type { RadarCameraInsets } from './radarCamera';
 import type { RadarHealthStatus } from './radarHealth';
@@ -38,6 +37,7 @@ const SPEEDS = {
 } as const;
 const LAST_FRAME_PAUSE_FACTOR = 2.4;
 const OPACITY_KEY = 'aemet-radar:opacity';
+const NO_FRAMES: readonly RadarTimelineFrame[] = [];
 
 type PlaybackSpeed = keyof typeof SPEEDS;
 
@@ -225,13 +225,6 @@ export function App() {
       window.removeEventListener('beforeinstallprompt', captureInstallPrompt);
     };
   }, []);
-
-  useEffect(() => {
-    if (slots.length === 0) {
-      return;
-    }
-    return preloadInPriorityOrder(slots, selectedIndex);
-  }, [selectedIndex, slots]);
 
   useEffect(() => {
     if (
@@ -549,13 +542,13 @@ export function App() {
             key={selectedRadar.id}
             radar={selectedRadar}
             selectedFrame={mapFrame}
+            frames={manifest?.frames ?? NO_FRAMES}
             opacity={opacity}
             showDebug={showDebug}
             showNoCoverage={showNoCoverage}
             recenterRequest={recenterRequest}
             onDisplayedFrame={onDisplayedFrame}
             onFailedImage={setFailedImage}
-            reducedMotion={reducedMotion}
             userCoordinates={userCoordinates}
             cameraInsets={mapInsets}
           />
