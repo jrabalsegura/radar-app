@@ -627,3 +627,20 @@ del worker, para no sumar otros 10 minutos de antigüedad aparente.
 
 **Motivo:** que «Retrasado» y `degraded` indiquen un problema real y no la
 cadencia de publicación normal de AEMET.
+
+## ADR-033 — Fotogramas precargados como capas y cambio instantáneo
+
+**Estado:** propuesta el 26 de septiembre de 2026.
+
+El mapa alternaba dos fuentes: cada cambio de instante descargaba, decodificaba
+y subía de nuevo la imagen, y un fundido de 180 ms dejaba ambas capas
+semitransparentes a la vez, atenuando la reflectividad. Al mantener pulsada una
+flecha, cada repetición cancelaba la carga anterior. El resultado era parpadeo.
+
+Cada fotograma del historial se carga una vez como capa oculta, del más reciente
+al más antiguo, y cambiar de instante solo cambia opacidades, sin fundido. Se
+elimina el precargador HTTP de imágenes, que queda redundante. Las capas que
+salen del manifiesto se liberan al renovarlo.
+
+**Motivo:** animación fluida y sin parpadeo; cada observación sigue mostrándose
+tal cual, sin interpolar.

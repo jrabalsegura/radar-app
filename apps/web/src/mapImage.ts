@@ -9,7 +9,7 @@ export function prepareMapImage(
   id: string,
   url: string,
   coordinates: MapCoordinates,
-  signal: AbortSignal,
+  signal?: AbortSignal,
 ): Promise<void> {
   removeMapImage(map, id);
   return new Promise((resolve, reject) => {
@@ -17,7 +17,7 @@ export function prepareMapImage(
       clearTimeout(timer);
       map.off('sourcedata', loaded);
       map.off('error', failed);
-      signal.removeEventListener('abort', aborted);
+      signal?.removeEventListener('abort', aborted);
       if (error) reject(error);
       else resolve();
     };
@@ -37,8 +37,8 @@ export function prepareMapImage(
     );
     map.on('sourcedata', loaded);
     map.on('error', failed);
-    signal.addEventListener('abort', aborted, { once: true });
-    if (signal.aborted) {
+    signal?.addEventListener('abort', aborted, { once: true });
+    if (signal?.aborted) {
       aborted();
       return;
     }
