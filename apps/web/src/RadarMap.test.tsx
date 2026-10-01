@@ -241,6 +241,49 @@ describe('RadarMap: fuentes reales y cámara', () => {
     ]);
     expect(input.onDisplayedFrame).toHaveBeenLastCalledWith(frame('C'));
   });
+  it('tras perder el contexto WebGL recarga el historial en vez de mostrar capas vacías', async () => {
+    const input = props();
+    render(
+      <RadarMap
+        {...input}
+        selectedFrame={frame('B')}
+        frames={[frame('A'), frame('B')]}
+      />,
+    );
+    act(() => {
+      maps[0]!.fire('style.load');
+    });
+    await load('radar-frame-0');
+    await load('radar-frame-1');
+    expect(frameSources()).toHaveLength(2);
+
+    act(() => {
+      maps[0]!.fire('webglcontextlost');
+    });
+    expect(document.querySelector('.map-stage')).toHaveAttribute(
+      'data-map-ready',
+      'false',
+    );
+    act(() => {
+      maps[0]!.fire('webglcontextrestored');
+      maps[0]!.fire('style.load');
+    });
+    expect(maps[0]!.layers.has('radar-frame-0')).toBe(false);
+    expect(maps[0]!.layers.has('radar-frame-1')).toBe(false);
+    await load('radar-frame-2');
+    await load('radar-frame-3');
+
+    expect(frameSources().slice(2)).toEqual([
+      '/radar/regional-mu/B.png',
+      '/radar/regional-mu/A.png',
+    ]);
+    expect(maps[0]!.setPaintProperty).toHaveBeenCalledWith(
+      'radar-frame-2',
+      'raster-opacity',
+      0.7,
+    );
+    expect(input.onDisplayedFrame).toHaveBeenLastCalledWith(frame('B'));
+  });
   it('cancela una descarga al seleccionar un hueco sin imagen anterior', async () => {
     const input = props();
     const view = render(<RadarMap {...input} />);

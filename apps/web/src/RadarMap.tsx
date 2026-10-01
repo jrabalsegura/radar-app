@@ -159,6 +159,23 @@ export function RadarMap({
       }
       setMapReady(true);
     });
+    // Los móviles liberan el contexto WebGL de una app en segundo plano. MapLibre
+    // restaura el estilo, pero sus fuentes imagen vuelven a cargar a la vez y
+    // sin avisar: los fotogramas «cargados» se verían vacíos. Se descartan y se
+    // recargan como al abrir la app, conservando cada uno hasta que está listo.
+    map.on('webglcontextlost', () => {
+      sequence.current += 1;
+      setMapReady(false);
+    });
+    map.on('webglcontextrestored', () => {
+      map.once('style.load', () => {
+        for (const { id } of layers.current.values()) removeMapImage(map, id);
+        layers.current.clear();
+        active.current = null;
+        removeMapImage(map, NO_COVERAGE_ID);
+        setMapReady(true);
+      });
+    });
     const cachedLayers = layers.current;
     return () => {
       sequence.current += 1;
