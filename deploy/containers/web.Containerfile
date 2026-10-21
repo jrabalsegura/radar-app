@@ -1,4 +1,4 @@
-FROM docker.io/library/node:22.17.1-alpine AS builder
+FROM docker.io/library/node:22.23.3-alpine AS builder
 
 ARG VITE_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty
 ENV VITE_MAP_STYLE_URL=${VITE_MAP_STYLE_URL}
@@ -12,7 +12,7 @@ RUN npm run build \
     && test -f dist/index.html \
     && rm -rf dist/radar dist/status
 
-FROM docker.io/library/nginx:1.28.0-alpine AS runtime
+FROM docker.io/library/nginx:1.31.7-alpine AS runtime
 
 ARG APP_UID=10001
 ARG APP_GID=10001

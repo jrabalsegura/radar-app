@@ -1,4 +1,4 @@
-FROM docker.io/library/python:3.13.5-slim-bookworm AS builder
+FROM docker.io/library/python:3.14.7-slim-bookworm AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -26,7 +26,7 @@ RUN python -m pip install \
       wheel \
       packaging
 
-FROM docker.io/library/python:3.13.5-slim-bookworm AS runtime
+FROM docker.io/library/python:3.14.7-slim-bookworm AS runtime
 
 ARG APP_UID=10001
 ARG APP_GID=10001
