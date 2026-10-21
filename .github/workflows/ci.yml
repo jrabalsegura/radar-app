@@ -134,7 +134,7 @@ jobs:
             --publish 127.0.0.1:8080:8080 \
             --volume "$GITHUB_WORKSPACE/apps/web/public:/data:ro" \
             aemet-radar-web:ci
-          curl --fail --silent --retry 10 --retry-connrefused --retry-delay 1 \
+          curl --fail --silent --retry 10 --retry-all-errors --retry-delay 1 \
             http://127.0.0.1:8080/healthz
           ./deploy/scripts/smoke-test.sh http://127.0.0.1:8080
 
