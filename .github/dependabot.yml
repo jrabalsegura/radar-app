@@ -54,7 +54,7 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "python"
+      - dependency-name: "library/python"
         update-types: ["version-update:semver-minor"]
     groups:
       docker-monthly:
