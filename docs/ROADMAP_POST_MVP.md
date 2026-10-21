@@ -1319,3 +1319,37 @@ El desarrollo post-MVP podrá considerarse cerrado cuando:
 8. ubicación y preferencias se traten de forma privada;
 9. existan pruebas, health, logs, runbooks y rollback;
 10. la interfaz continúe siendo sencilla y centrada en el radar.
+
+---
+
+# Mantenimiento
+
+Fases de mantenimiento: versiones mayores que Dependabot no propone (ver
+«Mantenimiento» en `docs/DEPLOY.md` §12). No dependen de las fases 10-17: se
+pueden hacer en cualquier momento, cada una en su rama.
+
+## Fase M1 — Node 24 en el build de la web
+
+### Objetivo
+
+Compilar la web con Node 24 antes de que Node 22 deje de recibir parches
+(30-04-2027). En producción la web la sirve nginx, así que Node solo se usa
+para compilar; la CI ya usa Node 24 y el desfase es solo de la imagen.
+
+### Alcance
+
+- `deploy/containers/web.Containerfile`: la etapa `builder` a la última
+  `node:24.x-alpine` (fija la versión exacta, como ahora).
+- `apps/web/package.json`: `engines.node` a `>=24`.
+
+### Exclusiones
+
+- Cambios en el worker (Python) o en nginx.
+
+### Criterios de aceptación
+
+- CI en verde, incluido el job *Container images* (build, smoke test con
+  nginx y validación de Quadlets).
+- La imagen web compila con Node 24 y su contenido funciona igual: smoke test
+  local con `make docker-test`.
+- Desplegada según `docs/DEPLOY.md` §12 y smoke test público correcto.
