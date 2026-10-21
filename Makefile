@@ -16,7 +16,7 @@ web-install:
 	npm --prefix $(WEB_DIR) ci
 
 worker-install: $(VENV)/bin/python
-	$(VENV)/bin/python -m pip install --requirement $(WORKER_DIR)/requirements-dev.lock
+	$(VENV)/bin/python -m pip install --requirement $(WORKER_DIR)/requirements-dev.txt
 	$(VENV)/bin/python -m pip install --force-reinstall --no-deps --no-build-isolation $(WORKER_DIR)
 
 $(VENV)/bin/python:

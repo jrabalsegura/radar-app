@@ -8,12 +8,12 @@ RUN python -m venv "${VIRTUAL_ENV}"
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 WORKDIR /build
-COPY apps/worker/requirements-prod.lock apps/worker/requirements-prod.lock
+COPY apps/worker/requirements-prod.txt apps/worker/requirements-prod.txt
 RUN python -m pip install \
       setuptools==83.0.0 \
       wheel==0.47.0 \
       packaging==26.2 \
-      --requirement apps/worker/requirements-prod.lock
+      --requirement apps/worker/requirements-prod.txt
 
 COPY apps/worker apps/worker
 RUN python -m pip install \

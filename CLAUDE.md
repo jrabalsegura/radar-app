@@ -31,7 +31,7 @@ AEMET (visor PPI/compo + OpenData fallback)
 ## Comandos
 
 ```bash
-make install            # npm ci + .venv con requirements-dev.lock
+make install            # npm ci + .venv con requirements-dev.txt
 make check              # lint + formato + tipos + tests + build (antes de cada commit)
 make format             # prettier + ruff format
 .venv/bin/pytest apps/worker/tests/test_runner.py -q    # un test concreto

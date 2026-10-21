@@ -1,5 +1,5 @@
 # Dependencias de ejecución exactas para la imagen del worker.
-# Mantener sincronizado con pyproject.toml y requirements-dev.lock.
+# Mantener sincronizado con pyproject.toml y requirements-dev.txt.
 anyio==4.14.2
 certifi==2026.7.22
 h11==0.16.0

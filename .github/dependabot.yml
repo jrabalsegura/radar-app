@@ -1,0 +1,71 @@
+# Actualizaciones de dependencias (ver docs/DEPLOY.md §12, "Mantenimiento").
+# - Seguridad: un PR en cuanto hay aviso, agrupado por ecosistema.
+# - Menores y parches: un PR agrupado al mes por ecosistema.
+# - Versiones mayores y saltos de Python (3.14): a mano.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: Europe/Madrid
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
+      npm-monthly:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # requirements-dev.txt y requirements-prod.txt (versiones exactas) y
+  # pyproject.toml del worker.
+  - package-ecosystem: pip
+    directory: /apps/worker
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: Europe/Madrid
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      pip-security:
+        applies-to: security-updates
+        patterns: ["*"]
+      pip-monthly:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Imágenes base de deploy/containers (node, nginx, python).
+  - package-ecosystem: docker
+    directory: /deploy/containers
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: Europe/Madrid
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "python"
+        update-types: ["version-update:semver-minor"]
+    groups:
+      docker-monthly:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: Europe/Madrid
+    groups:
+      actions-monthly:
+        patterns: ["*"]
