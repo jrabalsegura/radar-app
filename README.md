@@ -26,7 +26,7 @@ existente está en [PRUEBAS_Y_DESPLIEGUE.md](docs/PRUEBAS_Y_DESPLIEGUE.md).
 
 ## Requisitos
 
-- Node.js 22.12 o posterior y npm 10 o posterior.
+- Node.js 24 o posterior y npm 10 o posterior.
 - Python 3.12 o posterior.
 - GNU Make (opcional, pero recomendado para usar los comandos uniformes).
 

@@ -1,4 +1,4 @@
-FROM docker.io/library/node:22.23.3-alpine AS builder
+FROM docker.io/library/node:24.22.0-alpine AS builder
 
 ARG VITE_MAP_STYLE_URL=https://tiles.openfreemap.org/styles/liberty
 ENV VITE_MAP_STYLE_URL=${VITE_MAP_STYLE_URL}
