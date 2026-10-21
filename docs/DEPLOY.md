@@ -131,7 +131,7 @@ git add \
   .github/workflows/ci.yml \
   Makefile \
   README.md \
-  apps/worker/requirements-prod.lock \
+  apps/worker/requirements-prod.txt \
   compose.yaml \
   deploy \
   docs/DECISIONS.md \
@@ -585,6 +585,16 @@ ya modificó eliminaría el virtual host HTTPS. Si un cambio requiere modificar
 nginx, trátalo como una operación separada: conserva primero la copia instalada,
 integra el cambio sobre ella, ejecuta `sudo nginx -t` y solo entonces recarga
 nginx.
+
+### Mantenimiento
+
+Dependabot (`.github/dependabot.yml`) abre PRs agrupados de npm (`apps/web`),
+pip (`apps/worker/requirements-*.txt`), las imágenes base y las GitHub Actions:
+los de seguridad al momento y los de versiones menores y parches el día 1 de
+cada mes. Las versiones mayores y Python 3.14 se cambian a mano. Una vez al
+mes, fusiona los PRs con la CI en verde y actualiza con este mismo
+procedimiento aunque no haya cambios propios, para recoger los parches de las
+imágenes base.
 
 ## 13. Rollback
 

@@ -38,14 +38,14 @@ make install
 
 El frontend se instala con `npm ci` y su `package-lock.json`. El entorno de
 desarrollo Python se crea en `.venv`, usa las versiones exactas de
-`apps/worker/requirements-dev.lock` e instala el worker como paquete local.
+`apps/worker/requirements-dev.txt` e instala el worker como paquete local.
 
 Sin Make, los comandos equivalentes son:
 
 ```bash
 npm --prefix apps/web ci
 python3 -m venv .venv
-.venv/bin/python -m pip install --requirement apps/worker/requirements-dev.lock
+.venv/bin/python -m pip install --requirement apps/worker/requirements-dev.txt
 .venv/bin/python -m pip install --force-reinstall --no-deps --no-build-isolation apps/worker
 ```
 
